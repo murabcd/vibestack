@@ -1,4 +1,4 @@
-import { type ChatUIMessage } from '@/components/chat/types'
+import type { ChatUIMessage } from '@/components/chat/types'
 import {
   convertToModelMessages,
   createUIMessageStream,

@@ -1,8 +1,9 @@
-import { Models } from '@/ai/constants'
 import { NextResponse } from 'next/server'
 import { checkBotId } from 'botid/server'
 import { generateObject } from 'ai'
 import { linesSchema, resultSchema } from '@/components/error-monitor/schemas'
+import { getModelOptions } from '@/ai/gateway'
+import { Models } from '@/ai/constants'
 import prompt from './prompt.md'
 
 export async function POST(req: Request) {
@@ -17,17 +18,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Invalid request` }, { status: 400 })
   }
 
+  const { model, providerOptions } = getModelOptions(Models.AnthropicClaude45Haiku, {
+    reasoningEffort: 'minimal',
+  })
+
   const result = await generateObject({
     system: prompt,
-    model: Models.OpenAIGPT5,
-    providerOptions: {
-      openai: {
-        include: ['reasoning.encrypted_content'],
-        reasoningEffort: 'minimal',
-        reasoningSummary: 'auto',
-        serviceTier: 'priority',
-      },
-    },
+    model,
+    providerOptions,
     messages: [{ role: 'user', content: JSON.stringify(parsedBody.data) }],
     schema: resultSchema,
   })
