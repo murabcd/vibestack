@@ -1,6 +1,6 @@
 import type { UIMessageStreamWriter, UIMessage } from 'ai'
 import type { DataPart } from '../messages/data-parts'
-import { Command, Sandbox } from '@vercel/sandbox'
+import { type Command, Sandbox } from '@vercel/sandbox'
 import { getRichError } from './get-rich-error'
 import { tool } from 'ai'
 import description from './run-command.md'

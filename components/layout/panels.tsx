@@ -15,9 +15,9 @@ export function Horizontal({ defaultLayout, left, right }: HProps) {
   }
   return (
     <PanelGroup direction="horizontal" onLayout={onLayout}>
-      <Panel defaultSize={defaultLayout[0]}>{left}</Panel>
+      <Panel defaultSize={defaultLayout[0]} minSize={20}>{left}</Panel>
       <PanelResizeHandle className="w-2" />
-      <Panel defaultSize={defaultLayout[1]}>{right}</Panel>
+      <Panel defaultSize={defaultLayout[1]} minSize={30}>{right}</Panel>
     </PanelGroup>
   )
 }

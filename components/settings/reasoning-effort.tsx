@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Models } from "@/ai/constants";
+import { Models } from "@/lib/ai/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useModelId, useReasoningEffort } from "./use-settings";
@@ -25,9 +25,11 @@ export function ReasoningEffort() {
 	};
 
 	return (
-		<button
-			type="button"
-			className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded p-2 -m-2 w-full text-left"
+		// biome-ignore lint/a11y/useSemanticElements: Using div for layout flexibility while maintaining button semantics
+		<div
+			className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded p-2 -m-2"
+			role="button"
+			tabIndex={0}
 			onClick={toggleEffort}
 			onKeyDown={handleKeyDown}
 		>
@@ -35,8 +37,8 @@ export function ReasoningEffort() {
 				<Label className="text-sm text-foreground" htmlFor={id}>
 					Higher Effort Level
 				</Label>
-				<p className="text-sm text-muted-foreground leading-relaxed">
-					With Claude 4.5 Haiku, you can request higher reasoning effort level.
+				<p className="text-xs text-muted-foreground leading-relaxed">
+					Request higher reasoning effort level.
 				</p>
 			</div>
 			<Checkbox
@@ -47,6 +49,6 @@ export function ReasoningEffort() {
 					setEffort(checked === true ? "medium" : "low")
 				}
 			/>
-		</button>
+		</div>
 	);
 }

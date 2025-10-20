@@ -1,6 +1,6 @@
 'use client'
 
-import { type Line } from './schemas'
+import type { Line } from './schemas'
 import {
   createContext,
   useCallback,

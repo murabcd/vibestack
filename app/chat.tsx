@@ -1,22 +1,30 @@
 "use client";
 
 import type { ChatUIMessage } from "@/components/chat/types";
-import { TEST_PROMPTS } from "@/ai/constants";
-import { MessageCircleIcon, SendIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TEST_PROMPTS } from "@/lib/ai/constants";
+import { MessageCircleIcon } from "lucide-react";
 import {
 	Conversation,
 	ConversationContent,
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Input } from "@/components/ui/input";
+import {
+	PromptInput,
+	PromptInputBody,
+	PromptInputFooter,
+	PromptInputProvider,
+	PromptInputTools,
+	PromptInputSubmit,
+	PromptInputTextarea,
+	usePromptInputController,
+} from "@/components/ui/prompt-input";
 import { Message } from "@/components/chat/message";
 import { ModelSelector } from "@/components/settings/model-selector";
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { Settings } from "@/components/settings/settings";
 import { useChat } from "@ai-sdk/react";
-import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { useCallback, useEffect } from "react";
+import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useSettings } from "@/components/settings/use-settings";
 import { useSandboxStore } from "./state";
@@ -26,21 +34,29 @@ interface Props {
 	modelId?: string;
 }
 
-export function Chat({ className }: Props) {
-	const [input, setInput] = useLocalStorageValue("prompt-input");
+function ChatInner({ className }: Props) {
 	const { chat } = useSharedChatContext();
 	const { modelId, reasoningEffort } = useSettings();
 	const { messages, sendMessage, status } = useChat<ChatUIMessage>({ chat });
 	const { setChatStatus } = useSandboxStore();
+	const controller = usePromptInputController();
+	const [input, setInput] = useLocalStorageValue("prompt-input");
+
+	useEffect(() => {
+		const currentValue = controller.textInput.value;
+		if (currentValue !== input) {
+			setInput(currentValue);
+		}
+	}, [controller.textInput.value, input, setInput]);
 
 	const validateAndSubmitMessage = useCallback(
 		(text: string) => {
 			if (text.trim()) {
 				sendMessage({ text }, { body: { modelId, reasoningEffort } });
-				setInput("");
+				controller.textInput.clear();
 			}
 		},
-		[sendMessage, modelId, setInput, reasoningEffort],
+		[sendMessage, modelId, controller.textInput, reasoningEffort],
 	);
 
 	useEffect(() => {
@@ -50,18 +66,17 @@ export function Chat({ className }: Props) {
 	return (
 		<Panel className={className}>
 			<PanelHeader>
-				<div className="flex items-center font-mono font-semibold uppercase">
-					<MessageCircleIcon className="mr-2 w-4" />
+				<div className="flex items-center text-xs">
+					<MessageCircleIcon className="w-3 mr-1.5" />
 					Chat
 				</div>
-				<div className="ml-auto font-mono text-xs opacity-50">[{status}]</div>
+				<div className="ml-auto text-xs text-muted-foreground">[{status}]</div>
 			</PanelHeader>
 
-			{/* Messages Area */}
 			{messages.length === 0 ? (
 				<div className="flex-1 min-h-0">
-					<div className="flex flex-col justify-center items-center h-full font-mono text-sm text-muted-foreground">
-						<p className="flex items-center font-semibold">
+					<div className="flex flex-col justify-center items-center h-full text-sm text-muted-foreground">
+						<p className="flex items-center">
 							Click and try one of these prompts:
 						</p>
 						<div className="p-4 space-y-1 text-center">
@@ -70,7 +85,9 @@ export function Chat({ className }: Props) {
 									key={prompt}
 									type="button"
 									className="block w-full px-4 py-2 rounded-sm border border-dashed shadow-sm cursor-pointer border-border hover:bg-secondary/50 hover:text-primary text-left"
-									onClick={() => validateAndSubmitMessage(prompt)}
+									onClick={() => {
+										controller.textInput.setInput(prompt);
+									}}
 								>
 									{prompt}
 								</button>
@@ -89,26 +106,43 @@ export function Chat({ className }: Props) {
 				</Conversation>
 			)}
 
-			<form
-				className="flex items-center p-2 space-x-1 border-t border-primary/18 bg-background"
-				onSubmit={async (event) => {
-					event.preventDefault();
-					validateAndSubmitMessage(input);
-				}}
-			>
-				<Settings />
-				<ModelSelector />
-				<Input
-					className="w-full font-mono text-sm rounded-sm border-0 bg-background"
-					disabled={status === "streaming" || status === "submitted"}
-					onChange={(e) => setInput(e.target.value)}
-					placeholder="Type your message..."
-					value={input}
-				/>
-				<Button type="submit" disabled={status !== "ready" || !input.trim()}>
-					<SendIcon className="w-4 h-4" />
-				</Button>
-			</form>
+			<div className="p-4">
+				<PromptInput
+					onSubmit={(message, event) => {
+						event.preventDefault();
+						validateAndSubmitMessage(message.text || "");
+					}}
+				>
+					<PromptInputBody>
+						<PromptInputTextarea
+							placeholder="Type your message..."
+							disabled={status === "streaming" || status === "submitted"}
+						/>
+					</PromptInputBody>
+					<PromptInputFooter>
+						<PromptInputTools>
+							<Settings />
+							<ModelSelector />
+						</PromptInputTools>
+						<PromptInputSubmit
+							status={status}
+							disabled={
+								status !== "ready" || !controller.textInput.value.trim()
+							}
+						/>
+					</PromptInputFooter>
+				</PromptInput>
+			</div>
 		</Panel>
+	);
+}
+
+export function Chat(props: Props) {
+	const [storedInput] = useLocalStorageValue("prompt-input");
+
+	return (
+		<PromptInputProvider initialInput={storedInput || ""}>
+			<ChatInner {...props} />
+		</PromptInputProvider>
 	);
 }
