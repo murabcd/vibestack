@@ -1,7 +1,7 @@
 export enum Models {
 	AnthropicClaude45Sonnet = "anthropic/claude-sonnet-4.5",
 	AnthropicClaude4Sonnet = "anthropic/claude-4-sonnet",
-	AnthropicClaude45Haiku = "anthropic/claude-haiku-4-5-20251001",
+	AnthropicClaude45Haiku = "anthropic/claude-haiku-4-5",
 }
 
 export const DEFAULT_MODEL = Models.AnthropicClaude45Sonnet;

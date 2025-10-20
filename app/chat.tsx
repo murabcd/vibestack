@@ -28,6 +28,18 @@ import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useSettings } from "@/components/settings/use-settings";
 import { useSandboxStore } from "./state";
+import {
+	Context,
+	ContextCacheUsage,
+	ContextContent,
+	ContextContentBody,
+	ContextContentFooter,
+	ContextContentHeader,
+	ContextInputUsage,
+	ContextOutputUsage,
+	ContextReasoningUsage,
+	ContextTrigger,
+} from "@/components/ui/context";
 
 interface Props {
 	className: string;
@@ -41,6 +53,36 @@ function ChatInner({ className }: Props) {
 	const { setChatStatus } = useSandboxStore();
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
+
+	// Calculate total token usage from all messages
+	const calculateTotalUsage = () => {
+		let totalTokens = 0;
+		let inputTokens = 0;
+		let outputTokens = 0;
+		let reasoningTokens = 0;
+		let cacheTokens = 0;
+
+		messages.forEach((message) => {
+			if (message.role === "assistant" && message.metadata?.usage) {
+				const usage = message.metadata.usage;
+				totalTokens += usage.totalTokens || 0;
+				inputTokens += usage.inputTokens || 0;
+				outputTokens += usage.outputTokens || 0;
+				reasoningTokens += usage.reasoningTokens || 0;
+				cacheTokens += usage.cachedInputTokens || 0;
+			}
+		});
+
+		return {
+			totalTokens,
+			inputTokens,
+			outputTokens,
+			reasoningTokens,
+			cachedInputTokens: cacheTokens,
+		};
+	};
+
+	const totalUsage = calculateTotalUsage();
 
 	useEffect(() => {
 		const currentValue = controller.textInput.value;
@@ -114,10 +156,33 @@ function ChatInner({ className }: Props) {
 					}}
 				>
 					<PromptInputBody>
-						<PromptInputTextarea
-							placeholder="Type your message..."
-							disabled={status === "streaming" || status === "submitted"}
-						/>
+						<div className="flex items-start gap-2 w-full">
+							<PromptInputTextarea
+								placeholder="Type your message..."
+								disabled={status === "streaming" || status === "submitted"}
+								className="flex-1 min-w-0"
+							/>
+							<div className="flex-shrink-0">
+								<Context
+									modelId={modelId}
+									usage={totalUsage}
+									usedTokens={totalUsage.totalTokens || 0}
+									maxTokens={200000}
+								>
+									<ContextTrigger />
+									<ContextContent>
+										<ContextContentHeader />
+										<ContextContentBody>
+											<ContextInputUsage />
+											<ContextOutputUsage />
+											<ContextReasoningUsage />
+											<ContextCacheUsage />
+										</ContextContentBody>
+										<ContextContentFooter />
+									</ContextContent>
+								</Context>
+							</div>
+						</div>
 					</PromptInputBody>
 					<PromptInputFooter>
 						<PromptInputTools>
