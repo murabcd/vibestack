@@ -10,7 +10,6 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
-import { estimateCost as tokenlensEstimateCost } from "tokenlens";
 
 type ModelId = string;
 
