@@ -162,26 +162,28 @@ function ChatInner({ className }: Props) {
 								disabled={status === "streaming" || status === "submitted"}
 								className="flex-1 min-w-0"
 							/>
-							<div className="flex-shrink-0">
-								<Context
-									modelId={modelId}
-									usage={totalUsage}
-									usedTokens={totalUsage.totalTokens || 0}
-									maxTokens={200000}
-								>
-									<ContextTrigger />
-									<ContextContent>
-										<ContextContentHeader />
-										<ContextContentBody>
-											<ContextInputUsage />
-											<ContextOutputUsage />
-											<ContextReasoningUsage />
-											<ContextCacheUsage />
-										</ContextContentBody>
-										<ContextContentFooter />
-									</ContextContent>
-								</Context>
-							</div>
+							{totalUsage.totalTokens > 0 && (
+								<div className="flex-shrink-0">
+									<Context
+										modelId={modelId}
+										usage={totalUsage}
+										usedTokens={totalUsage.totalTokens || 0}
+										maxTokens={200000}
+									>
+										<ContextTrigger />
+										<ContextContent>
+											<ContextContentHeader />
+											<ContextContentBody>
+												<ContextInputUsage />
+												<ContextOutputUsage />
+												<ContextReasoningUsage />
+												<ContextCacheUsage />
+											</ContextContentBody>
+											<ContextContentFooter />
+										</ContextContent>
+									</Context>
+								</div>
+							)}
 						</div>
 					</PromptInputBody>
 					<PromptInputFooter>
