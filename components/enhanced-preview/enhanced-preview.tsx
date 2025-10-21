@@ -22,7 +22,7 @@ interface Props {
 export function EnhancedPreview({ className }: Props) {
 	const [consoleExpanded, setConsoleExpanded] = useState(false);
 	const [activeTab, setActiveTab] = useState("preview");
-	const { sandboxId, status, paths, commands } = useSandboxStore();
+	const { sandboxId, status, paths, commands, url } = useSandboxStore();
 
 	return (
 		<Panel className={className}>
@@ -58,7 +58,12 @@ export function EnhancedPreview({ className }: Props) {
 			</PanelHeader>
 
 			<PanelGroup direction="vertical" className="h-[calc(100%-2rem-1px)]">
-				<ResizePanel defaultSize={consoleExpanded ? 70 : 100} minSize={30}>
+				<ResizePanel
+					defaultSize={consoleExpanded ? 70 : 100}
+					minSize={30}
+					id="main-panel"
+					order={1}
+				>
 					<Tabs
 						value={activeTab}
 						onValueChange={setActiveTab}
@@ -68,7 +73,11 @@ export function EnhancedPreview({ className }: Props) {
 							value="preview"
 							className="h-full m-0 data-[state=active]:h-full"
 						>
-							<Preview className="h-full" disabled={status === "stopped"} />
+							<Preview
+								className="h-full"
+								disabled={status === "stopped"}
+								url={url}
+							/>
 						</TabsContent>
 						<TabsContent
 							value="code"
@@ -87,7 +96,12 @@ export function EnhancedPreview({ className }: Props) {
 				{consoleExpanded && (
 					<>
 						<PanelResizeHandle className="h-1 hover:bg-accent transition-colors" />
-						<ResizePanel defaultSize={30} minSize={15}>
+						<ResizePanel
+							defaultSize={30}
+							minSize={15}
+							id="console-panel"
+							order={2}
+						>
 							<CommandsLogs className="h-full" commands={commands} />
 						</ResizePanel>
 					</>
