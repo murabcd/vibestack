@@ -20,16 +20,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				const match = /language-(\w+)/.exec(className || "");
 				return match ? (
 					<code
-						className={`${className} bg-muted px-1 py-0.5 rounded text-sm font-mono`}
+						className={`${className} bg-muted px-1 py-0.5 rounded text-sm`}
 						{...props}
 					>
 						{children}
 					</code>
 				) : (
-					<code
-						className="bg-muted px-1 py-0.5 rounded text-sm font-mono"
-						{...props}
-					>
+					<code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
 						{children}
 					</code>
 				);

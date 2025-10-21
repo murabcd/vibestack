@@ -1009,7 +1009,7 @@ export const PromptInputSubmit = ({
 	return (
 		<InputGroupButton
 			aria-label="Submit"
-			className={cn(className)}
+			className={cn("cursor-pointer", className)}
 			size={size}
 			type="submit"
 			variant={variant}

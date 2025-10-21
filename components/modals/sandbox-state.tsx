@@ -28,7 +28,10 @@ export function SandboxState() {
 				</DialogHeader>
 				<DialogContent className="flex flex-col items-center gap-4">
 					Sandbox max. duration has been reached
-					<Button onClick={() => window.location.reload()}>
+					<Button
+						className="cursor-pointer"
+						onClick={() => window.location.reload()}
+					>
 						Start new session
 					</Button>
 				</DialogContent>

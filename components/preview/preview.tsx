@@ -85,7 +85,7 @@ export function Preview({ className, disabled, url }: Props) {
 					{url && (
 						<input
 							type="text"
-							className="font-mono text-xs h-6 border border-gray-200 px-4 bg-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px]"
+							className="text-xs h-6 border border-input px-4 bg-background rounded focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent min-w-[300px]"
 							onChange={(event) => setInputValue(event.target.value)}
 							onClick={(event) => event.currentTarget.select()}
 							onKeyDown={(event) => {
@@ -115,18 +115,20 @@ export function Preview({ className, disabled, url }: Props) {
 						</ScrollArea>
 
 						{isLoading && !error && (
-							<div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center flex-col gap-2">
+							<div className="absolute inset-0 bg-background bg-opacity-90 flex items-center justify-center flex-col gap-2">
 								<BarLoader color="#666" />
-								<span className="text-gray-500 text-xs">Loading...</span>
+								<span className="text-muted-foreground text-xs">
+									Loading...
+								</span>
 							</div>
 						)}
 
-						{error && (
-							<div className="absolute inset-0 bg-white flex items-center justify-center flex-col gap-2">
-								<span className="text-red-500">Failed to load page</span>
-								<button
-									className="text-blue-500 hover:underline text-sm"
-									type="button"
+					{error && (
+						<div className="absolute inset-0 bg-background flex items-center justify-center flex-col gap-2">
+							<span className="text-destructive text-sm">Failed to load page</span>
+							<button
+								className="text-primary hover:underline text-sm"
+								type="button"
 									onClick={() => {
 										if (currentUrl) {
 											setIsLoading(true);

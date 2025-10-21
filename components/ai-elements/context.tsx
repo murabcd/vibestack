@@ -182,7 +182,7 @@ export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
 		<HoverCardTrigger asChild>
 			{children ?? (
 				<Button type="button" variant="ghost" {...props}>
-					<span className="font-medium text-muted-foreground">
+					<span className="font-medium text-muted-foreground text-xs">
 						{renderedPercent}
 					</span>
 					<ContextIcon />
@@ -230,7 +230,7 @@ export const ContextContentHeader = ({
 				<>
 					<div className="flex items-center justify-between gap-3 text-xs">
 						<p>{displayPct}</p>
-						<p className="font-mono text-muted-foreground">
+						<p className="text-muted-foreground">
 							{used} / {total}
 						</p>
 					</div>
@@ -289,7 +289,7 @@ export const ContextContentFooter = ({
 		>
 			{children ?? (
 				<>
-					<span className="text-muted-foreground">Total cost</span>
+					<span className="text-muted-foreground text-xs">Total cost</span>
 					<span>{totalCost}</span>
 				</>
 			)}

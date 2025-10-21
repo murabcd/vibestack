@@ -35,7 +35,7 @@ export function ModelSelector({ className }: { className?: string }) {
 						<Loader2Icon className="h-4 w-4 animate-spin" />
 					</div>
 				) : error ? (
-					<span className="text-red-500">Error</span>
+					<span className="text-destructive text-sm">Error</span>
 				) : !models?.length ? (
 					<span>No models</span>
 				) : (

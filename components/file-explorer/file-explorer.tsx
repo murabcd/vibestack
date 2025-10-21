@@ -79,7 +79,9 @@ export const FileExplorer = memo(function FileExplorer({
 				<FileIcon className="w-3 mr-1.5" />
 				<span>Files</span>
 				{selected && !disabled && (
-					<span className="ml-auto text-gray-500 text-xs">{selected.path}</span>
+					<span className="ml-auto text-muted-foreground text-xs">
+						{selected.path}
+					</span>
 				)}
 			</PanelHeader>
 
@@ -129,8 +131,8 @@ const FileTreeNode = memo(function FileTreeNode({
 		<div>
 			<button
 				className={cn(
-					`flex items-center py-0.5 px-1 hover:bg-gray-100 cursor-pointer text-left w-full`,
-					{ "bg-gray-200/80": selected?.path === node.path },
+					`flex items-center py-0.5 px-1 hover:bg-accent cursor-pointer text-left w-full`,
+					{ "bg-accent": selected?.path === node.path },
 				)}
 				style={{ paddingLeft: `${depth * 16 + 8}px` }}
 				type="button"

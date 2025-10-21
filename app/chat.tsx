@@ -117,7 +117,7 @@ function ChatInner({ className }: Props) {
 
 			{messages.length === 0 ? (
 				<div className="flex-1 min-h-0">
-					<div className="flex flex-col justify-center items-center h-full text-sm text-muted-foreground">
+					<div className="flex flex-col justify-center items-center h-full text-base text-muted-foreground">
 						<p className="flex items-center">
 							Click and try one of these prompts:
 						</p>
@@ -126,7 +126,7 @@ function ChatInner({ className }: Props) {
 								<button
 									key={prompt}
 									type="button"
-									className="block w-full px-4 py-2 rounded-sm border border-dashed shadow-sm cursor-pointer border-border hover:bg-secondary/50 hover:text-primary text-left"
+									className="block w-full px-4 py-2 rounded-sm border border-dashed shadow-sm cursor-pointer border-border hover:bg-secondary/50 hover:text-primary text-left text-sm"
 									onClick={() => {
 										controller.textInput.setInput(prompt);
 									}}

@@ -1,21 +1,32 @@
+"use client";
+
 import { ModeToggle } from "@/components/mode-toggle";
 import { Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Props {
 	className?: string;
 }
 
-export async function Header({ className }: Props) {
+export function Header({ className }: Props) {
+	const router = useRouter();
+
 	return (
 		<header className={cn("flex items-center justify-between", className)}>
-			<Link href="/" className="flex items-center">
+			<button
+				type="button"
+				onClick={() => {
+					router.push("/");
+					router.refresh();
+				}}
+				className="flex items-center cursor-pointer"
+			>
 				<Terminal className="ml-1 md:ml-2.5 mr-1.5" />
-				<span className="hidden md:inline text-sm uppercase font-mono font-bold tracking-tight">
+				<span className="hidden md:inline text-base uppercase font-bold tracking-tight">
 					Vibe<span className="text-muted-foreground">Stack</span>
 				</span>
-			</Link>
+			</button>
 			<div className="flex items-center ml-auto space-x-1.5">
 				<ModeToggle />
 			</div>
