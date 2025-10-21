@@ -1,5 +1,5 @@
 <a href="https://vibestack-code.vercel.app">
-  <img alt="VibeStack - End-to-End Coding Platform" src="./public/preview/vibestack.png>"
+  <img alt="VibeStack - End-to-End Coding Platform" src="./public/preview/vibestack.png">
   <h1 align="center">VibeStack</h1>
 </a>
 
@@ -23,7 +23,6 @@
 - [AI SDK](https://sdk.vercel.ai/docs)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
-  - Assisting with code generation, images, text editing, handling data, and searching the web
 - [Vercel Sandbox](https://vercel.com/sandbox)
   - Secure, isolated Linux containers for code execution
   - Real-time preview of generated applications
