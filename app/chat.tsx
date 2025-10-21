@@ -39,7 +39,7 @@ import {
 	ContextOutputUsage,
 	ContextReasoningUsage,
 	ContextTrigger,
-} from "@/components/ui/context";
+} from "@/components/ai-elements/context";
 
 interface Props {
 	className: string;

@@ -4,12 +4,11 @@ import { Horizontal } from "@/components/layout/panels";
 import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview";
 import { TabContent, TabItem } from "@/components/tabs";
 import { cookies } from "next/headers";
-import { getHorizontal, getVertical } from "@/components/layout/sizing";
+import { getHorizontal } from "@/components/layout/sizing";
 
 export default async function Page() {
 	const store = await cookies();
 	const horizontalSizes = getHorizontal(store);
-	const verticalSizes = getVertical(store);
 	return (
 		<div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 space-x-2">
 			<Header className="flex items-center w-full" />

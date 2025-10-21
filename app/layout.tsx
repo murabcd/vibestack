@@ -11,26 +11,28 @@ import { Suspense } from "react";
 
 import "./globals.css";
 
-const title = "VibeStack";
-const description = `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, AI Gateway for GPT-5 and other models support, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`;
-
 export const metadata: Metadata = {
-	title,
-	description,
+	metadataBase: new URL("https://vibestack-code.vercel.app"),
+	title: "VibeStack",
+	description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, AI Gateway for GPT-5 and other models support, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
+	icons: {
+		icon: "/logo.svg",
+	},
 	openGraph: {
+		siteName: "VibeStack",
 		images: [
 			{
-				url: "https://assets.vercel.com/image/upload/v1754588799/OSSvibecodingplatform/OG.png",
+				url: "/api/og",
+				width: 1200,
+				height: 630,
 			},
 		],
+		locale: "en_US",
+		type: "website",
 	},
 	twitter: {
 		card: "summary_large_image",
-		images: [
-			{
-				url: "https://assets.vercel.com/image/upload/v1754588799/OSSvibecodingplatform/OG.png",
-			},
-		],
+		images: ["/api/og"],
 	},
 };
 
