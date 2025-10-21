@@ -1,8 +1,12 @@
 import type { DataPart } from "@/lib/ai/messages/data-parts";
 import { CheckIcon, CloudUploadIcon, XIcon } from "lucide-react";
 import { Spinner } from "./spinner";
-import { ToolHeader } from "../tool-header";
-import { ToolMessage } from "../tool-message";
+import {
+	Task,
+	TaskContent,
+	TaskItem,
+	TaskTrigger,
+} from "@/components/ai-elements/task";
 
 export function GenerateFiles(props: {
 	className?: string;
@@ -20,39 +24,46 @@ export function GenerateFiles(props: {
 		? (props.message.paths[props.message.paths.length - 1] ?? "")
 		: null;
 
+	// Determine overall status for trigger
+	const getOverallStatus = () => {
+		if (props.message.status === "error") return "error";
+		if (props.message.status === "done") return "done";
+		return "loading";
+	};
+
+	const title =
+		props.message.status === "done" ? "Uploaded files" : "Generating files";
+
 	return (
-		<ToolMessage className={props.className}>
-			<ToolHeader>
-				<CloudUploadIcon className="w-3.5 h-3.5" />
-				<span>
-					{props.message.status === "done"
-						? "Uploaded files"
-						: "Generating files"}
-				</span>
-			</ToolHeader>
-			<div className="text-sm relative min-h-5">
+		<Task className={props.className} defaultOpen={true}>
+			<TaskTrigger
+				title={title}
+				icon={<CloudUploadIcon className="size-4" />}
+				status={getOverallStatus()}
+			/>
+			<TaskContent>
 				{generated.map((path) => (
-					<div className="flex items-center" key={"gen" + path}>
-						<CheckIcon className="w-4 h-4 mx-1" />
+					<TaskItem key={"gen" + path} className="flex items-center gap-2">
+						<CheckIcon className="size-3" />
 						<span className="whitespace-pre-wrap">{path}</span>
-					</div>
+					</TaskItem>
 				))}
 				{typeof generating === "string" && (
-					<div className="flex">
+					<TaskItem className="flex items-center gap-2">
 						<Spinner
-							className="mr-1"
 							loading={props.message.status !== "error"}
+							className="size-3"
 						>
 							{props.message.status === "error" ? (
-								<XIcon className="w-4 h-4 text-red-700" />
+								<XIcon className="size-3 text-destructive" />
 							) : (
-								<CheckIcon className="w-4 h-4" />
+								<CheckIcon className="size-3" />
 							)}
 						</Spinner>
 						<span>{generating}</span>
-					</div>
+					</TaskItem>
 				)}
-			</div>
-		</ToolMessage>
+			</TaskContent>
+		</Task>
 	);
 }

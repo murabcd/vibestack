@@ -1,7 +1,11 @@
 import type { DataPart } from "@/lib/ai/messages/data-parts";
 import { BugIcon } from "lucide-react";
-import { ToolHeader } from "../tool-header";
-import { ToolMessage } from "../tool-message";
+import {
+	Task,
+	TaskContent,
+	TaskItem,
+	TaskTrigger,
+} from "@/components/ai-elements/task";
 import Markdown from "react-markdown";
 
 export function ReportErrors({
@@ -10,14 +14,17 @@ export function ReportErrors({
 	message: DataPart["report-errors"];
 }) {
 	return (
-		<ToolMessage>
-			<ToolHeader>
-				<BugIcon className="w-3.5 h-3.5" />
-				<span>Auto-detected errors</span>
-			</ToolHeader>
-			<div className="relative min-h-5">
-				<Markdown>{message.summary}</Markdown>
-			</div>
-		</ToolMessage>
+		<Task defaultOpen={true}>
+			<TaskTrigger
+				title="Auto-detected errors"
+				icon={<BugIcon className="size-4" />}
+				status="error"
+			/>
+			<TaskContent>
+				<TaskItem>
+					<Markdown>{message.summary}</Markdown>
+				</TaskItem>
+			</TaskContent>
+		</Task>
 	);
 }
