@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
 	turbopack: {
 		rules: {
 			"*.md": {
-				loaders: ["text"],
+				loaders: ["raw-loader"],
 				as: "*.js",
 			},
 		},

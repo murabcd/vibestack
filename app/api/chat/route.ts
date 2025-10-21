@@ -71,14 +71,29 @@ export async function POST(req: Request) {
 						console.error(JSON.stringify(error, null, 2));
 					},
 				});
+
 				result.consumeStream();
 				writer.merge(
 					result.toUIMessageStream({
 						sendReasoning: true,
 						sendStart: false,
-						messageMetadata: () => ({
-							model: model.name,
-						}),
+						messageMetadata: ({ part }) => {
+							// Send metadata when streaming completes
+							if (part.type === "finish") {
+								const usage = {
+									inputTokens: part.totalUsage.inputTokens,
+									outputTokens: part.totalUsage.outputTokens,
+									totalTokens: part.totalUsage.totalTokens,
+									cachedInputTokens: part.totalUsage.cachedInputTokens || 0,
+									reasoningTokens: part.totalUsage.reasoningTokens || 0,
+								};
+								console.log("Creating metadata with usage:", usage);
+								return {
+									model: model.name,
+									usage,
+								};
+							}
+						},
 					}),
 				);
 			},
