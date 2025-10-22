@@ -40,6 +40,7 @@ import {
 	ContextReasoningUsage,
 	ContextTrigger,
 } from "@/components/ai-elements/context";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 
 interface Props {
 	className: string;
@@ -143,6 +144,17 @@ function ChatInner({ className }: Props) {
 						{messages.map((message) => (
 							<Message key={message.id} message={message} />
 						))}
+						{/* Show "Thinking" shimmer when processing */}
+						{status === "submitted" && (
+							<div className="mr-20">
+								<Shimmer
+									duration={1.5}
+									className="text-sm text-muted-foreground"
+								>
+									Thinking...
+								</Shimmer>
+							</div>
+						)}
 					</ConversationContent>
 					<ConversationScrollButton />
 				</Conversation>
