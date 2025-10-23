@@ -25,7 +25,7 @@ import "./globals.css";
 export const metadata: Metadata = {
 	metadataBase: new URL("https://vibestack-code.vercel.app"),
 	title: "VibeStack",
-	description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, AI Gateway for GPT-5 and other models support, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
+	description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
 	icons: {
 		icon: "/logo.svg",
 	},

@@ -1,6 +1,7 @@
 import { streamObject, type ModelMessage } from "ai";
 import { getModelOptions } from "@/lib/ai/gateway";
 import { Deferred } from "@/lib/deferred";
+import { jsonrepair } from "jsonrepair";
 import z from "zod/v3";
 
 export type File = z.infer<typeof fileSchema>;
@@ -50,6 +51,13 @@ export async function* getContents(
 			},
 		],
 		schema: z.object({ files: z.array(fileSchema) }),
+		experimental_repairText: async ({ text }) => {
+			try {
+				return jsonrepair(text);
+			} catch {
+				return text; // Return original if repair fails
+			}
+		},
 		onError: (error) => {
 			deferred.reject(error);
 			console.error("Error communicating with AI");

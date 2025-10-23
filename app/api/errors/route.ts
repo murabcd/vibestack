@@ -4,6 +4,7 @@ import { generateObject } from "ai";
 import { linesSchema, resultSchema } from "@/components/error-monitor/schemas";
 import { getModelOptions } from "@/lib/ai/gateway";
 import { Models } from "@/lib/ai/constants";
+import { jsonrepair } from "jsonrepair";
 import prompt from "./prompt.md";
 
 export async function POST(req: Request) {
@@ -31,6 +32,13 @@ export async function POST(req: Request) {
 		providerOptions,
 		messages: [{ role: "user", content: JSON.stringify(parsedBody.data) }],
 		schema: resultSchema,
+		experimental_repairText: async ({ text }) => {
+			try {
+				return jsonrepair(text);
+			} catch {
+				return text; // Return original if repair fails
+			}
+		},
 	});
 
 	return NextResponse.json(result.object, {
