@@ -15,6 +15,7 @@ import { buildFileTree, type FileNode } from "./build-file-tree";
 import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useFileHistory } from "@/app/state";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -45,6 +46,10 @@ export const FileExplorer = memo(function FileExplorer({
 	const [isEditMode, setIsEditMode] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	const [showDiff, setShowDiff] = useState(false);
+
+	// File history for diff viewer
+	const hasOriginal = useFileHistory((state) => state.hasOriginal);
 
 	// Safety dialog states
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -178,13 +183,14 @@ export const FileExplorer = memo(function FileExplorer({
 					node={node}
 					depth={depth}
 					selected={selected}
+					sandboxId={sandboxId}
 					onToggleFolder={toggleFolder}
 					onSelectFile={selectFile}
 					renderFileTree={renderFileTree}
 				/>
 			));
 		},
-		[selected, toggleFolder, selectFile],
+		[selected, toggleFolder, selectFile, sandboxId],
 	);
 
 	return (
@@ -218,6 +224,18 @@ export const FileExplorer = memo(function FileExplorer({
 										</>
 									)}
 								</Button>
+								{selected &&
+									sandboxId &&
+									hasOriginal(sandboxId, selected.path) && (
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => setShowDiff(!showDiff)}
+											className="h-6 px-2 text-xs"
+										>
+											{showDiff ? "Hide Changes" : "Show Changes"}
+										</Button>
+									)}
 								{hasUnsavedChanges && (
 									<span
 										className="text-xs text-amber-500 font-bold"
@@ -265,6 +283,7 @@ export const FileExplorer = memo(function FileExplorer({
 								sandboxId={sandboxId}
 								path={selected.path.substring(1)}
 								editable={isEditMode}
+								showDiff={showDiff}
 								onUnsavedChanges={handleUnsavedChanges}
 								onSavingStateChange={handleSavingStateChange}
 								onSaveSuccess={handleSaveSuccess}
@@ -331,6 +350,7 @@ const FileTreeNode = memo(function FileTreeNode({
 	node,
 	depth,
 	selected,
+	sandboxId,
 	onToggleFolder,
 	onSelectFile,
 	renderFileTree,
@@ -338,10 +358,12 @@ const FileTreeNode = memo(function FileTreeNode({
 	node: FileNode;
 	depth: number;
 	selected: FileNode | null;
+	sandboxId?: string;
 	onToggleFolder: (path: string) => void;
 	onSelectFile: (node: FileNode) => void;
 	renderFileTree: (nodes: FileNode[], depth: number) => React.ReactNode;
 }) {
+	const hasOriginal = useFileHistory((state) => state.hasOriginal);
 	const handleClick = useCallback(() => {
 		if (node.type === "folder") {
 			onToggleFolder(node.path);
@@ -378,6 +400,14 @@ const FileTreeNode = memo(function FileTreeNode({
 					</>
 				)}
 				<span className="">{node.name}</span>
+				{node.type === "file" &&
+					sandboxId &&
+					hasOriginal(sandboxId, node.path) && (
+						<span
+							className="w-2 h-2 rounded-full bg-yellow-500 ml-2"
+							title="Modified by AI"
+						/>
+					)}
 			</button>
 
 			{node.type === "folder" && node.expanded && node.children && (

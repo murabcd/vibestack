@@ -116,6 +116,33 @@ export const useFileExplorerStore = create<FileExplorerStore>()((set) => ({
 	},
 }));
 
+interface FileHistoryStore {
+	originals: Record<string, string>; // key: "sandboxId:path", value: original content
+	setOriginal: (sandboxId: string, path: string, content: string) => void;
+	getOriginal: (sandboxId: string, path: string) => string | null;
+	hasOriginal: (sandboxId: string, path: string) => boolean;
+}
+
+export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
+	originals: {},
+
+	setOriginal: (sandboxId, path, content) => {
+		const key = `${sandboxId}:${path}`;
+		if (!get().originals[key]) {
+			// Only set once
+			set({ originals: { ...get().originals, [key]: content } });
+		}
+	},
+
+	getOriginal: (sandboxId, path) => {
+		return get().originals[`${sandboxId}:${path}`] || null;
+	},
+
+	hasOriginal: (sandboxId, path) => {
+		return !!get().originals[`${sandboxId}:${path}`];
+	},
+}));
+
 export function useDataStateMapper() {
 	const { addPaths, setSandboxId, setUrl, upsertCommand, addGeneratedFiles } =
 		useSandboxStore();

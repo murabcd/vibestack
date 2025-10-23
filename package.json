@@ -1,6 +1,6 @@
 {
 	"name": "vibe-coding-agent",
-	"version": "1.9.1",
+	"version": "1.10.0",
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
@@ -17,6 +17,8 @@
 		"@ai-sdk/provider": "^2.0.0",
 		"@ai-sdk/react": "^2.0.77",
 		"@ai-sdk/vercel": "1.0.20",
+		"@git-diff-view/file": "^0.0.35",
+		"@git-diff-view/react": "^0.0.35",
 		"@monaco-editor/react": "^4.7.0",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
 		"@radix-ui/react-checkbox": "1.3.3",
