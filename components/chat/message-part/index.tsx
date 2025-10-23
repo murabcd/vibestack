@@ -9,6 +9,7 @@ import { RunCommand } from "./run-command";
 import { ReportErrors } from "./report-errors";
 import { Reasoning } from "./reasoning";
 import { Text } from "./text";
+import { ImageDisplay } from "./image-display";
 import { memo } from "react";
 
 interface Props {
@@ -34,6 +35,8 @@ export const MessagePart = memo(function MessagePart({
 		return <ReportErrors message={part.data} />;
 	} else if (part.type === "text") {
 		return <Text part={part} />;
+	} else if (part.type === "file") {
+		return <ImageDisplay part={part} />;
 	}
 	return null;
 });

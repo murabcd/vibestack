@@ -10,6 +10,12 @@ import {
 } from "@/components/ai-elements/conversation";
 import {
 	PromptInput,
+	PromptInputActionAddAttachments,
+	PromptInputActionMenu,
+	PromptInputActionMenuContent,
+	PromptInputActionMenuTrigger,
+	PromptInputAttachment,
+	PromptInputAttachments,
 	PromptInputBody,
 	PromptInputFooter,
 	PromptInputProvider,
@@ -17,6 +23,7 @@ import {
 	PromptInputSubmit,
 	PromptInputTextarea,
 	usePromptInputController,
+	type PromptInputMessage,
 } from "@/components/ui/prompt-input";
 import { Message } from "@/components/chat/message";
 import { ModelSelector } from "@/components/settings/model-selector";
@@ -93,9 +100,12 @@ function ChatInner({ className }: Props) {
 	}, [controller.textInput.value, input, setInput]);
 
 	const validateAndSubmitMessage = useCallback(
-		(text: string) => {
-			if (text.trim()) {
-				sendMessage({ text }, { body: { modelId, reasoningEffort } });
+		(message: PromptInputMessage) => {
+			const hasText = Boolean(message.text?.trim());
+			const hasAttachments = Boolean(message.files?.length);
+
+			if (hasText || hasAttachments) {
+				sendMessage(message, { body: { modelId, reasoningEffort } });
 				controller.textInput.clear();
 			}
 		},
@@ -162,12 +172,18 @@ function ChatInner({ className }: Props) {
 
 			<div className="p-4">
 				<PromptInput
+					accept="image/*"
+					multiple
+					globalDrop
 					onSubmit={(message, event) => {
 						event.preventDefault();
-						validateAndSubmitMessage(message.text || "");
+						validateAndSubmitMessage(message);
 					}}
 				>
 					<PromptInputBody>
+						<PromptInputAttachments>
+							{(attachment) => <PromptInputAttachment data={attachment} />}
+						</PromptInputAttachments>
 						<div className="flex items-start gap-2 w-full">
 							<PromptInputTextarea
 								placeholder="Type your message..."
@@ -175,7 +191,7 @@ function ChatInner({ className }: Props) {
 								className="flex-1 min-w-0"
 							/>
 							{totalUsage.totalTokens > 0 && (
-								<div className="flex-shrink-0">
+								<div className="shrink-0">
 									<Context
 										modelId={modelId}
 										usage={totalUsage}
@@ -200,13 +216,21 @@ function ChatInner({ className }: Props) {
 					</PromptInputBody>
 					<PromptInputFooter>
 						<PromptInputTools>
+							<PromptInputActionMenu>
+								<PromptInputActionMenuTrigger />
+								<PromptInputActionMenuContent>
+									<PromptInputActionAddAttachments />
+								</PromptInputActionMenuContent>
+							</PromptInputActionMenu>
 							<Settings />
 							<ModelSelector />
 						</PromptInputTools>
 						<PromptInputSubmit
 							status={status}
 							disabled={
-								status !== "ready" || !controller.textInput.value.trim()
+								status !== "ready" ||
+								(!controller.textInput.value.trim() &&
+									!controller.attachments.files.length)
 							}
 						/>
 					</PromptInputFooter>
