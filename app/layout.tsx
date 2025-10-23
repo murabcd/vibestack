@@ -2,12 +2,23 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { ChatProvider } from "@/lib/chat-context";
 import { CommandLogsStream } from "@/components/commands-logs/commands-logs-stream";
 import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
+import { Geist, Geist_Mono } from "next/font/google";
 import { SandboxState } from "@/components/modals/sandbox-state";
 import { Toaster } from "@/components/ui/sonner";
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Suspense } from "react";
+
+const geistSans = Geist({
+	variable: "--font-geist-sans",
+	subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+	variable: "--font-geist-mono",
+	subsets: ["latin"],
+});
 
 import "./globals.css";
 
@@ -48,7 +59,9 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className="antialiased">
+			<body
+				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+			>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"

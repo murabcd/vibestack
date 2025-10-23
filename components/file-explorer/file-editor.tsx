@@ -351,7 +351,7 @@ export function FileEditor({
 					minimap: { enabled: false },
 					fontSize: fontSize,
 					fontFamily:
-						'var(--font-mono), "Geist Mono", Menlo, Monaco, "Courier New", monospace',
+						'var(--font-geist-mono), "Geist Mono", Menlo, Monaco, "Courier New", monospace',
 					lineNumbers: "on",
 					wordWrap: "on",
 					automaticLayout: true,
