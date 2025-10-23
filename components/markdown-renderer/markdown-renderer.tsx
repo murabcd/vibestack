@@ -20,20 +20,20 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				const match = /language-(\w+)/.exec(className || "");
 				return match ? (
 					<code
-						className={`${className} bg-muted px-1 py-0.5 rounded text-sm`}
+						className={`${className} bg-muted px-1 py-0.5 rounded text-xs`}
 						{...props}
 					>
 						{children}
 					</code>
 				) : (
-					<code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+					<code className="bg-muted px-1 py-0.5 rounded text-xs" {...props}>
 						{children}
 					</code>
 				);
 			},
 			pre: ({ children, ...props }) => (
 				<pre
-					className="bg-muted p-3 rounded-sm overflow-x-auto text-sm"
+					className="bg-muted p-2 rounded-sm overflow-x-auto text-xs"
 					{...props}
 				>
 					{children}
@@ -45,12 +45,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				</h1>
 			),
 			h2: ({ children, ...props }) => (
-				<h2 className="text-base mb-2 mt-3 first:mt-0" {...props}>
+				<h2 className="text-sm mb-2 mt-3 first:mt-0" {...props}>
 					{children}
 				</h2>
 			),
 			h3: ({ children, ...props }) => (
-				<h3 className="text-sm mb-1 mt-2 first:mt-0" {...props}>
+				<h3 className="text-xs mb-1 mt-2 first:mt-0" {...props}>
 					{children}
 				</h3>
 			),
