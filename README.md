@@ -4,7 +4,7 @@
 </a>
 
 <p align="center">
-  End-to-End Coding Platform Built With Next.js, Vercel Sandbox, and AI SDK.
+  End-to-End Coding Platform Built with Next.js, Vercel Sandbox, and AI SDK.
 </p>
 
 <div align="center">
@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="#features"><strong>Features</strong></a> ·
-  <a href="#tech-stack"><strong>Tech stack</strong></a> ·
+  <a href="#built-with"><strong>Built with</strong></a> ·
   <a href="#model-providers"><strong>Model providers</strong></a> ·
   <a href="#deploy-your-own"><strong>Deploy your own</strong></a> ·
   <a href="#running-locally"><strong>Running locally</strong></a>
@@ -40,7 +40,7 @@
 - Auto Error Detection
   - Intelligent error monitoring that automatically detects and reports issues
 
-## Tech stack
+## Built with
 
 - [Next.js 16](https://nextjs.org) App Router
   - Advanced routing for seamless navigation and performance
@@ -55,7 +55,7 @@
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
 
-## Model Providers
+## Model providers
 
 This app ships with [Anthropic](https://anthropic.com) provider as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com/), [Ollama](https://ollama.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
 
