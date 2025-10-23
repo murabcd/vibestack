@@ -7,26 +7,51 @@
   End-to-End Coding Platform Built With Next.js, Vercel Sandbox, and AI SDK.
 </p>
 
+<div align="center">
+
+> **⚠️ WARNING: This project is currently in early development**  
+> **Features and APIs may change. Use at your own risk.**
+
+</div>
+
 <p align="center">
   <a href="#features"><strong>Features</strong></a> ·
-  <a href="#model-providers"><strong>Model Providers</strong></a> ·
-  <a href="#deploy-your-own"><strong>Deploy Your Own</strong></a> ·
+  <a href="#tech-stack"><strong>Tech stack</strong></a> ·
+  <a href="#model-providers"><strong>Model providers</strong></a> ·
+  <a href="#deploy-your-own"><strong>Deploy your own</strong></a> ·
   <a href="#running-locally"><strong>Running locally</strong></a>
 </p>
 <br/>
 
 ## Features
 
-- [Next.js](https://nextjs.org) App Router
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) Integration
+  - Full-featured code editor with syntax highlighting, basic autocomplete, and multi-language support
+- Real-time File Explorer
+  - Tree-view file browser with click-to-select functionality and live file updates
+- Live Code Editing
+  - Edit files directly in the browser with auto-save and unsaved changes tracking
+- Responsive Design
+  - Optimized for both desktop and mobile with adaptive font sizing
+- [Smart Sandbox Creation](https://vercel.com/docs/vercel-sandbox/reference/readme#getting-started)
+  - Automated Linux container setup with pre-installed development tools
+- Command Execution
+  - Run shell commands with real-time output streaming and error monitoring
+- Auto Error Detection
+  - Intelligent error monitoring that automatically detects and reports issues
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org) App Router
   - Advanced routing for seamless navigation and performance
   - React Server Components (RSCs) for server-side rendering and performance improvements
-- [AI SDK](https://sdk.vercel.ai/docs)
+- [AI SDK v5](https://sdk.vercel.ai/docs)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
 - [Vercel Sandbox](https://vercel.com/sandbox)
   - Secure, isolated Linux containers for code execution
   - Real-time preview of generated applications
-- [Shadcn/ui](https://ui.shadcn.com)
+- [Shadcn/UI](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
 
@@ -34,7 +59,7 @@
 
 This app ships with [Anthropic](https://anthropic.com) provider as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com/), [Ollama](https://ollama.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
 
-## Deploy Your Own
+## Deploy your own
 
 You can deploy your own version of VibeStack to Vercel with one click:
 
