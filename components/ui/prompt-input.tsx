@@ -47,7 +47,7 @@ import {
 	MicIcon,
 	PaperclipIcon,
 	PlusIcon,
-	SendIcon,
+	ArrowUpIcon,
 	SquareIcon,
 	XIcon,
 } from "lucide-react";
@@ -996,7 +996,7 @@ export const PromptInputSubmit = ({
 	children,
 	...props
 }: PromptInputSubmitProps) => {
-	let Icon = <SendIcon className="size-4" />;
+	let Icon = <ArrowUpIcon className="size-4" />;
 
 	if (status === "submitted") {
 		Icon = <Loader2Icon className="size-4 animate-spin" />;

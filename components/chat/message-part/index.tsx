@@ -15,11 +15,13 @@ import { memo } from "react";
 interface Props {
 	part: UIMessage<Metadata, DataPart, ToolSet>["parts"][number];
 	partIndex: number;
+	messageRole: "user" | "assistant";
 }
 
 export const MessagePart = memo(function MessagePart({
 	part,
 	partIndex,
+	messageRole,
 }: Props) {
 	if (part.type === "data-generating-files") {
 		return <GenerateFiles message={part.data} />;
@@ -34,7 +36,7 @@ export const MessagePart = memo(function MessagePart({
 	} else if (part.type === "data-report-errors") {
 		return <ReportErrors message={part.data} />;
 	} else if (part.type === "text") {
-		return <Text part={part} />;
+		return <Text part={part} messageRole={messageRole} />;
 	} else if (part.type === "file") {
 		return <ImageDisplay part={part} />;
 	}

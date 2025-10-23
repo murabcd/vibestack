@@ -29,7 +29,7 @@ export const ModelSelector = memo(function ModelSelector({
 			onValueChange={onModelChange}
 			disabled={isLoading || !!error || !models?.length}
 		>
-			<SelectTrigger className="w-[180px] bg-background">
+			<SelectTrigger className="w-[170px] bg-background cursor-pointer h-8!">
 				{isLoading ? (
 					<div className="flex items-center gap-2">
 						<Loader2Icon className="h-4 w-4 animate-spin" />

@@ -48,7 +48,7 @@ export function CommandsLogs(props: Props) {
 							return (
 								<pre
 									key={command.cmdId}
-									className="whitespace-pre-wrap text-sm"
+									className="whitespace-pre-wrap text-xs"
 								>
 									{`[${date}] ${line}\n${body}`}
 								</pre>

@@ -26,14 +26,14 @@ import {
 	type PromptInputMessage,
 } from "@/components/ui/prompt-input";
 import { Message } from "@/components/chat/message";
-import { ModelSelector } from "@/components/settings/model-selector";
+import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { Settings } from "@/components/settings/settings";
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect } from "react";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { useSharedChatContext } from "@/lib/chat-context";
-import { useSettings } from "@/components/settings/use-settings";
+import { useSettings, useModelId } from "@/components/settings/use-settings";
 import { useSandboxStore } from "./state";
 import {
 	Context,
@@ -57,6 +57,7 @@ interface Props {
 function ChatInner({ className }: Props) {
 	const { chat } = useSharedChatContext();
 	const { modelId, reasoningEffort } = useSettings();
+	const [, setModelId] = useModelId();
 	const { messages, sendMessage, status } = useChat<ChatUIMessage>({ chat });
 	const { setChatStatus } = useSandboxStore();
 	const controller = usePromptInputController();
@@ -105,7 +106,13 @@ function ChatInner({ className }: Props) {
 			const hasAttachments = Boolean(message.files?.length);
 
 			if (hasText || hasAttachments) {
-				sendMessage(message, { body: { modelId, reasoningEffort } });
+				sendMessage(
+					{
+						...message,
+						text: message.text || "",
+					},
+					{ body: { modelId, reasoningEffort } },
+				);
 				controller.textInput.clear();
 			}
 		},
@@ -223,7 +230,7 @@ function ChatInner({ className }: Props) {
 								</PromptInputActionMenuContent>
 							</PromptInputActionMenu>
 							<Settings />
-							<ModelSelector />
+							<ModelSelector modelId={modelId} onModelChange={setModelId} />
 						</PromptInputTools>
 						<PromptInputSubmit
 							status={status}

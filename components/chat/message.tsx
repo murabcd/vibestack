@@ -1,6 +1,6 @@
 import type { ChatUIMessage } from "./types";
 import { MessagePart } from "./message-part";
-import { BotIcon, UserIcon } from "lucide-react";
+import { SparklesIcon } from "lucide-react";
 import { memo, createContext, useContext, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -41,32 +41,38 @@ export const Message = memo(function Message({ message }: Props) {
 		<ReasoningContext.Provider
 			value={{ expandedReasoningIndex, setExpandedReasoningIndex }}
 		>
-			<div
-				className={cn({
-					"mr-20": message.role === "assistant",
-					"ml-20": message.role === "user",
-				})}
-			>
-				{/* Message Header */}
-				<div className="flex items-center gap-2 text-sm font-medium text-primary mb-1.5">
-					{message.role === "user" ? (
-						<>
-							<UserIcon className="ml-auto w-3.5 h-3.5" />
-							<span>You</span>
-						</>
-					) : (
-						<>
-							<BotIcon className="w-3.5 h-3.5" />
-							<span>Assistant ({message.metadata?.model})</span>
-						</>
+			<div className="group/message w-full" data-role={message.role}>
+				<div
+					className={cn("flex w-full items-start gap-2 md:gap-3", {
+						"justify-end": message.role === "user",
+						"justify-start": message.role === "assistant",
+					})}
+				>
+					{message.role === "assistant" && (
+						<div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
+							<SparklesIcon size={14} />
+						</div>
 					)}
-				</div>
 
-				{/* Message Content */}
-				<div className="space-y-1.5">
-					{message.parts.map((part, index) => (
-						<MessagePart key={index} part={part} partIndex={index} />
-					))}
+					<div
+						className={cn("flex flex-col", {
+							"gap-2 md:gap-4": message.parts?.some(
+								(p) => p.type === "text" && p.text?.trim(),
+							),
+							"w-full": message.role === "assistant",
+							"max-w-[calc(100%-2.5rem)] sm:max-w-[min(fit-content,80%)]":
+								message.role === "user",
+						})}
+					>
+						{message.parts.map((part, index) => (
+							<MessagePart
+								key={`${message.role}-${part.type}-${index}`}
+								part={part}
+								partIndex={index}
+								messageRole={message.role as "user" | "assistant"}
+							/>
+						))}
+					</div>
 				</div>
 			</div>
 		</ReasoningContext.Provider>
