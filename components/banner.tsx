@@ -31,7 +31,7 @@ export function Banner({ defaultOpen, onDismiss }: Props) {
 					setOpen(false);
 				}}
 			>
-				<XIcon className="w-4 h-4" />
+				<XIcon className="size-4" />
 			</button>
 		</div>
 	);

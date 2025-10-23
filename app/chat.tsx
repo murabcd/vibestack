@@ -53,11 +53,13 @@ function ChatInner({ className }: Props) {
 	return (
 		<Panel className={className}>
 			<PanelHeader>
-				<div className="flex items-center text-xs">
-					<MessageCircleIcon className="w-3 mr-1.5" />
-					Chat
+				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<MessageCircleIcon className="size-3" />
+					<span className="font-medium">Chat</span>
 				</div>
-				<div className="ml-auto text-xs text-muted-foreground">[{status}]</div>
+				<div className="ml-auto text-xs text-muted-foreground tabular-nums">
+					[{status}]
+				</div>
 			</PanelHeader>
 
 			<Conversation className="relative w-full">
@@ -69,7 +71,7 @@ function ChatInner({ className }: Props) {
 					{status === "submitted" && (
 						<div className="mr-20">
 							<Shimmer duration={1.5} className="text-sm text-muted-foreground">
-								Thinking...
+								Thinking…
 							</Shimmer>
 						</div>
 					)}

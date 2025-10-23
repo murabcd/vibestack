@@ -13,7 +13,7 @@ export function Settings() {
 		<Popover>
 			<PopoverTrigger asChild>
 				<Button className="cursor-pointer" variant="ghost" size="sm">
-					<SlidersVerticalIcon className="w-4 h-4" />
+					<SlidersVerticalIcon className="size-4" />
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="p-0 w-96">

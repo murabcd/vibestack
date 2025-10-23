@@ -10,7 +10,7 @@ export function Panel({ className, children }: Props) {
 	return (
 		<div
 			className={cn(
-				"flex flex-col relative border border-primary/18 w-full h-full shadow-sm rounded-sm",
+				"flex flex-col relative border border-border w-full h-full shadow-sm rounded-lg",
 				className,
 			)}
 		>
@@ -23,7 +23,7 @@ export function PanelHeader({ className, children }: Props) {
 	return (
 		<div
 			className={cn(
-				"text-sm flex items-center border-b border-primary/18 px-2.5 py-1 text-secondary-foreground bg-secondary",
+				"text-xs flex items-center border-b border-border px-2.5 py-1 text-muted-foreground bg-secondary/30 font-medium",
 				className,
 			)}
 		>

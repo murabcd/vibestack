@@ -182,7 +182,7 @@ export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
 		<HoverCardTrigger asChild>
 			{children ?? (
 				<Button type="button" variant="ghost" {...props}>
-					<span className="font-medium text-muted-foreground text-xs">
+					<span className="font-medium text-muted-foreground text-xs tabular-nums">
 						{renderedPercent}
 					</span>
 					<ContextIcon />
@@ -229,9 +229,9 @@ export const ContextContentHeader = ({
 			{children ?? (
 				<>
 					<div className="flex items-center justify-between gap-3 text-xs">
-						<p>{displayPct}</p>
-						<p className="text-muted-foreground">
-							{used} / {total}
+						<p className="tabular-nums">{displayPct}</p>
+						<p className="text-muted-foreground tabular-nums">
+							{used}&nbsp;/&nbsp;{total}
 						</p>
 					</div>
 					<div className="space-y-2">
@@ -467,14 +467,14 @@ const TokensWithCost = ({
 	tokens?: number;
 	costText?: string;
 }) => (
-	<span>
+	<span className="tabular-nums">
 		{tokens === undefined
 			? "—"
 			: new Intl.NumberFormat("en-US", {
 					notation: "compact",
 				}).format(tokens)}
 		{costText ? (
-			<span className="ml-2 text-muted-foreground">• {costText}</span>
+			<span className="ml-2 text-muted-foreground">•&nbsp;{costText}</span>
 		) : null}
 	</span>
 );

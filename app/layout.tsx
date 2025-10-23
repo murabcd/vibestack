@@ -5,7 +5,7 @@ import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
 import { SandboxState } from "@/components/modals/sandbox-state";
 import { Toaster } from "@/components/ui/sonner";
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Suspense } from "react";
 
@@ -34,6 +34,13 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		images: ["/api/og"],
 	},
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
+	viewportFit: "cover",
 };
 
 export default function RootLayout({

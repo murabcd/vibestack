@@ -191,8 +191,8 @@ export const FileExplorer = memo(function FileExplorer({
 		<>
 			<Panel className={cn(className, "border-0")}>
 				<PanelHeader className="text-xs px-2 py-0.5">
-					<FileIcon className="w-3 mr-1.5" />
-					<span>Files</span>
+					<FileIcon className="size-3 mr-1.5" />
+					<span className="font-medium">Files</span>
 					{selected && !disabled && (
 						<>
 							<span className="ml-auto text-muted-foreground text-xs">
@@ -208,12 +208,12 @@ export const FileExplorer = memo(function FileExplorer({
 								>
 									{isEditMode ? (
 										<>
-											<EditIcon className="w-3 h-3" />
+											<EditIcon className="size-3" />
 											Edit
 										</>
 									) : (
 										<>
-											<LockIcon className="w-3 h-3" />
+											<LockIcon className="size-3" />
 											Lock
 										</>
 									)}
@@ -244,7 +244,7 @@ export const FileExplorer = memo(function FileExplorer({
 												setHasUnsavedChanges(false);
 											}
 										}}
-										className="h-6 w-6 p-0 text-xs"
+										className="size-6 p-0 text-xs"
 										title="Close file"
 									>
 										×
@@ -256,7 +256,7 @@ export const FileExplorer = memo(function FileExplorer({
 				</PanelHeader>
 
 				<div className="flex text-sm h-[calc(100%-2rem-1px)]">
-					<ScrollArea className="w-1/4 border-r border-primary/18 shrink-0">
+					<ScrollArea className="w-1/4 border-r border-border shrink-0">
 						<div>{renderFileTree(fs)}</div>
 					</ScrollArea>
 					{selected && sandboxId && !disabled && (

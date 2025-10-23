@@ -117,7 +117,7 @@ export function PromptForm({ onSubmit, className }: PromptFormProps) {
 					</PromptInputAttachments>
 					<div className="flex items-start gap-2 w-full">
 						<PromptInputTextarea
-							placeholder="Type your message..."
+							placeholder="Type your message…"
 							disabled={status === "streaming" || status === "submitted"}
 							className="flex-1 min-w-0"
 						/>

@@ -36,11 +36,22 @@ export function CommandLogs({ command, onLog, onCompleted }: Props) {
 				});
 			})();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [
+		command.sandboxId,
+		command.cmdId,
+		command.command,
+		command.args,
+		onLog,
+		onCompleted,
+	]);
 
 	return (
-		<pre className={cn("whitespace-pre-wrap text-sm", {})}>
+		<pre
+			className={cn(
+				"whitespace-pre-wrap text-xs font-mono text-muted-foreground",
+				{},
+			)}
+		>
 			{logContent(command)}
 		</pre>
 	);

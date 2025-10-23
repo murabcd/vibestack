@@ -23,7 +23,7 @@ export function Header({ className }: Props) {
 				className="flex items-center cursor-pointer"
 			>
 				<Terminal className="ml-1 md:ml-2.5 mr-1.5" />
-				<span className="hidden md:inline text-base uppercase font-bold tracking-tight">
+				<span className="hidden md:inline text-sm font-semibold tracking-tight uppercase">
 					Vibe<span className="text-muted-foreground">Stack</span>
 				</span>
 			</button>

@@ -123,6 +123,18 @@ export function FileEditor({
 		}
 	}, [content, savedContent]);
 
+	// Unsaved changes warning
+	useEffect(() => {
+		const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+			if (content !== savedContent) {
+				e.preventDefault();
+				e.returnValue = "";
+			}
+		};
+		window.addEventListener("beforeunload", handleBeforeUnload);
+		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+	}, [content, savedContent]);
+
 	const handleContentChange = (newContent: string | undefined) => {
 		if (newContent !== undefined) {
 			setContent(newContent);

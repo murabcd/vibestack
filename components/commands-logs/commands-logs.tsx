@@ -25,9 +25,9 @@ export function CommandsLogs(props: Props) {
 
 	return (
 		<Panel className={cn(props.className, "border-0")}>
-			<PanelHeader className="border-t border-primary/18 text-xs px-2 py-0.5">
-				<SquareChevronRight className="mr-1.5 w-3" />
-				<span>Output</span>
+			<PanelHeader className="border-t border-border text-xs px-2 py-0.5">
+				<SquareChevronRight className="size-3 mr-1.5" />
+				<span className="font-medium">Output</span>
 			</PanelHeader>
 			<div className="h-[calc(100%-2rem)]">
 				<ScrollArea className="h-full">
@@ -48,7 +48,7 @@ export function CommandsLogs(props: Props) {
 							return (
 								<pre
 									key={command.cmdId}
-									className="whitespace-pre-wrap text-xs"
+									className="whitespace-pre-wrap text-xs font-mono text-muted-foreground"
 								>
 									{`[${date}] ${line}\n${body}`}
 								</pre>

@@ -38,4 +38,4 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default withBotId(nextConfig);
+export default withBotId(nextConfig as any);
