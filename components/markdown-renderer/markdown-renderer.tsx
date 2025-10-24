@@ -55,12 +55,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				</h3>
 			),
 			ul: ({ children, ...props }) => (
-				<ul className="list-disc pl-4 mb-2 space-y-1" {...props}>
+				<ul className="list-disc pl-4 mb-2 space-y-1 text-left" {...props}>
 					{children}
 				</ul>
 			),
 			ol: ({ children, ...props }) => (
-				<ol className="list-decimal pl-4 mb-2 space-y-1" {...props}>
+				<ol className="list-decimal pl-4 mb-2 space-y-1 text-left" {...props}>
 					{children}
 				</ol>
 			),

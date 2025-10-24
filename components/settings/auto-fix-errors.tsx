@@ -32,7 +32,7 @@ export function AutoFixErrors() {
 					Auto-fix errors
 				</Label>
 				<p className="text-xs text-muted-foreground leading-relaxed">
-					Automatically detects and fixes errors in generated code.
+					Automatically detects and fixes errors.
 				</p>
 			</div>
 			<Checkbox

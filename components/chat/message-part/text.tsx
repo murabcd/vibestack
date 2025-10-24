@@ -46,16 +46,24 @@ export function Text({
 	return (
 		<div
 			className={cn("text-xs", {
-				"w-fit wrap-break-word rounded-2xl px-3 py-2 text-right bg-primary text-primary-foreground":
+				"w-fit wrap-break-word rounded-2xl px-3 py-2 bg-primary text-primary-foreground":
 					messageRole === "user",
 				"bg-transparent px-0 py-0 text-left": messageRole === "assistant",
 			})}
 		>
-			<div className="flex items-start justify-between gap-2">
-				<div className="flex-1">
+			<div
+				className={cn("relative group", {
+					"text-right": messageRole === "user",
+				})}
+			>
+				<div
+					className={cn("inline-block", {
+						"text-left": messageRole === "user",
+					})}
+				>
 					<MarkdownRenderer content={part.text} />
 				</div>
-				<div className="flex items-center gap-0.5">
+				<div className="absolute top-0 right-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
 					{messageRole === "user" && (
 						<button
 							type="button"

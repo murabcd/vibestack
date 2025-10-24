@@ -35,7 +35,7 @@ export function ReasoningEffort() {
 		>
 			<div className="space-y-1 flex-1 pointer-events-none">
 				<Label className="text-sm text-foreground" htmlFor={id}>
-					Higher Effort Level
+					Higher effort level
 				</Label>
 				<p className="text-xs text-muted-foreground leading-relaxed">
 					Request higher reasoning effort level.
