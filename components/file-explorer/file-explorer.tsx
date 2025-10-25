@@ -224,18 +224,24 @@ export const FileExplorer = memo(function FileExplorer({
 										</>
 									)}
 								</Button>
-								{selected &&
-									sandboxId &&
-									hasOriginal(sandboxId, selected.path) && (
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => setShowDiff(!showDiff)}
-											className="h-6 px-2 text-xs"
-										>
-											{showDiff ? "Hide Changes" : "Show Changes"}
-										</Button>
-									)}
+								{selected && sandboxId && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setShowDiff(!showDiff)}
+										className="h-6 px-2 text-xs"
+										disabled={!hasOriginal(sandboxId, selected.path)}
+										title={
+											!hasOriginal(sandboxId, selected.path)
+												? "No original content to compare with"
+												: showDiff
+													? "Hide file changes"
+													: "Show file changes"
+										}
+									>
+										{showDiff ? "Hide Changes" : "Show Changes"}
+									</Button>
+								)}
 								{hasUnsavedChanges && (
 									<span
 										className="text-xs text-amber-500 font-bold"
@@ -404,8 +410,8 @@ const FileTreeNode = memo(function FileTreeNode({
 					sandboxId &&
 					hasOriginal(sandboxId, node.path) && (
 						<span
-							className="w-2 h-2 rounded-full bg-yellow-500 ml-2"
-							title="Modified by AI"
+							className="w-2 h-2 rounded-full bg-blue-500 ml-2 animate-pulse"
+							title="File has been modified - click 'Show Changes' to see diff"
 						/>
 					)}
 			</button>

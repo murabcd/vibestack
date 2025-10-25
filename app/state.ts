@@ -121,6 +121,11 @@ interface FileHistoryStore {
 	setOriginal: (sandboxId: string, path: string, content: string) => void;
 	getOriginal: (sandboxId: string, path: string) => string | null;
 	hasOriginal: (sandboxId: string, path: string) => boolean;
+	captureOriginalBeforeAI: (
+		sandboxId: string,
+		path: string,
+		content: string,
+	) => void;
 }
 
 export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
@@ -128,10 +133,8 @@ export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
 
 	setOriginal: (sandboxId, path, content) => {
 		const key = `${sandboxId}:${path}`;
-		if (!get().originals[key]) {
-			// Only set once
-			set({ originals: { ...get().originals, [key]: content } });
-		}
+		// Always update original content to capture the state before AI modifications
+		set({ originals: { ...get().originals, [key]: content } });
 	},
 
 	getOriginal: (sandboxId, path) => {
@@ -140,6 +143,15 @@ export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
 
 	hasOriginal: (sandboxId, path) => {
 		return !!get().originals[`${sandboxId}:${path}`];
+	},
+
+	captureOriginalBeforeAI: (sandboxId, path, content) => {
+		const key = `${sandboxId}:${path}`;
+		// Only capture if we don't already have an original for this file
+		// This ensures we capture the state before AI modifications
+		if (!get().originals[key]) {
+			set({ originals: { ...get().originals, [key]: content } });
+		}
 	},
 }));
 

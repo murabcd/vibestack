@@ -25,8 +25,10 @@ export const FileContent = memo(function FileContent({
 	onSavingStateChange,
 	onSaveSuccess,
 }: Props) {
-	const setOriginal = useFileHistory((state) => state.setOriginal);
 	const getOriginal = useFileHistory((state) => state.getOriginal);
+	const captureOriginalBeforeAI = useFileHistory(
+		(state) => state.captureOriginalBeforeAI,
+	);
 	const searchParams = new URLSearchParams({ path });
 	const content = useSWR(
 		`/api/sandboxes/${sandboxId}/files?${searchParams.toString()}`,
@@ -38,12 +40,12 @@ export const FileContent = memo(function FileContent({
 		{ refreshInterval: 1000 },
 	);
 
-	// Track original content when first loaded
+	// Track original content when first loaded - capture before AI modifications
 	useEffect(() => {
 		if (content.data && sandboxId && path) {
-			setOriginal(sandboxId, path, content.data);
+			captureOriginalBeforeAI(sandboxId, path, content.data);
 		}
-	}, [content.data, sandboxId, path, setOriginal]);
+	}, [content.data, sandboxId, path, captureOriginalBeforeAI]);
 
 	if (content.isLoading || !content.data) {
 		return (
