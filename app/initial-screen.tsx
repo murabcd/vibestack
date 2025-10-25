@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "./header";
 import { PromptForm } from "@/components/prompt-form";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
@@ -16,8 +15,6 @@ export function InitialScreen({ onMessageSubmit }: InitialScreenProps) {
 
 	return (
 		<div className="flex flex-col h-screen max-h-screen overflow-hidden">
-			<Header className="flex items-center w-full" />
-
 			<div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
 				<div className="w-full max-w-2xl text-center">
 					{/* Title and subtitle */}
