@@ -1,8 +1,8 @@
-import type { Components } from "react-markdown";
 import { memo, useMemo } from "react";
+import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({
 	content,

@@ -1,14 +1,14 @@
 "use client";
 
+import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
+import { Spinner } from "@/components/chat/message-part/spinner";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon, SearchIcon, CheckIcon, XIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
-import { Spinner } from "@/components/chat/message-part/spinner";
 
 export type TaskItemFileProps = ComponentProps<"div">;
 

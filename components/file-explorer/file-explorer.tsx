@@ -1,21 +1,17 @@
 "use client";
 
 import {
-	ChevronRightIcon,
 	ChevronDownIcon,
-	FolderIcon,
-	FileIcon,
+	ChevronRightIcon,
 	EditIcon,
+	FileIcon,
+	FolderIcon,
 	LockIcon,
 } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useFileHistory } from "@/app/state";
 import { FileContent } from "@/components/file-explorer/file-content";
 import { Panel, PanelHeader } from "@/components/panels/panels";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { buildFileTree, type FileNode } from "./build-file-tree";
-import { useState, useMemo, useEffect, useCallback, memo } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useFileHistory } from "@/app/state";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -26,6 +22,10 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { buildFileTree, type FileNode } from "./build-file-tree";
 
 interface Props {
 	className: string;

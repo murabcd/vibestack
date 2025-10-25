@@ -1,11 +1,11 @@
-import type { TextUIPart } from "ai";
-import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
-import { cn } from "@/lib/utils";
-import { Copy, Check, RotateCcw } from "lucide-react";
-import { useState } from "react";
-import { useSharedChatContext } from "@/lib/chat-context";
 import { useChat } from "@ai-sdk/react";
+import type { TextUIPart } from "ai";
+import { Check, Copy, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
 import { useSettings } from "@/components/settings/use-settings";
+import { useSharedChatContext } from "@/lib/chat-context";
+import { cn } from "@/lib/utils";
 
 export function Text({
 	part,

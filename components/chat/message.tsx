@@ -1,7 +1,7 @@
-import type { ChatUIMessage } from "./types";
-import { MessagePart } from "./message-part";
-import { memo, createContext, useContext, useState, useEffect } from "react";
+import { createContext, memo, useContext, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { MessagePart } from "./message-part";
+import type { ChatUIMessage } from "./types";
 
 interface Props {
 	message: ChatUIMessage;

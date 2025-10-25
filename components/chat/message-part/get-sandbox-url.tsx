@@ -1,4 +1,3 @@
-import type { DataPart } from "@/lib/ai/messages/data-parts";
 import { LinkIcon } from "lucide-react";
 import {
 	Task,
@@ -6,6 +5,7 @@ import {
 	TaskItem,
 	TaskTrigger,
 } from "@/components/ai-elements/task";
+import type { DataPart } from "@/lib/ai/messages/data-parts";
 
 export function GetSandboxURL({
 	message,

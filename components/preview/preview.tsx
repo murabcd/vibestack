@@ -1,10 +1,10 @@
 "use client";
 
-import { BarLoader } from "react-spinners";
-import { CompassIcon, RefreshCwIcon } from "lucide-react";
-import { Panel, PanelHeader } from "@/components/panels/panels";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { CompassIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { BarLoader } from "react-spinners";
+import { Panel, PanelHeader } from "@/components/panels/panels";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -123,12 +123,14 @@ export function Preview({ className, disabled, url }: Props) {
 							</div>
 						)}
 
-					{error && (
-						<div className="absolute inset-0 bg-background flex items-center justify-center flex-col gap-2">
-							<span className="text-destructive text-sm">Failed to load page</span>
-							<button
-								className="text-primary hover:underline text-sm"
-								type="button"
+						{error && (
+							<div className="absolute inset-0 bg-background flex items-center justify-center flex-col gap-2">
+								<span className="text-destructive text-sm">
+									Failed to load page
+								</span>
+								<button
+									className="text-primary hover:underline text-sm"
+									type="button"
 									onClick={() => {
 										if (currentUrl) {
 											setIsLoading(true);

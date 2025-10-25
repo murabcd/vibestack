@@ -1,8 +1,8 @@
-import { streamObject, type ModelMessage } from "ai";
-import { getModelOptions } from "@/lib/ai/gateway";
-import { Deferred } from "@/lib/deferred";
+import { type ModelMessage, streamObject } from "ai";
 import { jsonrepair } from "jsonrepair";
 import z from "zod/v3";
+import { getModelOptions } from "@/lib/ai/gateway";
+import { Deferred } from "@/lib/deferred";
 
 export type File = z.infer<typeof fileSchema>;
 

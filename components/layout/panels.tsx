@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { HORIZONTAL_COOKIE, VERTICAL_COOKIE } from "./sizing";
 
 interface HProps {

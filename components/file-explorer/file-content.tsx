@@ -1,10 +1,10 @@
-import { MonacoSyntaxHighlighter } from "./monaco-syntax-highlighter";
-import { FileEditor } from "./file-editor";
-import { DiffViewer } from "./diff-viewer";
-import { PulseLoader } from "react-spinners";
 import { memo, useEffect } from "react";
+import { PulseLoader } from "react-spinners";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
+import { DiffViewer } from "./diff-viewer";
+import { FileEditor } from "./file-editor";
+import { MonacoSyntaxHighlighter } from "./monaco-syntax-highlighter";
 
 interface Props {
 	sandboxId: string;

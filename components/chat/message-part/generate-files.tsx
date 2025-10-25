@@ -1,12 +1,12 @@
-import type { DataPart } from "@/lib/ai/messages/data-parts";
 import { CheckIcon, CloudUploadIcon, XIcon } from "lucide-react";
-import { Spinner } from "./spinner";
 import {
 	Task,
 	TaskContent,
 	TaskItem,
 	TaskTrigger,
 } from "@/components/ai-elements/task";
+import type { DataPart } from "@/lib/ai/messages/data-parts";
+import { Spinner } from "./spinner";
 
 export function GenerateFiles(props: {
 	className?: string;

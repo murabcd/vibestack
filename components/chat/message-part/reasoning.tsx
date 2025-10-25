@@ -1,7 +1,7 @@
 import type { ReasoningUIPart } from "ai";
 import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
-import { MessageSpinner } from "../message-spinner";
 import { useReasoningContext } from "../message";
+import { MessageSpinner } from "../message-spinner";
 
 export function Reasoning({
 	part,

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import useSWR from "swr";
+import { useSandboxStore } from "@/app/state";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -8,9 +11,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { useSandboxStore } from "@/app/state";
-import { useEffect } from "react";
-import useSWR from "swr";
 
 export function SandboxState() {
 	const { sandboxId, status, setStatus } = useSandboxStore();

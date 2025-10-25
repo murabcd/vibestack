@@ -1,7 +1,7 @@
 import { useId } from "react";
-import { Models } from "@/lib/ai/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Models } from "@/lib/ai/constants";
 import { useModelId, useReasoningEffort } from "./use-settings";
 
 export function ReasoningEffort() {

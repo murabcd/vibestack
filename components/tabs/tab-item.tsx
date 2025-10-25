@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useTabState } from "./use-tab-state";
 import { cn } from "@/lib/utils";
+import { useTabState } from "./use-tab-state";
 
 interface Props {
 	children: ReactNode;

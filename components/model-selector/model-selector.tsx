@@ -1,16 +1,16 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
+import { memo } from "react";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-	SelectGroup,
-	SelectLabel,
 } from "@/components/ui/select";
-import { memo } from "react";
 import { useAvailableModels } from "./use-available-models";
 
 interface Props {

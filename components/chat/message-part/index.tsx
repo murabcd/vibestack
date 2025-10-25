@@ -1,16 +1,16 @@
-import type { Metadata } from "@/lib/ai/messages/metadata";
-import type { DataPart } from "@/lib/ai/messages/data-parts";
-import type { ToolSet } from "@/lib/ai/tools";
 import type { UIMessage } from "ai";
-import { GenerateFiles } from "./generate-files";
-import { CreateSandbox } from "./create-sandbox";
-import { GetSandboxURL } from "./get-sandbox-url";
-import { RunCommand } from "./run-command";
-import { ReportErrors } from "./report-errors";
-import { Reasoning } from "./reasoning";
-import { Text } from "./text";
-import { ImageDisplay } from "./image-display";
 import { memo } from "react";
+import type { DataPart } from "@/lib/ai/messages/data-parts";
+import type { Metadata } from "@/lib/ai/messages/metadata";
+import type { ToolSet } from "@/lib/ai/tools";
+import { CreateSandbox } from "./create-sandbox";
+import { GenerateFiles } from "./generate-files";
+import { GetSandboxURL } from "./get-sandbox-url";
+import { ImageDisplay } from "./image-display";
+import { Reasoning } from "./reasoning";
+import { ReportErrors } from "./report-errors";
+import { RunCommand } from "./run-command";
+import { Text } from "./text";
 
 interface Props {
 	part: UIMessage<Metadata, DataPart, ToolSet>["parts"][number];

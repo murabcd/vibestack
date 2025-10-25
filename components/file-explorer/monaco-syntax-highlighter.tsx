@@ -1,8 +1,8 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { useMemo, useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useState } from "react";
 
 // Monaco types for editor and monaco instances
 type Monaco = Parameters<OnMount>[1];

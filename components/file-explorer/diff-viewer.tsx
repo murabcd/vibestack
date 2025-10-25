@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { DiffView, DiffModeEnum } from "@git-diff-view/react";
 import { generateDiffFile } from "@git-diff-view/file";
+import { DiffModeEnum, DiffView } from "@git-diff-view/react";
+import { useMemo } from "react";
 import "@git-diff-view/react/styles/diff-view-pure.css";
 import { useTheme } from "next-themes";
 

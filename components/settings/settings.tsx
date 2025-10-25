@@ -1,12 +1,12 @@
-import { AutoFixErrors } from "./auto-fix-errors";
+import { SlidersVerticalIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { AutoFixErrors } from "./auto-fix-errors";
 import { ReasoningEffort } from "./reasoning-effort";
-import { SlidersVerticalIcon } from "lucide-react";
 
 export function Settings() {
 	return (

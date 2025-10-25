@@ -1,11 +1,11 @@
 "use client";
 
-import type { Command } from "./types";
-import { Panel, PanelHeader } from "@/components/panels/panels";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SquareChevronRight } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Panel, PanelHeader } from "@/components/panels/panels";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { Command } from "./types";
 
 interface Props {
 	className?: string;

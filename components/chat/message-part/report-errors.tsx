@@ -1,12 +1,12 @@
-import type { DataPart } from "@/lib/ai/messages/data-parts";
 import { BugIcon } from "lucide-react";
+import Markdown from "react-markdown";
 import {
 	Task,
 	TaskContent,
 	TaskItem,
 	TaskTrigger,
 } from "@/components/ai-elements/task";
-import Markdown from "react-markdown";
+import type { DataPart } from "@/lib/ai/messages/data-parts";
 
 export function ReportErrors({
 	message,

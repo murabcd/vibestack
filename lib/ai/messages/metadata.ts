@@ -1,5 +1,5 @@
-import z from "zod/v3";
 import type { LanguageModelUsage } from "ai";
+import z from "zod/v3";
 
 export const metadataSchema = z.object({
 	model: z.string(),

@@ -1,19 +1,19 @@
 "use client";
 
+import { CodeIcon, EyeIcon, PanelBottom } from "lucide-react";
 import { useState } from "react";
-import { EyeIcon, CodeIcon, PanelBottom } from "lucide-react";
-import { Panel, PanelHeader } from "@/components/panels/panels";
-import { Preview } from "@/components/preview/preview";
-import { FileExplorer } from "@/components/file-explorer/file-explorer";
-import { CommandsLogs } from "@/components/commands-logs/commands-logs";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
 	PanelGroup,
-	Panel as ResizePanel,
 	PanelResizeHandle,
+	Panel as ResizePanel,
 } from "react-resizable-panels";
 import { useSandboxStore } from "@/app/state";
+import { CommandsLogs } from "@/components/commands-logs/commands-logs";
+import { FileExplorer } from "@/components/file-explorer/file-explorer";
+import { Panel, PanelHeader } from "@/components/panels/panels";
+import { Preview } from "@/components/preview/preview";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
 	className?: string;

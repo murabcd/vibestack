@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
-import { memo } from "react";
 import Image from "next/image";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
 interface Props {

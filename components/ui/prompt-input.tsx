@@ -1,5 +1,40 @@
 "use client";
 
+import type { ChatStatus, FileUIPart } from "ai";
+import {
+	ArrowUpIcon,
+	ImageIcon,
+	Loader2Icon,
+	MicIcon,
+	PaperclipIcon,
+	PlusIcon,
+	SquareIcon,
+	XIcon,
+} from "lucide-react";
+import { nanoid } from "nanoid";
+import {
+	type ChangeEvent,
+	type ChangeEventHandler,
+	Children,
+	type ClipboardEventHandler,
+	type ComponentProps,
+	createContext,
+	type FormEvent,
+	type FormEventHandler,
+	Fragment,
+	type HTMLAttributes,
+	type KeyboardEventHandler,
+	type PropsWithChildren,
+	type ReactNode,
+	type RefObject,
+	useCallback,
+	useContext,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -40,41 +75,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ChatStatus, FileUIPart } from "ai";
-import {
-	ImageIcon,
-	Loader2Icon,
-	MicIcon,
-	PaperclipIcon,
-	PlusIcon,
-	ArrowUpIcon,
-	SquareIcon,
-	XIcon,
-} from "lucide-react";
-import { nanoid } from "nanoid";
-import {
-	type ChangeEvent,
-	type ChangeEventHandler,
-	Children,
-	type ClipboardEventHandler,
-	type ComponentProps,
-	createContext,
-	type FormEvent,
-	type FormEventHandler,
-	Fragment,
-	type HTMLAttributes,
-	type KeyboardEventHandler,
-	type PropsWithChildren,
-	type ReactNode,
-	type RefObject,
-	useCallback,
-	useContext,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
 // ============================================================================
 // Provider Context & Types
 // ============================================================================
