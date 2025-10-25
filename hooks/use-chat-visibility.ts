@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { VisibilityType } from "@/lib/mock-data/chats";
+
+type VisibilityType = "public" | "private";
 
 export function useChatVisibility({
 	initialVisibility = "private",

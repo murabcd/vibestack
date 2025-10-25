@@ -47,6 +47,9 @@
 - [Vercel Sandbox](https://vercel.com/sandbox)
   - Secure, isolated Linux containers for code execution
   - Real-time preview of generated applications
+- [Drizzle ORM](https://orm.drizzle.team)
+  - Type-safe SQL ORM with TypeScript support
+  - Database migrations and schema management
 - [Shadcn/UI](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
