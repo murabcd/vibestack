@@ -1,6 +1,6 @@
+import { Sandbox } from "@vercel/sandbox";
 import { APIError } from "@vercel/sandbox/dist/api-client/api-error";
 import { type NextRequest, NextResponse } from "next/server";
-import { Sandbox } from "@vercel/sandbox";
 
 /**
  * We must change the SDK to add data to the instance and then

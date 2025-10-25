@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { checkBotId } from "botid/server";
 import { generateObject } from "ai";
-import { linesSchema, resultSchema } from "@/components/error-monitor/schemas";
-import { getModelOptions } from "@/lib/ai/gateway";
-import { Models } from "@/lib/ai/constants";
+import { checkBotId } from "botid/server";
 import { jsonrepair } from "jsonrepair";
+import { NextResponse } from "next/server";
+import { linesSchema, resultSchema } from "@/components/error-monitor/schemas";
+import { Models } from "@/lib/ai/constants";
+import { getModelOptions } from "@/lib/ai/gateway";
 import prompt from "./prompt.md";
 
 export async function POST(req: Request) {

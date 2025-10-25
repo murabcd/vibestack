@@ -1,24 +1,24 @@
 "use client";
 
-import type { ChatUIMessage } from "@/components/chat/types";
+import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
+import { useEffect } from "react";
 import {
 	Conversation,
 	ConversationContent,
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message } from "@/components/chat/message";
-import { Panel, PanelHeader } from "@/components/panels/panels";
-import { useChat } from "@ai-sdk/react";
-import { useEffect } from "react";
-import { useSharedChatContext } from "@/lib/chat-context";
-import { useSandboxStore } from "./state";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { PromptForm } from "@/components/prompt-form";
-import { PromptInputProvider } from "@/components/ui/prompt-input";
-import { useLocalStorageValue } from "@/lib/use-local-storage-value";
+import { Message } from "@/components/chat/message";
+import type { ChatUIMessage } from "@/components/chat/types";
+import { PromptForm } from "@/components/forms/prompt-form";
+import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
+import { PromptInputProvider } from "@/components/ui/prompt-input";
+import { useSharedChatContext } from "@/lib/chat-context";
+import { useLocalStorageValue } from "@/lib/use-local-storage-value";
+import { useSandboxStore } from "./state";
 
 interface Props {
 	className: string;

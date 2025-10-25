@@ -1,16 +1,20 @@
 "use client";
 
-import { PromptForm } from "@/components/prompt-form";
+import { PromptForm } from "@/components/forms/prompt-form";
+import { Suggestions } from "@/components/forms/suggestions";
+import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
-import type { PromptInputMessage } from "@/components/ui/prompt-input";
-import { Suggestions } from "@/components/suggestions";
 
 interface InitialScreenProps {
 	onMessageSubmit: (message: PromptInputMessage) => void;
+	isLoading?: boolean;
 }
 
-export function InitialScreen({ onMessageSubmit }: InitialScreenProps) {
+export function InitialScreen({
+	onMessageSubmit,
+	isLoading,
+}: InitialScreenProps) {
 	const [storedInput] = useLocalStorageValue("prompt-input");
 
 	return (
@@ -29,7 +33,11 @@ export function InitialScreen({ onMessageSubmit }: InitialScreenProps) {
 
 					{/* Prompt input */}
 					<PromptInputProvider initialInput={storedInput || ""}>
-						<PromptForm onSubmit={onMessageSubmit} className="w-full" />
+						<PromptForm
+							onSubmit={onMessageSubmit}
+							className="w-full"
+							isLoading={isLoading}
+						/>
 
 						{/* Suggestions below the prompt input */}
 						<Suggestions />

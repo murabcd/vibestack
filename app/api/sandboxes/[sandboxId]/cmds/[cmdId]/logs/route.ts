@@ -1,5 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { Sandbox } from "@vercel/sandbox";
+import { type NextRequest, NextResponse } from "next/server";
 
 interface Params {
 	sandboxId: string;

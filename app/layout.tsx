@@ -1,15 +1,15 @@
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { ChatProvider } from "@/lib/chat-context";
+import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { CommandLogsStream } from "@/components/commands-logs/commands-logs-stream";
 import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
-import { Geist, Geist_Mono } from "next/font/google";
 import { SandboxState } from "@/components/modals/sandbox-state";
-import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import type { ReactNode } from "react";
-import type { Metadata, Viewport } from "next";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Suspense } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { ChatProvider } from "@/lib/chat-context";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
