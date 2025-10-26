@@ -1,11 +1,17 @@
-import { parseAsBoolean, parseAsStringLiteral, useQueryState } from "nuqs";
+import {
+	parseAsBoolean,
+	parseAsStringLiteral,
+	parseAsInteger,
+	useQueryState,
+} from "nuqs";
 import { DEFAULT_MODEL, SUPPORTED_MODELS } from "@/lib/ai/constants";
 
-export function useSettings() {
+export function useSettings(initialSandboxDuration?: number) {
 	const [modelId] = useModelId();
 	const [fixErrors] = useFixErrors();
 	const [reasoningEffort] = useReasoningEffort();
-	return { modelId, fixErrors, reasoningEffort };
+	const [sandboxDuration] = useSandboxDuration(initialSandboxDuration);
+	return { modelId, fixErrors, reasoningEffort, sandboxDuration };
 }
 
 export function useModelId() {
@@ -26,4 +32,11 @@ export function useReasoningEffort() {
 
 export function useFixErrors() {
 	return useQueryState("fix-errors", parseAsBoolean.withDefault(true));
+}
+
+export function useSandboxDuration(initialValue?: number) {
+	return useQueryState(
+		"sandbox-duration",
+		parseAsInteger.withDefault(initialValue ?? 60),
+	);
 }

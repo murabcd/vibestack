@@ -1,8 +1,8 @@
 "use server";
 
+import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { ChatUIMessage } from "@/components/chat/types";
-import { createOpenAI } from "@ai-sdk/openai";
 
 export async function generateTitleFromUserMessage({
 	message,

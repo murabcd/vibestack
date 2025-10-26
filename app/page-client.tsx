@@ -1,10 +1,10 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
 import { generateTitleFromUserMessage } from "@/app/actions";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
@@ -14,7 +14,11 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { generateUUID } from "@/lib/utils";
 import { InitialScreen } from "./initial-screen";
 
-export function PageClient() {
+export function PageClient({
+	initialSandboxDuration,
+}: {
+	initialSandboxDuration: number;
+}) {
 	const router = useRouter();
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
 
@@ -118,6 +122,7 @@ export function PageClient() {
 					<InitialScreen
 						onMessageSubmit={handleMessageSubmit}
 						isLoading={isCreatingProject}
+						initialSandboxDuration={initialSandboxDuration}
 					/>
 				</div>
 			</SidebarInset>

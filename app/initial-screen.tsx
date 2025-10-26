@@ -9,11 +9,13 @@ import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 interface InitialScreenProps {
 	onMessageSubmit: (message: PromptInputMessage) => void;
 	isLoading?: boolean;
+	initialSandboxDuration: number;
 }
 
 export function InitialScreen({
 	onMessageSubmit,
 	isLoading,
+	initialSandboxDuration,
 }: InitialScreenProps) {
 	const [storedInput] = useLocalStorageValue("prompt-input");
 
@@ -37,6 +39,7 @@ export function InitialScreen({
 							onSubmit={onMessageSubmit}
 							className="w-full"
 							isLoading={isLoading}
+							initialSandboxDuration={initialSandboxDuration}
 						/>
 
 						{/* Suggestions below the prompt input */}

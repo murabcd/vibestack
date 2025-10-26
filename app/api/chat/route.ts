@@ -24,6 +24,7 @@ interface BodyData {
 	modelId?: string;
 	reasoningEffort?: "low" | "medium";
 	projectId?: string;
+	sandboxDuration?: number;
 }
 
 export async function POST(req: Request) {
@@ -34,7 +35,13 @@ export async function POST(req: Request) {
 
 	const [
 		models,
-		{ messages, modelId = DEFAULT_MODEL, reasoningEffort, projectId },
+		{
+			messages,
+			modelId = DEFAULT_MODEL,
+			reasoningEffort,
+			projectId,
+			sandboxDuration,
+		},
 	] = await Promise.all([
 		getAvailableModels(),
 		req.json() as Promise<BodyData>,
@@ -51,8 +58,9 @@ export async function POST(req: Request) {
 	}
 
 	// If projectId is provided, verify it exists and update status
+	let project = null;
 	if (projectId) {
-		const project = await getProjectById(projectId);
+		project = await getProjectById(projectId);
 		if (!project) {
 			return NextResponse.json(
 				{ error: `Project ${projectId} not found.` },
@@ -131,14 +139,17 @@ export async function POST(req: Request) {
 					tools: tools({
 						modelId,
 						writer,
-						context: projectId
-							? {
-									projectId,
-									updateProject: async (updates) => {
-										await updateProject(projectId, updates);
-									},
-								}
-							: undefined,
+						context:
+							projectId && project
+								? {
+										projectId,
+										userId: project.userId,
+										sandboxDuration,
+										updateProject: async (updates) => {
+											await updateProject(projectId, updates);
+										},
+									}
+								: undefined,
 					}),
 					onError: async (error) => {
 						console.error("Error communicating with AI");

@@ -42,7 +42,7 @@ export function SidebarUserNav() {
 								}
 								className="rounded-full"
 								height={24}
-								src={session.user.avatar}
+								src={session.user.avatar || "/vercel.svg"}
 								width={24}
 							/>
 							<span className="truncate">

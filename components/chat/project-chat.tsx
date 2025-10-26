@@ -27,6 +27,7 @@ interface Props {
 	projectId: string;
 	pendingMessage?: PromptInputMessage | null;
 	sentMessageRef?: MutableRefObject<boolean>;
+	initialSandboxDuration?: number;
 }
 
 function ProjectChatInner({
@@ -35,9 +36,12 @@ function ProjectChatInner({
 	projectId,
 	pendingMessage,
 	sentMessageRef,
+	initialSandboxDuration,
 }: Props) {
 	const { chat } = useSharedChatContext();
-	const { modelId, reasoningEffort } = useSettings();
+	const { modelId, reasoningEffort, sandboxDuration } = useSettings(
+		initialSandboxDuration,
+	);
 
 	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
 		{
@@ -70,6 +74,7 @@ function ProjectChatInner({
 						modelId,
 						reasoningEffort,
 						projectId,
+						sandboxDuration,
 					},
 				},
 			);
@@ -146,6 +151,7 @@ function ProjectChatInner({
 					modelId,
 					reasoningEffort,
 					projectId, // Pass projectId to save messages to the correct project
+					sandboxDuration,
 				},
 			},
 		);
@@ -185,7 +191,10 @@ function ProjectChatInner({
 			</Conversation>
 
 			<div className="p-4">
-				<PromptForm onSubmit={handleMessageSubmit} />
+				<PromptForm
+					onSubmit={handleMessageSubmit}
+					initialSandboxDuration={initialSandboxDuration}
+				/>
 			</div>
 		</Panel>
 	);

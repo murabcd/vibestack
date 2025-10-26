@@ -113,3 +113,27 @@ export const messages = pgTable("messages", {
 	content: jsonb("content").notNull(),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
+
+// Settings table - key-value pairs for user-specific settings
+export const settings = pgTable(
+	"settings",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }), // Foreign key to users table
+		key: text("key").notNull(), // Setting key (e.g., 'maxSandboxDuration')
+		value: text("value").notNull(), // Setting value (stored as text)
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		// Unique constraint: prevent duplicate keys per user
+		userIdKeyUnique: uniqueIndex("settings_user_id_key_idx").on(
+			table.userId,
+			table.key,
+		),
+	}),
+);
+
+export type Setting = InferSelectModel<typeof settings>;

@@ -17,6 +17,7 @@ import {
 import type { ChatUIMessage } from "@/components/chat/types";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
+import { TaskOptions } from "@/components/task-options/task-options";
 import { useModelId, useSettings } from "@/components/settings/use-settings";
 import {
 	PromptInput,
@@ -41,11 +42,17 @@ interface PromptFormProps {
 	onSubmit: (message: PromptInputMessage) => void;
 	className?: string;
 	isLoading?: boolean;
+	initialSandboxDuration?: number;
 }
 
-export function PromptForm({ onSubmit, className, isLoading }: PromptFormProps) {
+export function PromptForm({
+	onSubmit,
+	className,
+	isLoading,
+	initialSandboxDuration,
+}: PromptFormProps) {
 	const { chat } = useSharedChatContext();
-	const { modelId } = useSettings();
+	const { modelId } = useSettings(initialSandboxDuration);
 	const [, setModelId] = useModelId();
 	const { messages, status } = useChat<ChatUIMessage>({ chat });
 	const controller = usePromptInputController();
@@ -53,7 +60,7 @@ export function PromptForm({ onSubmit, className, isLoading }: PromptFormProps) 
 
 	// Use isLoading prop if provided, otherwise use chat status
 	const currentStatus = isLoading ? "submitted" : status;
-	
+
 	// Only show context if we have a chat context (not on home page)
 	const hasChatContext = chat && messages.length > 0;
 
@@ -125,7 +132,9 @@ export function PromptForm({ onSubmit, className, isLoading }: PromptFormProps) 
 					<div className="flex items-start gap-2 w-full">
 						<PromptInputTextarea
 							placeholder="Type your message…"
-							disabled={currentStatus === "streaming" || currentStatus === "submitted"}
+							disabled={
+								currentStatus === "streaming" || currentStatus === "submitted"
+							}
 							className="flex-1 min-w-0"
 						/>
 						{hasChatContext && totalUsage.totalTokens > 0 && (
@@ -160,6 +169,7 @@ export function PromptForm({ onSubmit, className, isLoading }: PromptFormProps) 
 								<PromptInputActionAddAttachments />
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
+						<TaskOptions initialSandboxDuration={initialSandboxDuration} />
 						<Settings />
 						<ModelSelector modelId={modelId} onModelChange={setModelId} />
 					</PromptInputTools>

@@ -7,6 +7,7 @@ import description from "./create-sandbox.md";
 import { getRichError } from "./get-rich-error";
 import type { ToolContext } from "./types";
 import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
+import { getMaxSandboxDuration } from "@/lib/db/settings";
 
 interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
@@ -49,11 +50,31 @@ export const createSandbox = ({ writer, context }: Params) =>
 			}
 
 			try {
+				// Use sandbox duration from context (user's UI setting), fallback to database, then default
+				let userTimeout = 1800000; // Default 30 minutes (in ms)
+
+				if (context?.sandboxDuration) {
+					// User set duration from UI (in minutes)
+					userTimeout = context.sandboxDuration * 60 * 1000;
+				} else if (context?.userId) {
+					// Fallback to database setting
+					const userMaxDuration = await getMaxSandboxDuration(context.userId);
+					userTimeout = userMaxDuration * 60 * 1000;
+				}
+
+				// Respect the timeout parameter from AI if provided (override user setting)
+				if (timeout) {
+					userTimeout = timeout;
+				}
+
+				// Enforce maximum limit (5 hours = 300 minutes)
+				userTimeout = Math.min(userTimeout, 300 * 60 * 1000);
+
 				const sandbox = await Sandbox.create({
 					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
 					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
 					token: process.env.SANDBOX_VERCEL_TOKEN!,
-					timeout: timeout ?? 1800000,
+					timeout: userTimeout,
 					ports,
 				});
 

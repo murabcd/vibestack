@@ -439,7 +439,10 @@ export function SidebarHistory({
 			if (pinnedA !== pinnedB) {
 				return pinnedA ? -1 : 1;
 			}
-			return b.createdAt.getTime() - a.createdAt.getTime();
+			// Ensure createdAt is a Date object before calling getTime()
+			const aDate = new Date(a.createdAt);
+			const bDate = new Date(b.createdAt);
+			return bDate.getTime() - aDate.getTime();
 		});
 
 		const pinned = mappedProjects.filter((project) => project.isPinned);

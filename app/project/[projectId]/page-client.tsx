@@ -1,8 +1,8 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview";
@@ -18,12 +18,14 @@ interface ProjectPageClientProps {
 	horizontalSizes: number[] | null;
 	projectId: string;
 	initialMessages: ChatUIMessage[];
+	initialSandboxDuration: number;
 }
 
 export function ProjectPageClient({
 	horizontalSizes,
 	projectId,
 	initialMessages,
+	initialSandboxDuration,
 }: ProjectPageClientProps) {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(true);
@@ -117,6 +119,7 @@ export function ProjectPageClient({
 								projectId={projectId}
 								pendingMessage={pendingMessage}
 								sentMessageRef={hasSentPendingMessage}
+								initialSandboxDuration={initialSandboxDuration}
 							/>
 						</TabContent>
 						<TabContent tabId="preview" className="flex-1">
@@ -134,6 +137,7 @@ export function ProjectPageClient({
 									projectId={projectId}
 									pendingMessage={pendingMessage}
 									sentMessageRef={hasSentPendingMessage}
+									initialSandboxDuration={initialSandboxDuration}
 								/>
 							}
 							right={<EnhancedPreview className="flex-1 overflow-hidden" />}
