@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, TextSearch } from "lucide-react";
+import { TextSearch, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,6 +10,8 @@ import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupContent,
 	SidebarHeader,
 	SidebarMenu,
 	useSidebar,
@@ -19,15 +21,15 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SignIn } from "@/components/auth/sign-in";
+import { useSession } from "@/components/auth/session-provider";
+import { SidebarUserNav } from "@/components/sidebar/sidebar-user-nav";
 
-export const AppSidebar = ({
-	onNewProject,
-}: {
-	onNewProject?: () => void;
-} = {}) => {
+export const AppSidebar = () => {
 	const router = useRouter();
 	const { setOpenMobile } = useSidebar();
 	const [openCommandDialog, setOpenCommandDialog] = useState(false);
+	const { session } = useSession();
 
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {
@@ -46,16 +48,6 @@ export const AppSidebar = ({
 		setOpenMobile(false);
 	};
 
-	const handleNewProject = () => {
-		setOpenMobile(false);
-		if (onNewProject) {
-			onNewProject();
-		} else {
-			router.push("/");
-			router.refresh();
-		}
-	};
-
 	return (
 		<Sidebar className="group-data-[side=left]:border-r-0">
 			<SidebarHeader>
@@ -69,7 +61,7 @@ export const AppSidebar = ({
 							className="flex flex-row gap-3 items-center"
 						>
 							<span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
-								{/* TBD: Projects list? */}
+								Vibe<span className="text-muted-foreground">Stack</span>
 							</span>
 						</Link>
 						<div className="flex flex-row items-center">
@@ -94,9 +86,13 @@ export const AppSidebar = ({
 										variant="ghost"
 										type="button"
 										className="p-2 h-fit"
-										onClick={handleNewProject}
+										onClick={() => {
+											setOpenMobile(false);
+											router.push("/");
+											router.refresh();
+										}}
 									>
-										<Plus />
+										<Plus className="w-4 h-4" />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent align="end">New project</TooltipContent>
@@ -106,17 +102,23 @@ export const AppSidebar = ({
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarHistory
-					openCommandDialog={openCommandDialog}
-					setOpenCommandDialog={setOpenCommandDialog}
-					onSelectProject={handleSelectProject}
-				/>
+				{session ? (
+					<SidebarHistory
+						openCommandDialog={openCommandDialog}
+						setOpenCommandDialog={setOpenCommandDialog}
+						onSelectProject={handleSelectProject}
+					/>
+				) : (
+					<SidebarGroup>
+						<SidebarGroupContent>
+							<div className="px-2 py-4 text-sm text-muted-foreground">
+								Sign in to view your project history and revisit previous chats.
+							</div>
+						</SidebarGroupContent>
+					</SidebarGroup>
+				)}
 			</SidebarContent>
-			<SidebarFooter>
-				<div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-					{/* TBD: Login auth will be there */}
-				</div>
-			</SidebarFooter>
+			<SidebarFooter>{session ? <SidebarUserNav /> : <SignIn />}</SidebarFooter>
 		</Sidebar>
 	);
 };

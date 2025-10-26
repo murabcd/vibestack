@@ -1,6 +1,5 @@
-import { PanelLeft, Terminal } from "lucide-react";
+import { PanelLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ModeToggle } from "@/components/theme/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
@@ -10,43 +9,41 @@ import {
 } from "@/components/ui/tooltip";
 
 export function SidebarToggle() {
-	const { toggleSidebar } = useSidebar();
+	const { toggleSidebar, state } = useSidebar();
 	const router = useRouter();
 
 	return (
-		<div className="flex items-center justify-between w-full">
-			<div className="flex items-center gap-2">
+		<div className="flex items-center gap-2">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						onClick={toggleSidebar}
+						variant="outline"
+						className="md:px-2 md:h-fit"
+					>
+						<PanelLeft className="w-4 h-4" />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent align="start">Toggle sidebar</TooltipContent>
+			</Tooltip>
+
+			{state === "collapsed" && (
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
-							onClick={toggleSidebar}
+							onClick={() => {
+								router.push("/");
+								router.refresh();
+							}}
 							variant="outline"
-							className="md:px-2 md:h-fit"
+							className="hidden md:flex md:px-2 md:h-fit"
 						>
-							<PanelLeft className="w-4 h-4" />
+							<Plus className="w-4 h-4" />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent align="start">Toggle sidebar</TooltipContent>
+					<TooltipContent align="start">New project</TooltipContent>
 				</Tooltip>
-
-				<button
-					type="button"
-					onClick={() => {
-						router.push("/");
-						router.refresh();
-					}}
-					className="flex items-center cursor-pointer"
-				>
-					<Terminal className="ml-1 md:ml-2.5 mr-1.5" />
-					<span className="hidden md:inline text-sm font-semibold tracking-tight uppercase">
-						Vibe<span className="text-muted-foreground">Stack</span>
-					</span>
-				</button>
-			</div>
-
-			<div className="flex items-center">
-				<ModeToggle />
-			</div>
+			)}
 		</div>
 	);
 }

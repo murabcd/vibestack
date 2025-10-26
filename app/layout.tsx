@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { cookies, headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import { SessionProvider } from "@/components/auth/session-provider";
 import { CommandLogsStream } from "@/components/commands-logs/commands-logs-stream";
 import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
 import { SandboxState } from "@/components/modals/sandbox-state";
@@ -58,6 +60,16 @@ export const viewport: Viewport = {
 export default async function RootLayout({
 	children,
 }: Readonly<{ children: ReactNode }>) {
+	const cookieStore = await cookies();
+	const sidebarStateCookie = cookieStore.get("sidebar_state")?.value;
+	const defaultSidebarOpen = sidebarStateCookie === "true";
+	const headersList = await headers();
+	const userAgent = headersList.get("user-agent") ?? "";
+	const defaultIsMobile =
+		/Android|BlackBerry|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile/i.test(
+			userAgent,
+		);
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
@@ -69,15 +81,20 @@ export default async function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<SidebarProvider defaultOpen={true}>
-						<Suspense fallback={null}>
-							<NuqsAdapter>
-								<ChatProvider>
-									<ErrorMonitor>{children}</ErrorMonitor>
-								</ChatProvider>
-							</NuqsAdapter>
-						</Suspense>
-					</SidebarProvider>
+					<SessionProvider>
+						<SidebarProvider
+							defaultOpen={defaultSidebarOpen}
+							defaultIsMobile={defaultIsMobile}
+						>
+							<Suspense fallback={null}>
+								<NuqsAdapter>
+									<ChatProvider>
+										<ErrorMonitor>{children}</ErrorMonitor>
+									</ChatProvider>
+								</NuqsAdapter>
+							</Suspense>
+						</SidebarProvider>
+					</SessionProvider>
 					<Toaster />
 					<CommandLogsStream />
 					<SandboxState />
