@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview";
@@ -9,6 +10,7 @@ import { Horizontal } from "@/components/layout/panels";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
 import { TabContent, TabItem } from "@/components/tabs";
+import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
 
@@ -63,7 +65,7 @@ export function ProjectPageClient({
 	if (isLoading) {
 		return (
 			<>
-				<AppSidebar onNewProject={handleNewProject} />
+				<AppSidebar />
 				<SidebarInset>
 					<div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 space-x-2">
 						<div className="flex items-center w-full gap-2">
@@ -85,11 +87,22 @@ export function ProjectPageClient({
 	// Show the split view for the project
 	return (
 		<>
-			<AppSidebar onNewProject={handleNewProject} />
+			<AppSidebar />
 			<SidebarInset>
 				<div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 space-x-2">
-					<div className="flex items-center w-full">
+					<div className="flex items-center w-full gap-2">
 						<SidebarToggle />
+						<div className="flex items-center flex-1" />
+						<div className="md:hidden">
+							<Button
+								onClick={handleNewProject}
+								variant="outline"
+								className="px-2 h-fit"
+							>
+								<Plus className="w-4 h-4 mr-2" />
+								New project
+							</Button>
+						</div>
 					</div>
 					<ul className="flex space-x-5 text-sm tracking-tight px-1 py-2 md:hidden">
 						<TabItem tabId="chat">Chat</TabItem>

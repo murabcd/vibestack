@@ -29,7 +29,7 @@ export const ModelSelector = memo(function ModelSelector({
 			onValueChange={onModelChange}
 			disabled={isLoading || !!error || !models?.length}
 		>
-			<SelectTrigger className="w-[170px] bg-background cursor-pointer h-8!">
+			<SelectTrigger className="bg-background cursor-pointer h-8!">
 				{isLoading ? (
 					<div className="flex items-center gap-2">
 						<Loader2Icon className="size-4 animate-spin" />
@@ -46,7 +46,6 @@ export const ModelSelector = memo(function ModelSelector({
 
 			<SelectContent>
 				<SelectGroup>
-					<SelectLabel>Models</SelectLabel>
 					{models
 						?.sort((a, b) => a.label.localeCompare(b.label))
 						.map((model) => (
