@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { type MutableRefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 import { useSandboxStore } from "@/app/state";
 import {
 	Conversation,
@@ -26,7 +26,7 @@ interface Props {
 	initialMessages: ChatUIMessage[];
 	projectId: string;
 	pendingMessage?: PromptInputMessage | null;
-	sentMessageRef?: MutableRefObject<boolean>;
+	sentMessageRef?: RefObject<boolean>;
 	initialSandboxDuration?: number;
 }
 
