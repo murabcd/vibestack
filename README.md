@@ -62,13 +62,38 @@ This app ships with [Anthropic](https://anthropic.com) provider as the default. 
 
 You can deploy your own version of VibeStack to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyour-username%2Fvibestack&env=OPENAI_API_KEY,ANTHROPIC_API_KEY&envDescription=Learn%20more%20about%20how%20to%20get%20the%20API%20Keys%20for%20the%20application&envLink=https%3A%2F%2Fgithub.com%2Fyour-username%2Fvibestack%2Fblob%2Fmain%2F.env.example&demo-title=VibeStack&demo-description=An%20end-to-end%20coding%20platform%20built%20with%20Next.js%2015%2C%20Vercel%20AI%20Cloud%2C%20and%20AI%20SDK.&demo-url=https%3A%2F%2Fvibestack-code.vercel.app)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyour-username%2Fvibestack&env=ANTHROPIC_API_KEY,SANDBOX_VERCEL_TOKEN,SANDBOX_VERCEL_TEAM_ID,SANDBOX_VERCEL_PROJECT_ID,JWE_SECRET,ENCRYPTION_KEY&envDescription=Required%20environment%20variables%20for%20VibeStack&envLink=https%3A%2F%2Fgithub.com%2Fyour-username%2Fvibestack%2Fblob%2Fmain%2F.env.example&demo-title=VibeStack&demo-description=An%20end-to-end%20coding%20platform%20built%20with%20Next.js%2C%20Vercel%20Sandbox%2C%20and%20AI%20SDK&demo-url=https%3A%2F%2Fvibestack-code.vercel.app)
 
 ## Running locally
 
 You will need to use the environment variables [defined in `.env.example`](.env.example) to run VibeStack. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
 
 > Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI provider accounts.
+
+## Environment Variables
+
+### Required Variables
+
+#### Vercel Sandbox Authentication
+- `SANDBOX_VERCEL_TOKEN`: Your Vercel API token (create at https://vercel.com/account/tokens)
+- `SANDBOX_VERCEL_TEAM_ID`: Your Vercel team ID (get with `vercel teams list`)
+- `SANDBOX_VERCEL_PROJECT_ID`: Your Vercel project ID (get with `vercel projects list`)
+
+#### Database
+- `POSTGRES_URL`: PostgreSQL connection string
+
+#### Security
+- `JWE_SECRET`: Base64-encoded secret for session encryption (generate with: `openssl rand -base64 32`)
+- `ENCRYPTION_KEY`: 32-byte hex string for encrypting tokens (generate with: `openssl rand -hex 32`)
+
+#### AI Provider
+- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude models
+
+### Optional Variables
+
+#### Authentication Providers (configure at least one)
+- `NEXT_PUBLIC_VERCEL_CLIENT_ID` and `VERCEL_CLIENT_SECRET`: For Vercel OAuth
+- `NEXT_PUBLIC_GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`: For GitHub OAuth
 
 1. Install Vercel CLI: `npm i -g vercel`
 2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
