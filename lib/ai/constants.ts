@@ -2,7 +2,6 @@ export enum Models {
 	AnthropicClaude45Sonnet = "anthropic/claude-sonnet-4.5",
 	AnthropicClaude4Sonnet = "anthropic/claude-4-sonnet",
 	AnthropicClaude45Haiku = "anthropic/claude-haiku-4-5",
-	OpenAIGPT41Nano = "openai/gpt-4.1-nano",
 }
 
 export const DEFAULT_MODEL = Models.AnthropicClaude45Sonnet;
@@ -11,7 +10,6 @@ export const SUPPORTED_MODELS: string[] = [
 	Models.AnthropicClaude45Sonnet,
 	Models.AnthropicClaude4Sonnet,
 	Models.AnthropicClaude45Haiku,
-	Models.OpenAIGPT41Nano,
 ];
 
 export const TEST_PROMPTS = [

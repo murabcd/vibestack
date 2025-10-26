@@ -1,5 +1,4 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModelV2 } from "@ai-sdk/provider";
 import type { JSONValue } from "ai";
 import { Models } from "./constants";
@@ -8,15 +7,10 @@ const anthropic = createAnthropic({
 	apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const openai = createOpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
-});
-
 const AVAILABLE_MODELS = [
-	{ id: Models.AnthropicClaude4Sonnet, name: "Claude 4 Sonnet" },
-	{ id: Models.AnthropicClaude45Sonnet, name: "Claude 4.5 Sonnet" },
-	{ id: Models.AnthropicClaude45Haiku, name: "Claude 4.5 Haiku" },
-	{ id: Models.OpenAIGPT41Nano, name: "GPT-4.1 Nano" },
+	{ id: Models.AnthropicClaude4Sonnet, name: "Sonnet 4" },
+	{ id: Models.AnthropicClaude45Sonnet, name: "Sonnet 4.5" },
+	{ id: Models.AnthropicClaude45Haiku, name: "Haiku 4.5" },
 ];
 
 export async function getAvailableModels() {
@@ -75,11 +69,6 @@ export function getModelOptions(
 		};
 	}
 
-	if (modelId === Models.OpenAIGPT41Nano) {
-		return {
-			model: openai("gpt-4.1-nano"),
-		};
-	}
 	return {
 		model: anthropic("claude-sonnet-4-5"),
 		headers: { "anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },

@@ -1,10 +1,19 @@
 import { nanoid } from "nanoid";
 import { NextResponse } from "next/server";
 import { createProject, getProjectsList } from "@/lib/db/queries";
+import { getSessionFromReq } from "@/lib/session/server";
 
-export async function GET() {
+export async function GET(request: Request) {
 	try {
-		const projects = await getProjectsList();
+		const session = await getSessionFromReq(request as any);
+		if (!session) {
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 },
+			);
+		}
+
+		const projects = await getProjectsList(session.user.id);
 		return NextResponse.json({ projects });
 	} catch (error) {
 		console.error("Failed to fetch projects:", error);
@@ -17,6 +26,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
 	try {
+		const session = await getSessionFromReq(request as any);
+		if (!session) {
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 },
+			);
+		}
+
 		const body = await request.json();
 		const {
 			projectId: providedProjectId,
@@ -34,6 +51,7 @@ export async function POST(request: Request) {
 			projectId,
 			title,
 			visibility,
+			userId: session.user.id,
 		});
 
 		return NextResponse.json({ project });
