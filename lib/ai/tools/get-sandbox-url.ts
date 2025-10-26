@@ -33,7 +33,12 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 				data: { status: "loading" },
 			});
 
-			const sandbox = await Sandbox.get({ sandboxId });
+			const sandbox = await Sandbox.get({
+				sandboxId,
+				teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+				projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+				token: process.env.SANDBOX_VERCEL_TOKEN!,
+			});
 			const url = sandbox.domain(port);
 
 			writer.write({

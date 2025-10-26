@@ -29,7 +29,12 @@ export async function GET(
 		);
 	}
 
-	const sandbox = await Sandbox.get(fileParams.data);
+	const sandbox = await Sandbox.get({
+		...fileParams.data,
+		teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+		projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+		token: process.env.SANDBOX_VERCEL_TOKEN!,
+	});
 	const stream = await sandbox.readFile(fileParams.data);
 	if (!stream) {
 		return NextResponse.json(
@@ -67,7 +72,12 @@ export async function POST(
 			);
 		}
 
-		const sandbox = await Sandbox.get({ sandboxId });
+		const sandbox = await Sandbox.get({
+			sandboxId,
+			teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+			projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+			token: process.env.SANDBOX_VERCEL_TOKEN!,
+		});
 
 		// Write the file to the sandbox
 		await sandbox.writeFiles([

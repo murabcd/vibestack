@@ -11,7 +11,12 @@ export async function GET(
 	{ params }: { params: Promise<Params> },
 ) {
 	const cmdParams = await params;
-	const sandbox = await Sandbox.get(cmdParams);
+	const sandbox = await Sandbox.get({
+		...cmdParams,
+		teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+		projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+		token: process.env.SANDBOX_VERCEL_TOKEN!,
+	});
 	const command = await sandbox.getCommand(cmdParams.cmdId);
 
 	/**

@@ -6,6 +6,7 @@ import type { DataPart } from "../messages/data-parts";
 import description from "./create-sandbox.md";
 import { getRichError } from "./get-rich-error";
 import type { ToolContext } from "./types";
+import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
 
 interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
@@ -19,10 +20,10 @@ export const createSandbox = ({ writer, context }: Params) =>
 			timeout: z
 				.number()
 				.min(600000)
-				.max(2700000)
+				.max(3600000)
 				.optional()
 				.describe(
-					"Maximum time in milliseconds the Vercel Sandbox will remain active before automatically shutting down. Minimum 600000ms (10 minutes), maximum 2700000ms (45 minutes). Defaults to 600000ms (10 minutes). The sandbox will terminate all running processes when this timeout is reached.",
+					"Maximum time in milliseconds the Vercel Sandbox will remain active before automatically shutting down. Minimum 600000ms (10 minutes), maximum 3600000ms (60 minutes). Defaults to 1800000ms (30 minutes). The sandbox will terminate all running processes when this timeout is reached.",
 				),
 			ports: z
 				.array(z.number())
@@ -39,9 +40,20 @@ export const createSandbox = ({ writer, context }: Params) =>
 				data: { status: "loading" },
 			});
 
+			// Validate required environment variables
+			const envValidation = validateSandboxEnvironmentVariables();
+			if (!envValidation.valid) {
+				throw new Error(
+					`Missing required environment variables: ${envValidation.errors.join(", ")}`,
+				);
+			}
+
 			try {
 				const sandbox = await Sandbox.create({
-					timeout: timeout ?? 600000,
+					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+					token: process.env.SANDBOX_VERCEL_TOKEN!,
+					timeout: timeout ?? 1800000,
 					ports,
 				});
 

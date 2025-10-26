@@ -51,7 +51,12 @@ export const runCommand = ({ writer }: Params) =>
 			let sandbox: Sandbox | null = null;
 
 			try {
-				sandbox = await Sandbox.get({ sandboxId });
+				sandbox = await Sandbox.get({
+					sandboxId,
+					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+					token: process.env.SANDBOX_VERCEL_TOKEN!,
+				});
 			} catch (error) {
 				const richError = getRichError({
 					action: "get sandbox by id",
