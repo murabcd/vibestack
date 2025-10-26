@@ -4,12 +4,18 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "./index";
 import { messages, type Project, projects } from "./schema";
 
-export async function getProjectsList(): Promise<Project[]> {
+export async function getProjectsList(userId?: string): Promise<Project[]> {
 	try {
-		return await db
+		const query = db
 			.select()
 			.from(projects)
 			.orderBy(desc(projects.isPinned), desc(projects.createdAt));
+
+		if (userId) {
+			return await query.where(eq(projects.userId, userId));
+		}
+
+		return await query;
 	} catch (error) {
 		console.error("Failed to get projects list:", error);
 		throw new Error("Failed to get projects list");
@@ -35,10 +41,12 @@ export async function createProject({
 	projectId,
 	title,
 	visibility = "private",
+	userId,
 }: {
 	projectId: string;
 	title: string;
 	visibility?: "public" | "private";
+	userId: string;
 }): Promise<Project> {
 	try {
 		const [result] = await db
@@ -51,6 +59,7 @@ export async function createProject({
 				isPinned: false,
 				status: "idle",
 				progress: 0,
+				userId,
 			})
 			.returning();
 		return result;

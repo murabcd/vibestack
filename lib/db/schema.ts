@@ -8,7 +8,76 @@ import {
 	timestamp,
 	uuid,
 	varchar,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+// Users table - user profile and primary OAuth account
+export const users = pgTable(
+	"users",
+	{
+		id: text("id").primaryKey(), // Internal user ID (we generate this)
+		// Primary OAuth account info (how they signed in)
+		provider: text("provider", {
+			enum: ["github", "vercel"],
+		}).notNull(), // Primary auth provider
+		externalId: text("external_id").notNull(), // External ID from OAuth provider
+		accessToken: text("access_token").notNull(), // Encrypted OAuth access token
+		refreshToken: text("refresh_token"), // Encrypted OAuth refresh token
+		scope: text("scope"), // OAuth scope
+		// Profile info
+		username: text("username").notNull(),
+		email: text("email"),
+		name: text("name"),
+		avatarUrl: text("avatar_url"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+		lastLoginAt: timestamp("last_login_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		// Unique constraint: prevent duplicate signups from same provider + external ID
+		providerExternalIdUnique: uniqueIndex("users_provider_external_id_idx").on(
+			table.provider,
+			table.externalId,
+		),
+	}),
+);
+
+export type User = InferSelectModel<typeof users>;
+
+// Accounts table - Additional accounts linked to users
+// Currently only GitHub can be connected as an additional account
+// (e.g., Vercel users can connect their GitHub account)
+export const accounts = pgTable(
+	"accounts",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }), // Foreign key to users table
+		provider: text("provider", {
+			enum: ["github"],
+		})
+			.notNull()
+			.default("github"), // Only GitHub for now
+		externalUserId: text("external_user_id").notNull(), // GitHub user ID
+		accessToken: text("access_token").notNull(), // Encrypted OAuth access token
+		refreshToken: text("refresh_token"), // Encrypted OAuth refresh token
+		expiresAt: timestamp("expires_at"),
+		scope: text("scope"),
+		username: text("username").notNull(), // GitHub username
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		// Unique constraint: a user can only have one account per provider
+		userIdProviderUnique: uniqueIndex("accounts_user_id_provider_idx").on(
+			table.userId,
+			table.provider,
+		),
+	}),
+);
+
+export type Account = InferSelectModel<typeof accounts>;
 
 export const projects = pgTable("projects", {
 	id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -19,6 +88,10 @@ export const projects = pgTable("projects", {
 		.notNull()
 		.default("private"),
 	isPinned: boolean("isPinned").notNull().default(false),
+	// User association
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }), // Foreign key to users table
 	// Sandbox tracking fields
 	sandboxId: text("sandboxId"),
 	sandboxUrl: text("sandboxUrl"),
