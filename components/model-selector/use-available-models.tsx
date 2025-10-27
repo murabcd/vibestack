@@ -1,69 +1,37 @@
-import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
 
 interface DisplayModel {
 	id: string;
 	label: string;
 }
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MILLIS = 5000;
+const fetcher = async (url: string) => {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error("Failed to fetch models");
+	}
+	return response.json();
+};
 
 export function useAvailableModels() {
-	const [models, setModels] = useState<DisplayModel[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<Error | null>(null);
-	const [retryCount, setRetryCount] = useState(0);
+	const { data, error, isLoading } = useSWR("/api/models", fetcher, {
+		revalidateOnFocus: false,
+		revalidateOnReconnect: false,
+		dedupingInterval: 60000, // Cache for 1 minute
+		retryCount: 3,
+		retryDelay: 5000,
+	});
 
-	const fetchModels = useCallback(
-		async (isRetry: boolean = false) => {
-			if (!isRetry) {
-				setIsLoading(true);
-				setError(null);
-			}
+	const models: DisplayModel[] = data?.models?.map(
+		(model: { id: string; name: string }) => ({
+			id: model.id,
+			label: model.name,
+		}),
+	) || [];
 
-			try {
-				const response = await fetch("/api/models");
-				if (!response.ok) {
-					throw new Error("Failed to fetch models");
-				}
-				const data = await response.json();
-				const newModels = data.models.map(
-					(model: { id: string; name: string }) => ({
-						id: model.id,
-						label: model.name,
-					}),
-				);
-				setModels(newModels);
-				setError(null);
-				setRetryCount(0);
-				setIsLoading(false);
-			} catch (err) {
-				setError(
-					err instanceof Error ? err : new Error("Failed to fetch models"),
-				);
-				if (retryCount < MAX_RETRIES) {
-					setRetryCount((prev) => prev + 1);
-					setIsLoading(true);
-				} else {
-					setIsLoading(false);
-				}
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[retryCount],
-	);
-
-	useEffect(() => {
-		if (retryCount === 0) {
-			fetchModels(false);
-		} else if (retryCount > 0 && retryCount <= MAX_RETRIES) {
-			const timerId = setTimeout(() => {
-				fetchModels(true);
-			}, RETRY_DELAY_MILLIS);
-			return () => clearTimeout(timerId);
-		}
-	}, [retryCount, fetchModels]);
-
-	return { models, isLoading, error };
+	return { 
+		models, 
+		isLoading, 
+		error: error || null 
+	};
 }

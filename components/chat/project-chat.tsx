@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { type RefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { useSandboxStore } from "@/app/state";
 import {
 	Conversation,
@@ -12,11 +12,13 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Message } from "@/components/chat/message";
 import type { ChatUIMessage } from "@/components/chat/types";
-import { Panel, PanelHeader } from "@/components/panels/panels";
 import { PromptForm } from "@/components/forms/prompt-form";
+import { useAvailableModels } from "@/components/model-selector/use-available-models";
+import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
+import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 
@@ -28,6 +30,8 @@ interface Props {
 	pendingMessage?: PromptInputMessage | null;
 	sentMessageRef?: RefObject<boolean>;
 	initialSandboxDuration?: number;
+	initialLastContext?: AppUsage;
+	initialModelId?: string;
 }
 
 function ProjectChatInner({
@@ -37,11 +41,22 @@ function ProjectChatInner({
 	pendingMessage,
 	sentMessageRef,
 	initialSandboxDuration,
+	initialLastContext,
+	initialModelId,
 }: Props) {
 	const { chat } = useSharedChatContext();
 	const { modelId, reasoningEffort, sandboxDuration } = useSettings(
 		initialSandboxDuration,
+		initialModelId,
 	);
+
+	// Initialize usage state from initialLastContext
+	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
+	const { models } = useAvailableModels();
+
+	// Get the current model label
+	const currentModel = models.find((model) => model.id === modelId);
+	const modelLabel = currentModel?.label || modelId;
 
 	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
 		{
@@ -95,6 +110,19 @@ function ProjectChatInner({
 			setMessages(initialMessages);
 		}
 	}, [pendingMessage, initialMessages, setMessages]);
+
+	// Update usage when messages change (for new assistant messages with metadata)
+	useEffect(() => {
+		// Find the latest assistant message with usage metadata
+		const latestAssistantMessage = messages
+			.filter((msg) => msg.role === "assistant")
+			.reverse()
+			.find((msg) => msg.metadata?.usage);
+
+		if (latestAssistantMessage?.metadata?.usage) {
+			setUsage(latestAssistantMessage.metadata.usage);
+		}
+	}, [messages]);
 
 	// Initialize Zustand sandbox store from loaded messages (for page refresh)
 	// This extracts sandbox data from message content and populates the store
@@ -167,6 +195,12 @@ function ProjectChatInner({
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<MessageCircleIcon className="size-3" />
 					<span className="font-medium">Chat</span>
+					{modelLabel && (
+						<>
+							<span className="text-muted-foreground/60">•</span>
+							<span className="font-medium">{modelLabel}</span>
+						</>
+					)}
 				</div>
 				<div className="ml-auto text-xs text-muted-foreground tabular-nums">
 					[{status}]
@@ -194,6 +228,8 @@ function ProjectChatInner({
 				<PromptForm
 					onSubmit={handleMessageSubmit}
 					initialSandboxDuration={initialSandboxDuration}
+					initialModelId={initialModelId}
+					usage={usage}
 				/>
 			</div>
 		</Panel>

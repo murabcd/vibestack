@@ -16,8 +16,10 @@ import { InitialScreen } from "./initial-screen";
 
 export function PageClient({
 	initialSandboxDuration,
+	initialModelId,
 }: {
 	initialSandboxDuration: number;
+	initialModelId?: string;
 }) {
 	const router = useRouter();
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -96,7 +98,6 @@ export function PageClient({
 
 	const handleNewProject = () => {
 		router.push("/");
-		router.refresh();
 	};
 
 	// Root page always shows the clean initial screen
@@ -123,6 +124,7 @@ export function PageClient({
 						onMessageSubmit={handleMessageSubmit}
 						isLoading={isCreatingProject}
 						initialSandboxDuration={initialSandboxDuration}
+						initialModelId={initialModelId}
 					/>
 				</div>
 			</SidebarInset>

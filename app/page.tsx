@@ -8,6 +8,7 @@ export default async function Page() {
 	const cookieStore = await cookies();
 	const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 	const session = await getSessionFromCookie(sessionCookie);
+	const modelIdFromCookie = cookieStore.get("selected-model")?.value;
 	let initialSandboxDuration = 60; // Default value
 
 	if (session?.user?.id) {
@@ -19,5 +20,10 @@ export default async function Page() {
 		}
 	}
 
-	return <PageClient initialSandboxDuration={initialSandboxDuration} />;
+	return (
+		<PageClient
+			initialSandboxDuration={initialSandboxDuration}
+			initialModelId={modelIdFromCookie}
+		/>
+	);
 }

@@ -6,10 +6,11 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 	uuid,
 	varchar,
-	uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { AppUsage } from "@/lib/ai/usage";
 
 // Users table - user profile and primary OAuth account
 export const users = pgTable(
@@ -102,6 +103,7 @@ export const projects = pgTable("projects", {
 		.notNull()
 		.default("idle"),
 	progress: integer("progress").notNull().default(0),
+	lastContext: jsonb("lastContext").$type<AppUsage | null>(),
 });
 
 export type Project = InferSelectModel<typeof projects>;

@@ -10,12 +10,14 @@ interface InitialScreenProps {
 	onMessageSubmit: (message: PromptInputMessage) => void;
 	isLoading?: boolean;
 	initialSandboxDuration: number;
+	initialModelId?: string;
 }
 
 export function InitialScreen({
 	onMessageSubmit,
 	isLoading,
 	initialSandboxDuration,
+	initialModelId,
 }: InitialScreenProps) {
 	const [storedInput] = useLocalStorageValue("prompt-input");
 
@@ -40,6 +42,7 @@ export function InitialScreen({
 							className="w-full"
 							isLoading={isLoading}
 							initialSandboxDuration={initialSandboxDuration}
+							initialModelId={initialModelId}
 						/>
 
 						{/* Suggestions below the prompt input */}

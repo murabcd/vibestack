@@ -2,9 +2,9 @@
 
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect } from "react";
+import { saveModelAsCookie } from "@/app/actions";
 import {
 	Context,
-	ContextCacheUsage,
 	ContextContent,
 	ContextContentBody,
 	ContextContentFooter,
@@ -17,8 +17,8 @@ import {
 import type { ChatUIMessage } from "@/components/chat/types";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
-import { TaskOptions } from "@/components/task-options/task-options";
 import { useModelId, useSettings } from "@/components/settings/use-settings";
+import { TaskOptions } from "@/components/task-options/task-options";
 import {
 	PromptInput,
 	PromptInputActionAddAttachments,
@@ -35,6 +35,7 @@ import {
 	PromptInputTools,
 	usePromptInputController,
 } from "@/components/ui/prompt-input";
+import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 
@@ -43,6 +44,8 @@ interface PromptFormProps {
 	className?: string;
 	isLoading?: boolean;
 	initialSandboxDuration?: number;
+	initialModelId?: string;
+	usage?: AppUsage; // Optional usage prop for context display
 }
 
 export function PromptForm({
@@ -50,10 +53,11 @@ export function PromptForm({
 	className,
 	isLoading,
 	initialSandboxDuration,
+	initialModelId,
+	usage,
 }: PromptFormProps) {
 	const { chat } = useSharedChatContext();
-	const { modelId } = useSettings(initialSandboxDuration);
-	const [, setModelId] = useModelId();
+	const { modelId, setModelId } = useSettings(initialSandboxDuration, initialModelId);
 	const { messages, status } = useChat<ChatUIMessage>({ chat });
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
@@ -63,36 +67,6 @@ export function PromptForm({
 
 	// Only show context if we have a chat context (not on home page)
 	const hasChatContext = chat && messages.length > 0;
-
-	// Calculate total token usage from all messages
-	const calculateTotalUsage = () => {
-		let totalTokens = 0;
-		let inputTokens = 0;
-		let outputTokens = 0;
-		let reasoningTokens = 0;
-		let cacheTokens = 0;
-
-		messages.forEach((message) => {
-			if (message.role === "assistant" && message.metadata?.usage) {
-				const usage = message.metadata.usage;
-				totalTokens += usage.totalTokens || 0;
-				inputTokens += usage.inputTokens || 0;
-				outputTokens += usage.outputTokens || 0;
-				reasoningTokens += usage.reasoningTokens || 0;
-				cacheTokens += usage.cachedInputTokens || 0;
-			}
-		});
-
-		return {
-			totalTokens,
-			inputTokens,
-			outputTokens,
-			reasoningTokens,
-			cachedInputTokens: cacheTokens,
-		};
-	};
-
-	const totalUsage = calculateTotalUsage();
 
 	useEffect(() => {
 		const currentValue = controller.textInput.value;
@@ -137,13 +111,12 @@ export function PromptForm({
 							}
 							className="flex-1 min-w-0"
 						/>
-						{hasChatContext && totalUsage.totalTokens > 0 && (
+						{hasChatContext && usage && (usage.totalTokens ?? 0) > 0 && (
 							<div className="shrink-0">
 								<Context
 									modelId={modelId}
-									usage={totalUsage}
-									usedTokens={totalUsage.totalTokens || 0}
-									maxTokens={200000}
+									usage={usage}
+									usedTokens={usage.totalTokens || 0}
 								>
 									<ContextTrigger />
 									<ContextContent>
@@ -152,7 +125,6 @@ export function PromptForm({
 											<ContextInputUsage />
 											<ContextOutputUsage />
 											<ContextReasoningUsage />
-											<ContextCacheUsage />
 										</ContextContentBody>
 										<ContextContentFooter />
 									</ContextContent>
@@ -171,7 +143,13 @@ export function PromptForm({
 						</PromptInputActionMenu>
 						<TaskOptions initialSandboxDuration={initialSandboxDuration} />
 						<Settings />
-						<ModelSelector modelId={modelId} onModelChange={setModelId} />
+						<ModelSelector 
+							modelId={modelId} 
+							onModelChange={(newModelId) => {
+								setModelId(newModelId);
+								saveModelAsCookie(newModelId);
+							}} 
+						/>
 					</PromptInputTools>
 					<PromptInputSubmit
 						status={currentStatus}

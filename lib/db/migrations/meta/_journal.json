@@ -1,34 +1,41 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1761396349027,
-      "tag": "0000_warm_skin",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761397480087,
-      "tag": "0001_burly_dexter_bennett",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1761430579936,
-      "tag": "0002_misty_mandarin",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1761511788360,
-      "tag": "0003_bizarre_wolfsbane",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1761396349027,
+			"tag": "0000_warm_skin",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1761397480087,
+			"tag": "0001_burly_dexter_bennett",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1761430579936,
+			"tag": "0002_misty_mandarin",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1761511788360,
+			"tag": "0003_bizarre_wolfsbane",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1761512000000,
+			"tag": "0004_add_last_context",
+			"breakpoints": true
+		}
+	]
 }

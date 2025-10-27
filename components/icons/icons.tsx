@@ -212,7 +212,7 @@ export const Icons = {
 		const ICON_STROKE_WIDTH = 2;
 
 		const circumference = 2 * Math.PI * ICON_RADIUS;
-		const usedPercent = usedTokens / maxTokens;
+		const usedPercent = Math.min(1, usedTokens / maxTokens); // Cap at 100%
 		const dashOffset = circumference * (1 - usedPercent);
 
 		return (

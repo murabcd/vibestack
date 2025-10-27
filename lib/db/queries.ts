@@ -1,6 +1,7 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
+import type { AppUsage } from "@/lib/ai/usage";
 import { db } from "./index";
 import { messages, type Project, projects } from "./schema";
 
@@ -80,6 +81,7 @@ export async function updateProject(
 		previewUrl?: string | null;
 		status?: "idle" | "processing" | "completed" | "error";
 		progress?: number;
+		lastContext?: AppUsage | null;
 	},
 ): Promise<Project | null> {
 	try {
@@ -92,6 +94,21 @@ export async function updateProject(
 	} catch (error) {
 		console.error("Failed to update project:", error);
 		throw new Error("Failed to update project");
+	}
+}
+
+export async function updateProjectLastContext(
+	projectId: string,
+	lastContext: AppUsage,
+): Promise<void> {
+	try {
+		await db
+			.update(projects)
+			.set({ lastContext })
+			.where(eq(projects.projectId, projectId));
+	} catch (error) {
+		console.warn("Failed to update lastContext for project", projectId, error);
+		// Don't throw error - this is not critical for the main flow
 	}
 }
 

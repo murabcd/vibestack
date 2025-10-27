@@ -1,7 +1,7 @@
 "use client";
 
-import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
+import { Icons } from "@/components/icons/icons";
 import { Button } from "@/components/ui/button";
 import {
 	HoverCard,
@@ -9,7 +9,7 @@ import {
 	HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
-import { Icons } from "@/components/icons/icons";
+import type { AppUsage } from "@/lib/ai/usage";
 import { cn } from "@/lib/utils";
 
 type ModelId = string;
@@ -45,7 +45,6 @@ const estimateCost = (params: {
 		promptTokens?: number;
 		completionTokens?: number;
 		reasoningTokens?: number;
-		cachedReadTokens?: number;
 	};
 }) => {
 	const tokenlensModelId = toTokenlensModelId(params.modelId);
@@ -58,7 +57,6 @@ const estimateCost = (params: {
 			inputUSD: 0,
 			outputUSD: 0,
 			reasoningUSD: 0,
-			cacheReadUSD: 0,
 		};
 	}
 
@@ -68,26 +66,29 @@ const estimateCost = (params: {
 		((params.usage.completionTokens || 0) / 1_000_000) * pricing.outputCost;
 	const reasoningCost =
 		((params.usage.reasoningTokens || 0) / 1_000_000) * pricing.inputCost; // Usually same as input
-	const cacheReadCost =
-		((params.usage.cachedReadTokens || 0) / 1_000_000) *
-		pricing.inputCost *
-		0.5; // Cache is typically 50% of input cost
 
 	return {
-		totalUSD: inputCost + outputCost + reasoningCost + cacheReadCost,
+		totalUSD: inputCost + outputCost + reasoningCost,
 		inputUSD: inputCost,
 		outputUSD: outputCost,
 		reasoningUSD: reasoningCost,
-		cacheReadUSD: cacheReadCost,
 	};
 };
 
 const PERCENT_MAX = 100;
 
+// Extract max tokens from TokenLens usage data or fallback to default
+const getMaxTokens = (usage?: AppUsage): number => {
+	if (usage?.context?.totalMax) return usage.context.totalMax;
+	if (usage?.context?.combinedMax) return usage.context.combinedMax;
+	if (usage?.context?.inputMax) return usage.context.inputMax;
+	return 200000; // Fallback to default
+};
+
 type ContextSchema = {
 	usedTokens: number;
-	maxTokens: number;
-	usage?: LanguageModelUsage;
+	maxTokens?: number;
+	usage?: AppUsage;
 	modelId?: ModelId;
 };
 
@@ -111,29 +112,42 @@ export const Context = ({
 	usage,
 	modelId,
 	...props
-}: ContextProps) => (
-	<ContextContext.Provider
-		value={{
-			usedTokens,
-			maxTokens,
-			usage,
-			modelId,
-		}}
-	>
-		<HoverCard closeDelay={0} openDelay={0} {...props} />
-	</ContextContext.Provider>
-);
+}: ContextProps) => {
+	// Use dynamic max tokens from TokenLens data if available
+	const dynamicMaxTokens = getMaxTokens(usage);
+	const effectiveMaxTokens = maxTokens || dynamicMaxTokens;
+
+	return (
+		<ContextContext.Provider
+			value={{
+				usedTokens,
+				maxTokens: effectiveMaxTokens,
+				usage,
+				modelId,
+			}}
+		>
+			<HoverCard closeDelay={0} openDelay={0} {...props} />
+		</ContextContext.Provider>
+	);
+};
 
 const ContextIcon = () => {
-	const { usedTokens, maxTokens } = useContextValue();
-	return <Icons.contextUsage usedTokens={usedTokens} maxTokens={maxTokens} />;
+	const { usedTokens, maxTokens, usage } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	return (
+		<Icons.contextUsage
+			usedTokens={usedTokens}
+			maxTokens={effectiveMaxTokens}
+		/>
+	);
 };
 
 export type ContextTriggerProps = ComponentProps<typeof Button>;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
-	const { usedTokens, maxTokens } = useContextValue();
-	const usedPercent = usedTokens / maxTokens;
+	const { usedTokens, maxTokens, usage } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	const usedPercent = Math.min(1, usedTokens / effectiveMaxTokens); // Cap at 100%
 	const renderedPercent = new Intl.NumberFormat("en-US", {
 		style: "percent",
 		maximumFractionDigits: 1,
@@ -172,8 +186,9 @@ export const ContextContentHeader = ({
 	className,
 	...props
 }: ContextContentHeader) => {
-	const { usedTokens, maxTokens } = useContextValue();
-	const usedPercent = usedTokens / maxTokens;
+	const { usedTokens, maxTokens, usage } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	const usedPercent = Math.min(1, usedTokens / effectiveMaxTokens); // Cap at 100%
 	const displayPct = new Intl.NumberFormat("en-US", {
 		style: "percent",
 		maximumFractionDigits: 1,
@@ -183,7 +198,7 @@ export const ContextContentHeader = ({
 	}).format(usedTokens);
 	const total = new Intl.NumberFormat("en-US", {
 		notation: "compact",
-	}).format(maxTokens);
+	}).format(effectiveMaxTokens);
 
 	return (
 		<div className={cn("w-full space-y-2 p-3", className)} {...props}>
@@ -374,49 +389,6 @@ export const ContextReasoningUsage = ({
 		>
 			<span className="text-muted-foreground">Reasoning</span>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
-		</div>
-	);
-};
-
-export type ContextCacheUsageProps = ComponentProps<"div">;
-
-export const ContextCacheUsage = ({
-	className,
-	children,
-	...props
-}: ContextCacheUsageProps) => {
-	const { usage, modelId } = useContextValue();
-	const cacheTokens = usage?.cachedInputTokens ?? 0;
-
-	if (children) {
-		return children;
-	}
-
-	// Always show Cache section, even with 0 tokens
-	const cacheCost = modelId
-		? estimateCost({
-				modelId,
-				usage: {
-					cachedReadTokens: cacheTokens,
-					promptTokens: 0,
-					completionTokens: 0,
-				},
-			}).cacheReadUSD
-		: undefined;
-	const cacheCostText = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4,
-	}).format(cacheCost ?? 0);
-
-	return (
-		<div
-			className={cn("flex items-center justify-between text-xs", className)}
-			{...props}
-		>
-			<span className="text-muted-foreground">Cache</span>
-			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</div>
 	);
 };

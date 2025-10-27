@@ -1,5 +1,5 @@
-import type { LanguageModelUsage } from "ai";
 import z from "zod/v3";
+import type { AppUsage } from "@/lib/ai/usage";
 
 export const metadataSchema = z.object({
 	model: z.string(),
@@ -7,5 +7,5 @@ export const metadataSchema = z.object({
 });
 
 export type Metadata = z.infer<typeof metadataSchema> & {
-	usage?: LanguageModelUsage;
+	usage?: AppUsage;
 };

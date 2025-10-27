@@ -13,12 +13,15 @@ import { TabContent, TabItem } from "@/components/tabs";
 import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
+import type { AppUsage } from "@/lib/ai/usage";
 
 interface ProjectPageClientProps {
 	horizontalSizes: number[] | null;
 	projectId: string;
 	initialMessages: ChatUIMessage[];
 	initialSandboxDuration: number;
+	initialLastContext?: AppUsage;
+	initialModelId?: string;
 }
 
 export function ProjectPageClient({
@@ -26,6 +29,8 @@ export function ProjectPageClient({
 	projectId,
 	initialMessages,
 	initialSandboxDuration,
+	initialLastContext,
+	initialModelId,
 }: ProjectPageClientProps) {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +66,6 @@ export function ProjectPageClient({
 
 	const handleNewProject = () => {
 		router.push("/");
-		router.refresh();
 	};
 
 	if (isLoading) {
@@ -120,6 +124,8 @@ export function ProjectPageClient({
 								pendingMessage={pendingMessage}
 								sentMessageRef={hasSentPendingMessage}
 								initialSandboxDuration={initialSandboxDuration}
+								initialLastContext={initialLastContext}
+								initialModelId={initialModelId}
 							/>
 						</TabContent>
 						<TabContent tabId="preview" className="flex-1">
@@ -138,6 +144,8 @@ export function ProjectPageClient({
 									pendingMessage={pendingMessage}
 									sentMessageRef={hasSentPendingMessage}
 									initialSandboxDuration={initialSandboxDuration}
+									initialLastContext={initialLastContext}
+									initialModelId={initialModelId}
 								/>
 							}
 							right={<EnhancedPreview className="flex-1 overflow-hidden" />}

@@ -6,18 +6,40 @@ import {
 	streamText,
 } from "ai";
 import { checkBotId } from "botid/server";
+import { unstable_cache as cache } from "next/cache";
 import { NextResponse } from "next/server";
+import type { ModelCatalog } from "tokenlens/core";
+import { fetchModels } from "tokenlens/fetch";
+import { getUsage } from "tokenlens/helpers";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { DEFAULT_MODEL } from "@/lib/ai/constants";
 import { getAvailableModels, getModelOptions } from "@/lib/ai/gateway";
 import { tools } from "@/lib/ai/tools";
+import type { AppUsage } from "@/lib/ai/usage";
 import {
 	getMessagesByProjectId,
 	getProjectById,
 	saveMessages,
 	updateProject,
+	updateProjectLastContext,
 } from "@/lib/db/queries";
 import prompt from "./prompt.md";
+
+const getTokenlensCatalog = cache(
+	async (): Promise<ModelCatalog | undefined> => {
+		try {
+			return await fetchModels();
+		} catch (err) {
+			console.warn(
+				"TokenLens: catalog fetch failed, using default catalog",
+				err,
+			);
+			return; // tokenlens helpers will fall back to defaultCatalog
+		}
+	},
+	["tokenlens-catalog"],
+	{ revalidate: 24 * 60 * 60 }, // 24 hours
+);
 
 interface BodyData {
 	messages: ChatUIMessage[];
@@ -28,24 +50,24 @@ interface BodyData {
 }
 
 export async function POST(req: Request) {
-	const checkResult = await checkBotId();
+	// Parallelize bot check, model fetching, and request parsing for faster startup
+	const [checkResult, models, body] = await Promise.all([
+		checkBotId(),
+		getAvailableModels(),
+		req.json() as Promise<BodyData>,
+	]);
+
 	if (checkResult.isBot) {
 		return NextResponse.json({ error: `Bot detected` }, { status: 403 });
 	}
 
-	const [
-		models,
-		{
-			messages,
-			modelId = DEFAULT_MODEL,
-			reasoningEffort,
-			projectId,
-			sandboxDuration,
-		},
-	] = await Promise.all([
-		getAvailableModels(),
-		req.json() as Promise<BodyData>,
-	]);
+	const {
+		messages,
+		modelId = DEFAULT_MODEL,
+		reasoningEffort,
+		projectId,
+		sandboxDuration,
+	} = body;
 
 	// Debug logging removed for production
 
@@ -57,7 +79,7 @@ export async function POST(req: Request) {
 		);
 	}
 
-	// If projectId is provided, verify it exists and update status
+	// If projectId is provided, verify it exists (but don't block the stream)
 	let project = null;
 	if (projectId) {
 		project = await getProjectById(projectId);
@@ -67,44 +89,7 @@ export async function POST(req: Request) {
 				{ status: 404 },
 			);
 		}
-
-		// Save user's message immediately to database BEFORE streaming
-		const userMessages = messages.filter((msg) => msg.role === "user");
-		const latestUserMessage = userMessages[userMessages.length - 1];
-
-		if (latestUserMessage) {
-			try {
-				// Check if this exact message already exists
-				const existingMessages = await getMessagesByProjectId(projectId);
-				const messageAlreadyExists = existingMessages.some(
-					(msg) =>
-						msg.role === "user" &&
-						JSON.stringify(msg.content) ===
-							JSON.stringify(latestUserMessage.parts),
-				);
-
-				if (!messageAlreadyExists) {
-					await saveMessages({
-						messages: [
-							{
-								projectId,
-								role: "user",
-								content: latestUserMessage.parts,
-							},
-						],
-					});
-				}
-			} catch (error) {
-				console.error("Failed to save user message:", error);
-				// Continue anyway - don't block the stream
-			}
-		}
-
-		// Set project status to processing
-		await updateProject(projectId, {
-			status: "processing",
-			progress: 0,
-		});
+		// Note: We'll save messages and update status in onFinish callback
 	}
 
 	return createUIMessageStreamResponse({
@@ -188,26 +173,40 @@ export async function POST(req: Request) {
 							}
 						},
 						onFinish: async ({ messages: allMessages }) => {
-							// Save assistant's response to database if projectId is provided
+							// Save both user and assistant messages to database if projectId is provided
 							if (projectId) {
 								try {
-									// Only save the assistant's response
+									// Get the latest user and assistant messages
+									const userMessages = allMessages.filter(
+										(msg) => msg.role === "user",
+									);
 									const assistantMessages = allMessages.filter(
 										(msg) => msg.role === "assistant",
 									);
+									const latestUserMessage =
+										userMessages[userMessages.length - 1];
 									const latestAssistantMessage =
 										assistantMessages[assistantMessages.length - 1];
 
-									if (latestAssistantMessage) {
-										await saveMessages({
-											messages: [
-												{
-													projectId,
-													role: "assistant",
-													content: latestAssistantMessage.parts,
-												},
-											],
+									// Save both messages together
+									const messagesToSave = [];
+									if (latestUserMessage) {
+										messagesToSave.push({
+											projectId,
+											role: "user" as const,
+											content: latestUserMessage.parts,
 										});
+									}
+									if (latestAssistantMessage) {
+										messagesToSave.push({
+											projectId,
+											role: "assistant" as const,
+											content: latestAssistantMessage.parts,
+										});
+									}
+
+									if (messagesToSave.length > 0) {
+										await saveMessages({ messages: messagesToSave });
 									}
 
 									// Update project status to completed
@@ -215,8 +214,43 @@ export async function POST(req: Request) {
 										status: "completed",
 										progress: 100,
 									});
+
+									// Enrich usage with TokenLens and persist to database
+									if (latestAssistantMessage?.metadata?.usage) {
+										const baseUsage = latestAssistantMessage.metadata.usage;
+										let enrichedUsage: AppUsage = baseUsage;
+
+										try {
+											const providers = await getTokenlensCatalog();
+											const modelId = model.id;
+
+											if (modelId && providers) {
+												const summary = getUsage({
+													modelId,
+													usage: baseUsage,
+													providers,
+												});
+												enrichedUsage = {
+													...baseUsage,
+													...summary,
+													modelId,
+												} as AppUsage;
+											} else {
+												enrichedUsage = { ...baseUsage, modelId } as AppUsage;
+											}
+										} catch (err) {
+											console.warn("TokenLens enrichment failed", err);
+											enrichedUsage = {
+												...baseUsage,
+												modelId: model.id,
+											} as AppUsage;
+										}
+
+										// Persist enriched usage to database
+										await updateProjectLastContext(projectId, enrichedUsage);
+									}
 								} catch (error) {
-									console.error("Failed to save assistant message:", error);
+									console.error("Failed to save messages:", error);
 
 									// Update project status to error if message saving fails
 									await updateProject(projectId, {

@@ -2,6 +2,7 @@
 
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
+import { cookies } from "next/headers";
 import type { ChatUIMessage } from "@/components/chat/types";
 
 export async function generateTitleFromUserMessage({
@@ -33,4 +34,9 @@ export async function generateTitleFromUserMessage({
 			.join(" ");
 		return textContent.slice(0, 50) || "New Project";
 	}
+}
+
+export async function saveModelAsCookie(modelId: string) {
+	const cookieStore = await cookies();
+	cookieStore.set("selected-model", modelId);
 }

@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { ChatSearchCommand } from "./chat-search-command";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Simple type definition for projects
 interface Project {
@@ -470,9 +471,26 @@ export function SidebarHistory({
 	if (!data) {
 		return (
 			<SidebarGroup>
+				<div className="px-2 py-1 text-xs text-sidebar-foreground/50">
+					Today
+				</div>
 				<SidebarGroupContent>
-					<div className="px-2 text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
-						Loading project history...
+					<div className="flex flex-col">
+						{[44, 32, 28, 64, 52].map((item) => (
+							<div
+								className="flex h-8 items-center gap-2 rounded-md px-2"
+								key={item}
+							>
+								<Skeleton
+									className="h-4 max-w-(--skeleton-width) flex-1"
+									style={
+										{
+											"--skeleton-width": `${item}%`,
+										} as React.CSSProperties
+									}
+								/>
+							</div>
+						))}
 					</div>
 				</SidebarGroupContent>
 			</SidebarGroup>
