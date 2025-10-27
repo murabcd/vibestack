@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { ClockIcon } from "lucide-react";
+import { saveSandboxDurationAsCookie } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,19 +38,7 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 	const handleDurationChange = async (value: string) => {
 		const duration = parseInt(value);
 		setSandboxDuration(duration);
-
-		// Save to database
-		try {
-			await fetch("/api/settings/sandbox-duration", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ maxSandboxDuration: duration }),
-			});
-		} catch (error) {
-			console.error("Failed to save sandbox duration setting:", error);
-		}
+		saveSandboxDurationAsCookie(duration);
 	};
 
 	return (
@@ -67,9 +56,6 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 			<DropdownMenuContent className="w-55" align="end">
 				<div className="p-2 space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor={id} className="text-sm font-medium">
-							Sandbox duration
-						</Label>
 						<Select
 							value={sandboxDuration?.toString()}
 							onValueChange={handleDurationChange}

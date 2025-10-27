@@ -1,7 +1,6 @@
 import {
 	parseAsBoolean,
 	parseAsStringLiteral,
-	parseAsInteger,
 	useQueryState,
 } from "nuqs";
 import { useState } from "react";
@@ -34,8 +33,8 @@ export function useFixErrors() {
 }
 
 export function useSandboxDuration(initialValue?: number) {
-	return useQueryState(
-		"sandbox-duration",
-		parseAsInteger.withDefault(initialValue ?? 60),
+	const [sandboxDuration, setSandboxDuration] = useState<number>(
+		initialValue ?? 60
 	);
+	return [sandboxDuration, setSandboxDuration] as const;
 }

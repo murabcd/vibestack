@@ -7,7 +7,6 @@ import description from "./create-sandbox.md";
 import { getRichError } from "./get-rich-error";
 import type { ToolContext } from "./types";
 import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
-import { getMaxSandboxDuration } from "@/lib/db/settings";
 
 interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
@@ -50,17 +49,10 @@ export const createSandbox = ({ writer, context }: Params) =>
 			}
 
 			try {
-				// Use sandbox duration from context (user's UI setting), fallback to database, then default
-				let userTimeout = 1800000; // Default 30 minutes (in ms)
-
-				if (context?.sandboxDuration) {
-					// User set duration from UI (in minutes)
-					userTimeout = context.sandboxDuration * 60 * 1000;
-				} else if (context?.userId) {
-					// Fallback to database setting
-					const userMaxDuration = await getMaxSandboxDuration(context.userId);
-					userTimeout = userMaxDuration * 60 * 1000;
-				}
+				// Use sandbox duration from context (user's UI setting) or default to 30 minutes
+				let userTimeout = context?.sandboxDuration
+					? context.sandboxDuration * 60 * 1000 // Convert minutes to milliseconds
+					: 1800000; // Default 30 minutes (in ms)
 
 				// Respect the timeout parameter from AI if provided (override user setting)
 				if (timeout) {

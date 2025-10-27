@@ -40,3 +40,8 @@ export async function saveModelAsCookie(modelId: string) {
 	const cookieStore = await cookies();
 	cookieStore.set("selected-model", modelId);
 }
+
+export async function saveSandboxDurationAsCookie(duration: number) {
+	const cookieStore = await cookies();
+	cookieStore.set("sandbox-duration", duration.toString());
+}

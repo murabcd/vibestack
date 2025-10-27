@@ -117,6 +117,8 @@ export const messages = pgTable("messages", {
 });
 
 // Settings table - key-value pairs for user-specific settings
+// DEPRECATED: Settings are now stored in cookies for better performance
+// This table definition is kept for backwards compatibility with existing migrations
 export const settings = pgTable(
 	"settings",
 	{
