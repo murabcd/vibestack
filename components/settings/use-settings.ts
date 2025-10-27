@@ -3,7 +3,7 @@ import {
 	parseAsStringLiteral,
 	useQueryState,
 } from "nuqs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DEFAULT_MODEL, SUPPORTED_MODELS } from "@/lib/ai/constants";
 
 export function useSettings(initialSandboxDuration?: number, initialModelId?: string) {
@@ -15,9 +15,18 @@ export function useSettings(initialSandboxDuration?: number, initialModelId?: st
 }
 
 export function useModelId(initialModelId?: string) {
-	const [modelId, setModelId] = useState<string>(
-		initialModelId || DEFAULT_MODEL
+	const [modelId, setModelId] = useQueryState(
+		"model",
+		parseAsStringLiteral(SUPPORTED_MODELS).withDefault(DEFAULT_MODEL),
 	);
+
+	// Set initial model from cookie/props on mount if provided and query state is default
+	useEffect(() => {
+		if (initialModelId && modelId === DEFAULT_MODEL) {
+			setModelId(initialModelId);
+		}
+	}, [initialModelId, modelId, setModelId]);
+
 	return [modelId, setModelId] as const;
 }
 
