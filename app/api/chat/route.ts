@@ -89,7 +89,26 @@ export async function POST(req: Request) {
 				{ status: 404 },
 			);
 		}
-		// Note: We'll save messages and update status in onFinish callback
+
+		// Save user message IMMEDIATELY before streaming starts
+		// This ensures the message is persisted even if user closes tab mid-stream
+		const latestUserMessage = messages[messages.length - 1];
+		if (latestUserMessage && latestUserMessage.role === "user") {
+			try {
+				await saveMessages({
+					messages: [
+						{
+							projectId,
+							role: "user" as const,
+							content: latestUserMessage.parts,
+						},
+					],
+				});
+			} catch (error) {
+				console.error("Failed to save user message:", error);
+				// Don't block the stream - just log the error
+			}
+		}
 	}
 
 	return createUIMessageStreamResponse({
@@ -173,40 +192,28 @@ export async function POST(req: Request) {
 							}
 						},
 						onFinish: async ({ messages: allMessages }) => {
-							// Save both user and assistant messages to database if projectId is provided
+							// Save assistant message to database if projectId is provided
+							// (User message was already saved before streaming started)
 							if (projectId) {
 								try {
-									// Get the latest user and assistant messages
-									const userMessages = allMessages.filter(
-										(msg) => msg.role === "user",
-									);
+									// Get the latest assistant message
 									const assistantMessages = allMessages.filter(
 										(msg) => msg.role === "assistant",
 									);
-									const latestUserMessage =
-										userMessages[userMessages.length - 1];
 									const latestAssistantMessage =
 										assistantMessages[assistantMessages.length - 1];
 
-									// Save both messages together
-									const messagesToSave = [];
-									if (latestUserMessage) {
-										messagesToSave.push({
-											projectId,
-											role: "user" as const,
-											content: latestUserMessage.parts,
-										});
-									}
+									// Save assistant message
 									if (latestAssistantMessage) {
-										messagesToSave.push({
-											projectId,
-											role: "assistant" as const,
-											content: latestAssistantMessage.parts,
+										await saveMessages({
+											messages: [
+												{
+													projectId,
+													role: "assistant" as const,
+													content: latestAssistantMessage.parts,
+												},
+											],
 										});
-									}
-
-									if (messagesToSave.length > 0) {
-										await saveMessages({ messages: messagesToSave });
 									}
 
 									// Update project status to completed
