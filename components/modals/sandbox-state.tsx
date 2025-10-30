@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import useSWR from "swr";
 import { useSandboxStore } from "@/app/state";
@@ -13,8 +14,11 @@ import {
 } from "@/components/ui/dialog";
 
 export function SandboxState() {
-	const { sandboxId, status, setStatus } = useSandboxStore();
-	if (status === "stopped") {
+	const router = useRouter();
+	const { sandboxId, status, setStatus, reset } = useSandboxStore();
+
+	// Only show dialog if we have a sandboxId and status is stopped
+	if (sandboxId && status === "stopped") {
 		return (
 			<Dialog open>
 				<DialogHeader className="sr-only">
@@ -30,7 +34,10 @@ export function SandboxState() {
 					Sandbox max. duration has been reached
 					<Button
 						className="cursor-pointer"
-						onClick={() => window.location.reload()}
+						onClick={() => {
+							reset();
+							router.push("/");
+						}}
 					>
 						Start new session
 					</Button>

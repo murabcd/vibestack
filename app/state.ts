@@ -14,6 +14,7 @@ interface SandboxStore {
 	commands: Command[];
 	generatedFiles: Set<string>;
 	paths: string[];
+	reset: () => void;
 	sandboxId?: string;
 	setChatStatus: (status: ChatStatus) => void;
 	setSandboxId: (id: string) => void;
@@ -70,6 +71,17 @@ export const useSandboxStore = create<SandboxStore>()((set) => ({
 	commands: [],
 	generatedFiles: new Set<string>(),
 	paths: [],
+	reset: () =>
+		set(() => ({
+			sandboxId: undefined,
+			status: undefined,
+			url: undefined,
+			urlUUID: undefined,
+			commands: [],
+			paths: [],
+			generatedFiles: new Set<string>(),
+			chatStatus: "ready",
+		})),
 	setChatStatus: (status) =>
 		set((state) =>
 			state.chatStatus === status ? state : { chatStatus: status },
