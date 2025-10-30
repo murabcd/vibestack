@@ -206,7 +206,7 @@ export const FileExplorer = memo(function FileExplorer({
 							</span>
 							<div className="ml-2 flex items-center gap-1">
 								<Button
-									variant={isEditMode ? "default" : "ghost"}
+									variant={isEditMode ? "ghost" : "default"}
 									size="sm"
 									onClick={() => setIsEditMode(!isEditMode)}
 									className="h-6 px-2 text-xs"
@@ -214,13 +214,13 @@ export const FileExplorer = memo(function FileExplorer({
 								>
 									{isEditMode ? (
 										<>
-											<EditIcon className="size-3" />
-											Edit
+											<LockIcon className="size-3" />
+											Lock
 										</>
 									) : (
 										<>
-											<LockIcon className="size-3" />
-											Lock
+											<EditIcon className="size-3" />
+											Edit
 										</>
 									)}
 								</Button>
@@ -230,9 +230,11 @@ export const FileExplorer = memo(function FileExplorer({
 										size="sm"
 										onClick={() => setShowDiff(!showDiff)}
 										className="h-6 px-2 text-xs"
-										disabled={!hasOriginal(sandboxId, selected.path)}
+										disabled={
+											!hasOriginal(sandboxId, selected.path.substring(1))
+										}
 										title={
-											!hasOriginal(sandboxId, selected.path)
+											!hasOriginal(sandboxId, selected.path.substring(1))
 												? "No original content to compare with"
 												: showDiff
 													? "Hide file changes"
@@ -408,7 +410,7 @@ const FileTreeNode = memo(function FileTreeNode({
 				<span className="">{node.name}</span>
 				{node.type === "file" &&
 					sandboxId &&
-					hasOriginal(sandboxId, node.path) && (
+					hasOriginal(sandboxId, node.path.substring(1)) && (
 						<span
 							className="w-2 h-2 rounded-full bg-blue-500 ml-2 animate-pulse"
 							title="File has been modified - click 'Show Changes' to see diff"

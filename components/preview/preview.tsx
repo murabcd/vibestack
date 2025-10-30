@@ -116,7 +116,7 @@ export function Preview({ className, disabled, url }: Props) {
 
 						{isLoading && !error && (
 							<div className="absolute inset-0 bg-background bg-opacity-90 flex items-center justify-center flex-col gap-2">
-								<BarLoader color="#666" />
+								<BarLoader color="var(--color-primary)" />
 								<span className="text-muted-foreground text-xs">
 									Loading...
 								</span>
