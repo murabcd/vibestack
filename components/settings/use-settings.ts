@@ -4,7 +4,7 @@ import {
 	useQueryState,
 } from "nuqs";
 import { useState, useEffect } from "react";
-import { DEFAULT_MODEL, SUPPORTED_MODELS } from "@/lib/ai/constants";
+import { DEFAULT_MODEL } from "@/lib/ai/constants";
 
 export function useSettings(initialSandboxDuration?: number, initialModelId?: string) {
 	const [modelId, setModelId] = useModelId(initialModelId);
@@ -15,17 +15,18 @@ export function useSettings(initialSandboxDuration?: number, initialModelId?: st
 }
 
 export function useModelId(initialModelId?: string) {
-	const [modelId, setModelId] = useQueryState(
-		"model",
-		parseAsStringLiteral(SUPPORTED_MODELS).withDefault(DEFAULT_MODEL),
+	// Use useState instead of useQueryState to persist from cookie across navigations
+	// This matches how useSandboxDuration works
+	const [modelId, setModelId] = useState<string>(
+		initialModelId ?? DEFAULT_MODEL
 	);
 
-	// Set initial model from cookie/props on mount if provided and query state is default
+	// Sync with initialModelId when it changes (e.g., after navigation)
 	useEffect(() => {
-		if (initialModelId && modelId === DEFAULT_MODEL) {
+		if (initialModelId && initialModelId !== modelId) {
 			setModelId(initialModelId);
 		}
-	}, [initialModelId, modelId, setModelId]);
+	}, [initialModelId, modelId]);
 
 	return [modelId, setModelId] as const;
 }
