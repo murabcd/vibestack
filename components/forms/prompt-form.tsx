@@ -47,6 +47,7 @@ interface PromptFormProps {
 	initialSandboxDuration?: number;
 	initialModelId?: string;
 	usage?: AppUsage; // Optional usage prop for context display
+	hideAuxiliaryToolsWhenChatActive?: boolean;
 }
 
 export function PromptForm({
@@ -56,6 +57,7 @@ export function PromptForm({
 	initialSandboxDuration,
 	initialModelId,
 	usage,
+	hideAuxiliaryToolsWhenChatActive = false,
 }: PromptFormProps) {
 	const { chat } = useSharedChatContext();
 	const { modelId, setModelId } = useSettings(initialSandboxDuration, initialModelId);
@@ -68,6 +70,8 @@ export function PromptForm({
 
 	// Only show context if we have a chat context (not on home page)
 	const hasChatContext = chat && messages.length > 0;
+	const shouldHideAuxiliaryTools =
+		hideAuxiliaryToolsWhenChatActive && hasChatContext;
 
 	useEffect(() => {
 		const currentValue = controller.textInput.value;
@@ -143,7 +147,7 @@ export function PromptForm({
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
 						{/* Hide MCP and Sandbox buttons when in project/split view */}
-						{!hasChatContext && (
+						{!shouldHideAuxiliaryTools && (
 							<>
 								<McpButton />
 								<TaskOptions initialSandboxDuration={initialSandboxDuration} />

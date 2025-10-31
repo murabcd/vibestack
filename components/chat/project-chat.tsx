@@ -258,6 +258,7 @@ function ProjectChatInner({
 					initialSandboxDuration={initialSandboxDuration}
 					initialModelId={initialModelId}
 					usage={usage}
+					hideAuxiliaryToolsWhenChatActive
 				/>
 			</div>
 		</Panel>
