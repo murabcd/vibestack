@@ -149,7 +149,7 @@ export function PromptForm({
 								<TaskOptions initialSandboxDuration={initialSandboxDuration} />
 							</>
 						)}
-						<Settings />
+						<Settings modelId={modelId} />
 						<ModelSelector
 							modelId={modelId}
 							onModelChange={(newModelId) => {

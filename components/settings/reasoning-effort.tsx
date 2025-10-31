@@ -2,10 +2,13 @@ import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Models } from "@/lib/ai/constants";
-import { useModelId, useReasoningEffort } from "./use-settings";
+import { useReasoningEffort } from "./use-settings";
 
-export function ReasoningEffort() {
-	const [modelId] = useModelId();
+interface ReasoningEffortProps {
+	modelId?: string;
+}
+
+export function ReasoningEffort({ modelId }: ReasoningEffortProps) {
 	const [effort, setEffort] = useReasoningEffort();
 	const id = useId();
 

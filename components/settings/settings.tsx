@@ -8,7 +8,11 @@ import {
 import { AutoFixErrors } from "./auto-fix-errors";
 import { ReasoningEffort } from "./reasoning-effort";
 
-export function Settings() {
+interface SettingsProps {
+	modelId?: string;
+}
+
+export function Settings({ modelId }: SettingsProps) {
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
@@ -19,7 +23,7 @@ export function Settings() {
 			<PopoverContent className="p-0 w-96">
 				<div className="p-4 space-y-6">
 					<AutoFixErrors />
-					<ReasoningEffort />
+					<ReasoningEffort modelId={modelId} />
 				</div>
 			</PopoverContent>
 		</Popover>
