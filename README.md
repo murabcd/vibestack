@@ -18,6 +18,7 @@
   <a href="#features"><strong>Features</strong></a> ·
   <a href="#built-with"><strong>Built with</strong></a> ·
   <a href="#model-providers"><strong>Model providers</strong></a> ·
+  <a href="#mcp-connectors"><strong>MCP connectors</strong></a> ·
   <a href="#deploy-your-own"><strong>Deploy your own</strong></a> ·
   <a href="#running-locally"><strong>Running locally</strong></a>
 </p>
@@ -35,6 +36,8 @@
   - Run shell commands with real-time output streaming and error monitoring
 - Auto Error Detection
   - Intelligent error monitoring that automatically detects and reports issues
+- MCP Connectors
+  - Manage and integrate Model Context Protocol (MCP) connectors
 
 ## Built with
 
@@ -57,6 +60,38 @@
 ## Model providers
 
 This app ships with [Anthropic](https://anthropic.com) provider as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com/), [Ollama](https://ollama.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
+
+## MCP connectors
+
+Integration with Model Context Protocol (MCP) connectors via [AI SDK v5](https://sdk.vercel.ai/docs) for accessing external services and APIs. Use available preset connectors or configure your own custom MCP servers:
+
+- [Context7](https://context7.com)
+  - Access comprehensive library documentation and code snippets
+  - Real-time code examples and API references for popular frameworks
+- [Figma](https://figma.com)
+  - Integrate with Figma designs and assets
+  - Access design files, components, and export assets programmatically
+- [Hugging Face](https://huggingface.co)
+  - Access Hugging Face models and datasets
+  - Run inference and download pre-trained models for AI workflows
+- [Linear](https://linear.app)
+  - Manage tasks and projects in Linear
+  - Create issues, update statuses, and query project data
+- [Notion](https://notion.so)
+  - Access and manage Notion pages and databases
+  - Read and write content, query database entries, and manage blocks
+- [Supabase](https://supabase.com)
+  - Interact with Supabase databases and services
+  - Query tables, manage rows, and access real-time subscriptions
+- [Browserbase](https://browserbase.com)
+  - Browser automation and web scraping capabilities
+  - Take screenshots, navigate pages, and extract content from websites
+- [Convex](https://convex.dev)
+  - Connect to Convex backends and databases
+  - Query data, run functions, and interact with Convex deployments
+- [Playwright](https://playwright.dev)
+  - Advanced browser automation and testing
+  - Control browsers, interact with pages, and perform end-to-end testing
 
 ## Deploy your own
 

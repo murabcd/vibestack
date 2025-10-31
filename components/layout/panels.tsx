@@ -15,7 +15,7 @@ export function Horizontal({ defaultLayout, left, right }: HProps) {
 	};
 	return (
 		<PanelGroup direction="horizontal" onLayout={onLayout}>
-			<Panel defaultSize={defaultLayout[0]} minSize={20}>
+			<Panel defaultSize={defaultLayout[0]} minSize={25} maxSize={50}>
 				{left}
 			</Panel>
 			<PanelResizeHandle className="w-2 bg-transparent hover:bg-accent/50 transition-colors" />

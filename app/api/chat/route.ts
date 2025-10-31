@@ -1,3 +1,4 @@
+import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import {
 	convertToModelMessages,
 	createUIMessageStream,
@@ -6,8 +7,9 @@ import {
 	streamText,
 } from "ai";
 import { checkBotId } from "botid/server";
+import { and, eq, inArray } from "drizzle-orm";
 import { unstable_cache as cache } from "next/cache";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import type { ModelCatalog } from "tokenlens/core";
 import { fetchModels } from "tokenlens/fetch";
 import { getUsage } from "tokenlens/helpers";
@@ -16,13 +18,16 @@ import { DEFAULT_MODEL } from "@/lib/ai/constants";
 import { getAvailableModels, getModelOptions } from "@/lib/ai/gateway";
 import { tools } from "@/lib/ai/tools";
 import type { AppUsage } from "@/lib/ai/usage";
+import { decrypt } from "@/lib/crypto";
+import { db } from "@/lib/db/index";
 import {
-	getMessagesByProjectId,
 	getProjectById,
 	saveMessages,
 	updateProject,
 	updateProjectLastContext,
 } from "@/lib/db/queries";
+import { connectors } from "@/lib/db/schema";
+import { getSessionFromReq } from "@/lib/session/server";
 import prompt from "./prompt.md";
 
 const getTokenlensCatalog = cache(
@@ -47,9 +52,10 @@ interface BodyData {
 	reasoningEffort?: "low" | "medium";
 	projectId?: string;
 	sandboxDuration?: number;
+	mcpServerIds?: string[];
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
 	// Parallelize bot check, model fetching, and request parsing for faster startup
 	const [checkResult, models, body] = await Promise.all([
 		checkBotId(),
@@ -67,9 +73,70 @@ export async function POST(req: Request) {
 		reasoningEffort,
 		projectId,
 		sandboxDuration,
+		mcpServerIds,
 	} = body;
 
-	// Debug logging removed for production
+	console.log("[Chat API] Request received:", {
+		modelId,
+		projectId,
+		mcpServerIds,
+		messageCount: messages.length,
+	});
+
+	// Fetch MCP servers if IDs are provided
+	let mcpServers: Array<{
+		name: string;
+		type: "local" | "remote";
+		baseUrl?: string | null;
+		command?: string | null;
+		env?: Record<string, string> | null;
+		oauthClientId?: string | null;
+		oauthClientSecret?: string | null;
+	}> = [];
+
+	if (mcpServerIds && mcpServerIds.length > 0) {
+		try {
+			console.log("[Chat API] Fetching MCP servers with IDs:", mcpServerIds);
+			const session = await getSessionFromReq(req);
+
+			if (session?.user?.id) {
+				const userConnectors = await db
+					.select()
+					.from(connectors)
+					.where(
+						and(
+							eq(connectors.userId, session.user.id),
+							eq(connectors.status, "connected"),
+							inArray(connectors.id, mcpServerIds),
+						),
+					);
+
+				console.log("[Chat API] Found connectors:", userConnectors.length);
+
+				mcpServers = userConnectors.map((connector) => ({
+					name: connector.name,
+					type: connector.type as "local" | "remote",
+					baseUrl: connector.baseUrl,
+					command: connector.command,
+					env: connector.env ? JSON.parse(decrypt(connector.env)) : null,
+					oauthClientId: connector.oauthClientId,
+					oauthClientSecret: connector.oauthClientSecret
+						? decrypt(connector.oauthClientSecret)
+						: null,
+				}));
+
+				console.log(
+					"[Chat API] Decrypted MCP servers:",
+					mcpServers.map((s) => s.name),
+				);
+			} else {
+				console.log("[Chat API] No session found, skipping MCP servers");
+			}
+		} catch (error) {
+			console.error("[Chat API] Error fetching MCP servers:", error);
+			// Continue without MCP servers if there's an error
+		}
+	}
 
 	const model = models.find((model) => model.id === modelId);
 	if (!model) {
@@ -114,7 +181,138 @@ export async function POST(req: Request) {
 	return createUIMessageStreamResponse({
 		stream: createUIMessageStream({
 			originalMessages: messages,
-			execute: ({ writer }) => {
+			execute: async ({ writer }) => {
+				// Initialize MCP clients and collect tools
+				const mcpClients: Array<
+					Awaited<ReturnType<typeof experimental_createMCPClient>>
+				> = [];
+				let mcpTools: Record<string, unknown> = {};
+
+				if (mcpServers.length > 0) {
+					console.log(
+						"[Chat API] Initializing MCP clients:",
+						mcpServers.length,
+					);
+
+					try {
+						for (const server of mcpServers) {
+							try {
+								if (server.type === "local" && server.command) {
+									// Local STDIO server
+									const commandParts = server.command.split(/\s+/);
+									const [command, ...args] = commandParts;
+
+									const { Experimental_StdioMCPTransport } = await import(
+										"@ai-sdk/mcp/mcp-stdio"
+									);
+
+									const client = await experimental_createMCPClient({
+										transport: new Experimental_StdioMCPTransport({
+											command,
+											args,
+											env: server.env || {},
+										}),
+									});
+
+									const serverTools = await client.tools();
+									console.log(
+										"[Chat API] Local MCP server tools:",
+										server.name,
+										Object.keys(serverTools),
+									);
+									mcpTools = { ...mcpTools, ...serverTools };
+									mcpClients.push(client);
+									console.log(
+										"[Chat API] Connected to local MCP server:",
+										server.name,
+									);
+								} else if (server.type === "remote" && server.baseUrl) {
+									// Remote HTTP/SSE server
+									const headers: Record<string, string> = {};
+									if (server.oauthClientSecret) {
+										headers.Authorization = `Bearer ${server.oauthClientSecret}`;
+									}
+									if (server.oauthClientId) {
+										headers["X-Client-ID"] = server.oauthClientId;
+									}
+
+									// Determine transport type based on URL
+									const url = new URL(server.baseUrl);
+									const isSSE =
+										url.pathname.includes("/sse") ||
+										server.baseUrl.includes("/sse");
+
+									const client = await experimental_createMCPClient({
+										transport: {
+											type: isSSE ? "sse" : "http",
+											url: server.baseUrl,
+											...(Object.keys(headers).length > 0 ? { headers } : {}),
+										},
+									});
+
+									const serverTools = await client.tools();
+									console.log(
+										"[Chat API] Remote MCP server tools:",
+										server.name,
+										Object.keys(serverTools),
+									);
+									mcpTools = { ...mcpTools, ...serverTools };
+									mcpClients.push(client);
+									console.log(
+										"[Chat API] Connected to remote MCP server:",
+										server.name,
+										isSSE ? "SSE" : "HTTP",
+									);
+								}
+							} catch (serverError) {
+								console.error(
+									`[Chat API] Failed to connect to MCP server ${server.name}:`,
+									serverError,
+								);
+								// Continue with other servers
+							}
+						}
+
+						console.log(
+							"[Chat API] MCP tools loaded:",
+							Object.keys(mcpTools).length,
+						);
+					} catch (mcpError) {
+						console.error(
+							"[Chat API] Error initializing MCP clients:",
+							mcpError,
+						);
+						// Continue without MCP if initialization fails
+					}
+				}
+
+				// Combine regular tools with MCP tools
+				const baseTools = tools({
+					modelId,
+					writer,
+					context:
+						projectId && project
+							? {
+									projectId,
+									userId: project.userId,
+									sandboxDuration,
+									updateProject: async (updates) => {
+										await updateProject(projectId, updates);
+									},
+								}
+							: undefined,
+				});
+
+				const allTools = { ...baseTools, ...mcpTools };
+
+				console.log("[Chat API] Base tools:", Object.keys(baseTools));
+				console.log(
+					"[Chat API] MCP tools count:",
+					Object.keys(mcpTools).length,
+				);
+				console.log("[Chat API] All tools combined:", Object.keys(allTools));
+				console.log("[Chat API] MCP tool names:", Object.keys(mcpTools));
+
 				const result = streamText({
 					...getModelOptions(modelId, { reasoningEffort }),
 					system: prompt,
@@ -140,24 +338,13 @@ export async function POST(req: Request) {
 						}),
 					),
 					stopWhen: stepCountIs(20),
-					tools: tools({
-						modelId,
-						writer,
-						context:
-							projectId && project
-								? {
-										projectId,
-										userId: project.userId,
-										sandboxDuration,
-										updateProject: async (updates) => {
-											await updateProject(projectId, updates);
-										},
-									}
-								: undefined,
-					}),
+					tools: allTools,
 					onError: async (error) => {
-						console.error("Error communicating with AI");
-						console.error(JSON.stringify(error, null, 2));
+						console.error("[Chat API] Error communicating with AI");
+						console.error(
+							"[Chat API] Error details:",
+							JSON.stringify(error, null, 2),
+						);
 
 						// Update project status to error
 						if (projectId) {
@@ -166,6 +353,18 @@ export async function POST(req: Request) {
 								progress: 0,
 							});
 						}
+
+						// Close MCP clients on error
+						await Promise.all(
+							mcpClients.map((client) => client.close().catch(console.error)),
+						);
+					},
+					onFinish: async () => {
+						// Close MCP clients when streamText finishes
+						await Promise.all(
+							mcpClients.map((client) => client.close().catch(console.error)),
+						);
+						console.log("[Chat API] Closed MCP clients in streamText onFinish");
 					},
 				});
 
@@ -192,17 +391,34 @@ export async function POST(req: Request) {
 							}
 						},
 						onFinish: async ({ messages: allMessages }) => {
+							// Close MCP clients when finished
+							await Promise.all(
+								mcpClients.map((client) => client.close().catch(console.error)),
+							);
+							console.log("[Chat API] Closed MCP clients");
+
+							// Log message parts to debug tool calls
+							const assistantMessages = allMessages.filter(
+								(msg) => msg.role === "assistant",
+							);
+							const latestAssistantMessage =
+								assistantMessages[assistantMessages.length - 1];
+
+							if (latestAssistantMessage) {
+								console.log(
+									"[Chat API] Assistant message parts:",
+									latestAssistantMessage.parts.map((p) => ({
+										type: p.type,
+										toolName: "toolName" in p ? p.toolName : undefined,
+										toolCallId: "toolCallId" in p ? p.toolCallId : undefined,
+									})),
+								);
+							}
+
 							// Save assistant message to database if projectId is provided
 							// (User message was already saved before streaming started)
 							if (projectId) {
 								try {
-									// Get the latest assistant message
-									const assistantMessages = allMessages.filter(
-										(msg) => msg.role === "assistant",
-									);
-									const latestAssistantMessage =
-										assistantMessages[assistantMessages.length - 1];
-
 									// Save assistant message
 									if (latestAssistantMessage) {
 										await saveMessages({

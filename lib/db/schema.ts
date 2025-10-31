@@ -10,6 +10,8 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 import type { AppUsage } from "@/lib/ai/usage";
 
 // Users table - user profile and primary OAuth account
@@ -104,6 +106,8 @@ export const projects = pgTable("projects", {
 		.default("idle"),
 	progress: integer("progress").notNull().default(0),
 	lastContext: jsonb("lastContext").$type<AppUsage | null>(),
+	// MCP server IDs
+	mcpServerIds: jsonb("mcpServerIds").$type<string[] | null>(),
 });
 
 export type Project = InferSelectModel<typeof projects>;
@@ -141,3 +145,82 @@ export const settings = pgTable(
 );
 
 export type Setting = InferSelectModel<typeof settings>;
+
+// Connectors table - MCP server connectors
+export const connectors = pgTable(
+	"connectors",
+	{
+		id: text("id").primaryKey().notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		description: text("description"),
+		type: varchar("type", { enum: ["local", "remote"] })
+			.notNull()
+			.default("remote"),
+		baseUrl: text("base_url"),
+		oauthClientId: text("oauth_client_id"),
+		oauthClientSecret: text("oauth_client_secret"), // Encrypted
+		command: text("command"),
+		env: text("env"), // Encrypted JSON string
+		status: varchar("status", { enum: ["connected", "disconnected"] })
+			.notNull()
+			.default("disconnected"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+);
+
+export type Connector = InferSelectModel<typeof connectors>;
+
+// Zod schemas for validation
+export const insertConnectorSchema = createInsertSchema(connectors, {
+	id: z.string().optional(),
+	userId: z.string(),
+	name: z.string().min(1),
+	description: z.string().optional(),
+	type: z.enum(["local", "remote"]),
+	baseUrl: z
+		.string()
+		.url()
+		.optional()
+		.or(z.literal("").transform(() => undefined)),
+	oauthClientId: z.string().optional().or(z.literal("").transform(() => undefined)),
+	oauthClientSecret: z.string().optional().or(z.literal("").transform(() => undefined)),
+	command: z.string().optional().or(z.literal("").transform(() => undefined)),
+	env: z.record(z.string(), z.string()).optional(),
+	status: z.enum(["connected", "disconnected"]),
+	createdAt: z.date().optional(),
+	updatedAt: z.date().optional(),
+})
+	.omit({
+		createdAt: true,
+		updatedAt: true,
+	})
+	.refine(
+		(data) => {
+			if (data.type === "remote") {
+				return !!data.baseUrl;
+			}
+			return true;
+		},
+		{
+			message: "Base URL is required for remote servers",
+			path: ["baseUrl"],
+		},
+	)
+	.refine(
+		(data) => {
+			if (data.type === "local") {
+				return !!data.command;
+			}
+			return true;
+		},
+		{
+			message: "Command is required for local servers",
+			path: ["command"],
+		},
+	);
+
+export const selectConnectorSchema = createSelectSchema(connectors);

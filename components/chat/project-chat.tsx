@@ -21,6 +21,7 @@ import { PromptInputProvider } from "@/components/ui/prompt-input";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
+import { useConnectors } from "@/components/connectors-provider";
 
 interface Props {
 	className: string;
@@ -49,6 +50,7 @@ function ProjectChatInner({
 		initialSandboxDuration,
 		initialModelId,
 	);
+	const { connectors } = useConnectors();
 
 	// Initialize usage state from initialLastContext
 	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
@@ -78,6 +80,11 @@ function ProjectChatInner({
 		if (pendingMessage && !hasSentPendingMessage.current) {
 			hasSentPendingMessage.current = true;
 
+			// Get IDs of connected MCP servers
+			const connectedServerIds = connectors
+				.filter((c) => c.status === "connected")
+				.map((c) => c.id);
+
 			// Send message immediately when component is ready
 			sendMessage(
 				{
@@ -90,13 +97,22 @@ function ProjectChatInner({
 						reasoningEffort,
 						projectId,
 						sandboxDuration,
+						mcpServerIds:
+							connectedServerIds.length > 0 ? connectedServerIds : undefined,
 					},
 				},
 			);
 		}
 		// Note: hasSentPendingMessage is a ref and doesn't need to be in deps
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [pendingMessage, projectId, modelId, reasoningEffort, sendMessage]);
+	}, [
+		pendingMessage,
+		projectId,
+		modelId,
+		reasoningEffort,
+		sendMessage,
+		connectors,
+	]);
 
 	// Initialize messages from database if available and no pending message
 	// Only runs once due to ref guard
@@ -169,6 +185,16 @@ function ProjectChatInner({
 	}, [initialMessages]);
 
 	const handleMessageSubmit = (message: PromptInputMessage) => {
+		// Get IDs of connected MCP servers
+		const connectedServerIds = connectors
+			.filter((c) => c.status === "connected")
+			.map((c) => c.id);
+
+		console.log(
+			"[ProjectChat] Submitting message with MCP servers:",
+			connectedServerIds,
+		);
+
 		sendMessage(
 			{
 				...message,
@@ -180,6 +206,8 @@ function ProjectChatInner({
 					reasoningEffort,
 					projectId, // Pass projectId to save messages to the correct project
 					sandboxDuration,
+					mcpServerIds:
+						connectedServerIds.length > 0 ? connectedServerIds : undefined,
 				},
 			},
 		);

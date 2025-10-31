@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { CommandLogsStream } from "@/components/commands-logs/commands-logs-stream";
+import { ConnectorsProvider } from "@/components/connectors-provider";
 import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
 import { SandboxState } from "@/components/modals/sandbox-state";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -82,18 +83,20 @@ export default async function RootLayout({
 					disableTransitionOnChange
 				>
 					<SessionProvider>
-						<SidebarProvider
-							defaultOpen={defaultSidebarOpen}
-							defaultIsMobile={defaultIsMobile}
-						>
-							<Suspense fallback={null}>
-								<NuqsAdapter>
-									<ChatProvider>
-										<ErrorMonitor>{children}</ErrorMonitor>
-									</ChatProvider>
-								</NuqsAdapter>
-							</Suspense>
-						</SidebarProvider>
+						<ConnectorsProvider>
+							<SidebarProvider
+								defaultOpen={defaultSidebarOpen}
+								defaultIsMobile={defaultIsMobile}
+							>
+								<Suspense fallback={null}>
+									<NuqsAdapter>
+										<ChatProvider>
+											<ErrorMonitor>{children}</ErrorMonitor>
+										</ChatProvider>
+									</NuqsAdapter>
+								</Suspense>
+							</SidebarProvider>
+						</ConnectorsProvider>
 					</SessionProvider>
 					<Toaster />
 					<CommandLogsStream />

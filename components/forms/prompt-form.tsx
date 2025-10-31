@@ -16,6 +16,7 @@ import {
 } from "@/components/ai-elements/context";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { ModelSelector } from "@/components/model-selector/model-selector";
+import { McpButton } from "@/components/connectors/mcp-button";
 import { Settings } from "@/components/settings/settings";
 import { useModelId, useSettings } from "@/components/settings/use-settings";
 import { TaskOptions } from "@/components/task-options/task-options";
@@ -141,14 +142,20 @@ export function PromptForm({
 								<PromptInputActionAddAttachments />
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
-						<TaskOptions initialSandboxDuration={initialSandboxDuration} />
+						{/* Hide MCP and Sandbox buttons when in project/split view */}
+						{!hasChatContext && (
+							<>
+								<McpButton />
+								<TaskOptions initialSandboxDuration={initialSandboxDuration} />
+							</>
+						)}
 						<Settings />
-						<ModelSelector 
-							modelId={modelId} 
+						<ModelSelector
+							modelId={modelId}
 							onModelChange={(newModelId) => {
 								setModelId(newModelId);
 								saveModelAsCookie(newModelId);
-							}} 
+							}}
 						/>
 					</PromptInputTools>
 					<PromptInputSubmit

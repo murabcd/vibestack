@@ -40,15 +40,15 @@ export const Message = memo(function Message({ message }: Props) {
 		<ReasoningContext.Provider
 			value={{ expandedReasoningIndex, setExpandedReasoningIndex }}
 		>
-			<div className="group/message w-full" data-role={message.role}>
+			<div className="group/message w-full min-w-0" data-role={message.role}>
 				<div
-					className={cn("flex w-full items-start", {
+					className={cn("flex w-full min-w-0 items-start", {
 						"justify-end": message.role === "user",
 						"justify-start": message.role === "assistant",
 					})}
 				>
 					<div
-						className={cn("flex flex-col", {
+						className={cn("flex flex-col min-w-0", {
 							"gap-2 md:gap-4": message.parts?.some(
 								(p) => p.type === "text" && p.text?.trim(),
 							),
