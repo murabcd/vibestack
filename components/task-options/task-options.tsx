@@ -15,6 +15,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSandboxDuration } from "@/components/settings/use-settings";
 
 interface TaskOptionsProps {
@@ -43,16 +48,21 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					className="rounded-full h-8 w-8 p-0"
-				>
-					<ClockIcon className="h-4 w-4" />
-				</Button>
-			</DropdownMenuTrigger>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<DropdownMenuTrigger asChild>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="rounded-full h-8 w-8 p-0"
+						>
+							<ClockIcon className="h-4 w-4" />
+						</Button>
+					</DropdownMenuTrigger>
+				</TooltipTrigger>
+				<TooltipContent align="end">Sandbox duration</TooltipContent>
+			</Tooltip>
 			<DropdownMenuContent className="w-55" align="end">
 				<div className="p-2 space-y-4">
 					<div className="space-y-2">

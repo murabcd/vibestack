@@ -954,11 +954,16 @@ export const PromptInputActionMenuTrigger = ({
 	children,
 	...props
 }: PromptInputActionMenuTriggerProps) => (
-	<DropdownMenuTrigger asChild>
-		<PromptInputButton className={className} {...props}>
-			{children ?? <PlusIcon className="size-4" />}
-		</PromptInputButton>
-	</DropdownMenuTrigger>
+	<Tooltip>
+		<TooltipTrigger asChild>
+			<DropdownMenuTrigger asChild>
+				<PromptInputButton className={className} {...props}>
+					{children ?? <PlusIcon className="size-4" />}
+				</PromptInputButton>
+			</DropdownMenuTrigger>
+		</TooltipTrigger>
+		<TooltipContent align="end">Add attachment</TooltipContent>
+	</Tooltip>
 );
 
 export type PromptInputActionMenuContentProps = ComponentProps<
@@ -997,26 +1002,35 @@ export const PromptInputSubmit = ({
 	...props
 }: PromptInputSubmitProps) => {
 	let Icon = <ArrowUpIcon className="size-4" />;
+	let tooltipText = "Send message";
 
 	if (status === "submitted") {
 		Icon = <Loader2Icon className="size-4 animate-spin" />;
+		tooltipText = "Sending...";
 	} else if (status === "streaming") {
 		Icon = <SquareIcon className="size-4" />;
+		tooltipText = "Stop";
 	} else if (status === "error") {
 		Icon = <XIcon className="size-4" />;
+		tooltipText = "Error occurred";
 	}
 
 	return (
-		<InputGroupButton
-			aria-label="Submit"
-			className={cn("cursor-pointer", className)}
-			size={size}
-			type="submit"
-			variant={variant}
-			{...props}
-		>
-			{children ?? Icon}
-		</InputGroupButton>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<InputGroupButton
+					aria-label="Submit"
+					className={cn("cursor-pointer", className)}
+					size={size}
+					type="submit"
+					variant={variant}
+					{...props}
+				>
+					{children ?? Icon}
+				</InputGroupButton>
+			</TooltipTrigger>
+			<TooltipContent align="end">{tooltipText}</TooltipContent>
+		</Tooltip>
 	);
 };
 

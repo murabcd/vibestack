@@ -11,6 +11,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAvailableModels } from "./use-available-models";
 
 interface Props {
@@ -24,37 +29,42 @@ export const ModelSelector = memo(function ModelSelector({
 }: Props) {
 	const { models, isLoading, error } = useAvailableModels();
 	return (
-		<Select
-			value={modelId}
-			onValueChange={onModelChange}
-			disabled={isLoading || !!error || !models?.length}
-		>
-			<SelectTrigger className="bg-background cursor-pointer h-8!">
-				{isLoading ? (
-					<div className="flex items-center gap-2">
-						<Loader2Icon className="size-4 animate-spin" />
-						<span>Loading</span>
-					</div>
-				) : error ? (
-					<span className="text-destructive text-sm">Error</span>
-				) : !models?.length ? (
-					<span>No models</span>
-				) : (
-					<SelectValue placeholder="Select a model" />
-				)}
-			</SelectTrigger>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Select
+					value={modelId}
+					onValueChange={onModelChange}
+					disabled={isLoading || !!error || !models?.length}
+				>
+					<SelectTrigger className="bg-background cursor-pointer h-8!">
+						{isLoading ? (
+							<div className="flex items-center gap-2">
+								<Loader2Icon className="size-4 animate-spin" />
+								<span>Loading</span>
+							</div>
+						) : error ? (
+							<span className="text-destructive text-sm">Error</span>
+						) : !models?.length ? (
+							<span>No models</span>
+						) : (
+							<SelectValue placeholder="Select a model" />
+						)}
+					</SelectTrigger>
 
-			<SelectContent>
-				<SelectGroup>
-					{models
-						?.sort((a, b) => a.label.localeCompare(b.label))
-						.map((model) => (
-							<SelectItem key={model.id} value={model.id}>
-								{model.label}
-							</SelectItem>
-						)) || []}
-				</SelectGroup>
-			</SelectContent>
-		</Select>
+					<SelectContent>
+						<SelectGroup>
+							{models
+								?.sort((a, b) => a.label.localeCompare(b.label))
+								.map((model) => (
+									<SelectItem key={model.id} value={model.id}>
+										{model.label}
+									</SelectItem>
+								)) || []}
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+			</TooltipTrigger>
+			<TooltipContent align="end">Select model</TooltipContent>
+		</Tooltip>
 	);
 });
