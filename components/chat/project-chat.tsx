@@ -73,6 +73,17 @@ function ProjectChatInner({
 	const hasSentPendingMessage = sentMessageRef ?? localSentRef;
 	const hasInitializedMessages = useRef(false);
 
+	// Reset shared chat state whenever the project changes to avoid leaking the
+	// previous conversation into the new project.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: projectId is intentionally included to reset messages when project changes
+	useEffect(() => {
+		setMessages([]);
+		hasInitializedMessages.current = false;
+
+		const targetRef = sentMessageRef ?? localSentRef;
+		targetRef.current = false;
+	}, [projectId, setMessages, sentMessageRef]);
+
 	// Send pending message if it exists (first message from home page)
 	// Only runs once due to shared ref guard across both mobile and desktop components
 	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a ref and doesn't need to be in deps
