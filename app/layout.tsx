@@ -28,18 +28,24 @@ import "./globals.css";
 
 export const metadata: Metadata = {
 	metadataBase: new URL("https://vibestack-code.vercel.app"),
-	title: "VibeStack",
+	title: {
+		default: "VibeStack",
+		template: "%s | VibeStack",
+	},
 	description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
 	icons: {
 		icon: "/logo.svg",
 	},
 	openGraph: {
+		title: "VibeStack",
+		description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
 		siteName: "VibeStack",
 		images: [
 			{
 				url: "/api/og",
 				width: 1200,
 				height: 630,
+				alt: "VibeStack - AI-Powered Full Stack Development Platform",
 			},
 		],
 		locale: "en_US",
@@ -47,6 +53,8 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
+		title: "VibeStack",
+		description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
 		images: ["/api/og"],
 	},
 };
