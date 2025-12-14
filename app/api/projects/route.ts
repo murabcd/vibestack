@@ -1,11 +1,11 @@
 import { nanoid } from "nanoid";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createProject, getProjectsList } from "@/lib/db/queries";
 import { getSessionFromReq } from "@/lib/session/server";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
 	try {
-		const session = await getSessionFromReq(request as any);
+		const session = await getSessionFromReq(request);
 		if (!session) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
@@ -24,9 +24,9 @@ export async function GET(request: Request) {
 	}
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
 	try {
-		const session = await getSessionFromReq(request as any);
+		const session = await getSessionFromReq(request);
 		if (!session) {
 			return NextResponse.json(
 				{ error: "Authentication required" },

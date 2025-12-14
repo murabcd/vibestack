@@ -189,12 +189,16 @@
 		*,
 		*::before,
 		*::after {
+			/* biome-ignore lint/complexity/noImportantStyles: Required for accessibility - reduced motion support */
 			animation-duration: 0.01ms !important;
+			/* biome-ignore lint/complexity/noImportantStyles: Required for accessibility - reduced motion support */
 			animation-iteration-count: 1 !important;
+			/* biome-ignore lint/complexity/noImportantStyles: Required for accessibility - reduced motion support */
 			transition-duration: 0.01ms !important;
 		}
 		.animate-spin,
 		.animate-pulse {
+			/* biome-ignore lint/complexity/noImportantStyles: Required for accessibility - reduced motion support */
 			animation: none !important;
 		}
 	}

@@ -1,5 +1,6 @@
 import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
+import { getSandboxConfig } from "@/lib/sandbox/config";
 
 interface Params {
 	sandboxId: string;
@@ -11,11 +12,10 @@ export async function GET(
 	{ params }: { params: Promise<Params> },
 ) {
 	const cmdParams = await params;
+	const config = getSandboxConfig();
 	const sandbox = await Sandbox.get({
 		...cmdParams,
-		teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-		projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-		token: process.env.SANDBOX_VERCEL_TOKEN!,
+		...config,
 	});
 	const command = await sandbox.getCommand(cmdParams.cmdId);
 

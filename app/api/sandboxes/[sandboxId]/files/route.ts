@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
+import { getSandboxConfig } from "@/lib/sandbox/config";
 
 const FileParamsSchema = z.object({
 	sandboxId: z.string(),
@@ -29,11 +30,10 @@ export async function GET(
 		);
 	}
 
+	const config = getSandboxConfig();
 	const sandbox = await Sandbox.get({
 		...fileParams.data,
-		teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-		projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-		token: process.env.SANDBOX_VERCEL_TOKEN!,
+		...config,
 	});
 	const stream = await sandbox.readFile(fileParams.data);
 	if (!stream) {
@@ -72,11 +72,10 @@ export async function POST(
 			);
 		}
 
+		const config = getSandboxConfig();
 		const sandbox = await Sandbox.get({
 			sandboxId,
-			teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-			projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-			token: process.env.SANDBOX_VERCEL_TOKEN!,
+			...config,
 		});
 
 		// Write the file to the sandbox

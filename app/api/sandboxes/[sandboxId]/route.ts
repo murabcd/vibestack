@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import { APIError } from "@vercel/sandbox/dist/api-client/api-error";
 import { type NextRequest, NextResponse } from "next/server";
+import { getSandboxConfig } from "@/lib/sandbox/config";
 
 /**
  * We must change the SDK to add data to the instance and then
@@ -12,11 +13,10 @@ export async function GET(
 ) {
 	const { sandboxId } = await params;
 	try {
+		const config = getSandboxConfig();
 		const sandbox = await Sandbox.get({
 			sandboxId,
-			teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-			projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-			token: process.env.SANDBOX_VERCEL_TOKEN!,
+			...config,
 		});
 		await sandbox.runCommand({
 			cmd: "echo",
