@@ -4,6 +4,7 @@ import { tool } from "ai";
 import z from "zod/v3";
 import type { DataPart } from "../messages/data-parts";
 import description from "./get-sandbox-url.md";
+import { getSandboxCredentials } from "./sandbox-env";
 import type { ToolContext } from "./types";
 
 interface Params {
@@ -33,11 +34,12 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 				data: { status: "loading" },
 			});
 
+			const { teamId, projectId, token } = getSandboxCredentials();
 			const sandbox = await Sandbox.get({
 				sandboxId,
-				teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-				projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-				token: process.env.SANDBOX_VERCEL_TOKEN!,
+				teamId,
+				projectId,
+				token,
 			});
 			const url = sandbox.domain(port);
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronUp, Moon, Sun } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useRef } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,7 +17,6 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useSession } from "@/components/auth/session-provider";
 
 export function SidebarUserNav() {
 	const { session, signOut } = useSession();

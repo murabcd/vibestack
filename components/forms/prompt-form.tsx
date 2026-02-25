@@ -15,10 +15,10 @@ import {
 	ContextTrigger,
 } from "@/components/ai-elements/context";
 import type { ChatUIMessage } from "@/components/chat/types";
-import { ModelSelector } from "@/components/model-selector/model-selector";
 import { McpButton } from "@/components/connectors/mcp-button";
+import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
-import { useModelId, useSettings } from "@/components/settings/use-settings";
+import { useSettings } from "@/components/settings/use-settings";
 import { TaskOptions } from "@/components/task-options/task-options";
 import {
 	PromptInput,
@@ -60,7 +60,10 @@ export function PromptForm({
 	hideAuxiliaryToolsWhenChatActive = false,
 }: PromptFormProps) {
 	const { chat } = useSharedChatContext();
-	const { modelId, setModelId } = useSettings(initialSandboxDuration, initialModelId);
+	const { modelId, setModelId } = useSettings(
+		initialSandboxDuration,
+		initialModelId,
+	);
 	const { messages, status } = useChat<ChatUIMessage>({ chat });
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");

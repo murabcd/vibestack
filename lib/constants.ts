@@ -6,4 +6,3 @@ export const MAX_SANDBOX_DURATION = parseInt(
 
 // Maximum allowed sandbox duration (5 hours)
 export const MAX_ALLOWED_SANDBOX_DURATION = 300;
-

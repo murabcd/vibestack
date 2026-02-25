@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
 	webpack(config) {
@@ -44,4 +44,6 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default withBotId(nextConfig as any);
+export default withBotId(
+	nextConfig as unknown as Parameters<typeof withBotId>[0],
+);

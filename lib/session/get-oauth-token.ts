@@ -1,9 +1,9 @@
 import "server-only";
 
-import { db } from "@/lib/db/index";
-import { users, accounts } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
+import { db } from "@/lib/db/index";
+import { accounts, users } from "@/lib/db/schema";
 
 type OAuthProvider = "github" | "vercel";
 

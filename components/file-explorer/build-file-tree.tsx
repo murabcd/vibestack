@@ -27,7 +27,7 @@ export function buildFileTree(paths: string[]): FileNode[] {
 
 		for (let index = 0; index < parts.length; index++) {
 			const part = parts[index];
-			currentPath += "/" + part;
+			currentPath += `/${part}`;
 			const isFile = index === parts.length - 1;
 
 			if (!current[part]) {
@@ -44,7 +44,10 @@ export function buildFileTree(paths: string[]): FileNode[] {
 			}
 
 			if (!isFile) {
-				current = current[part].children!;
+				if (!current[part].children) {
+					current[part].children = {};
+				}
+				current = current[part].children;
 			}
 		}
 	}

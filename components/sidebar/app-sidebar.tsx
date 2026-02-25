@@ -1,10 +1,13 @@
 "use client";
 
-import { TextSearch, Plus } from "lucide-react";
+import { Plus, TextSearch } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "@/components/auth/session-provider";
+import { SignIn } from "@/components/auth/sign-in";
 import { SidebarHistory } from "@/components/sidebar/sidebar-history";
+import { SidebarUserNav } from "@/components/sidebar/sidebar-user-nav";
 import { Button } from "@/components/ui/button";
 import {
 	Sidebar,
@@ -21,9 +24,6 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SignIn } from "@/components/auth/sign-in";
-import { useSession } from "@/components/auth/session-provider";
-import { SidebarUserNav } from "@/components/sidebar/sidebar-user-nav";
 
 export const AppSidebar = () => {
 	const router = useRouter();

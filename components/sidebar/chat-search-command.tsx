@@ -92,7 +92,7 @@ export const ChatSearchCommand: React.FC<ChatSearchCommandProps> = ({
 										{groupedChats.today.map((chat) => (
 											<CommandItem
 												key={chat.chatId}
-												value={chat.chatId + " " + chat.title}
+												value={`${chat.chatId} ${chat.title}`}
 												onSelect={() => onSelectChat(chat.chatId)}
 												className="cursor-pointer"
 											>
@@ -106,7 +106,7 @@ export const ChatSearchCommand: React.FC<ChatSearchCommandProps> = ({
 										{groupedChats.yesterday.map((chat) => (
 											<CommandItem
 												key={chat.chatId}
-												value={chat.chatId + " " + chat.title}
+												value={`${chat.chatId} ${chat.title}`}
 												onSelect={() => onSelectChat(chat.chatId)}
 												className="cursor-pointer"
 											>
@@ -120,7 +120,7 @@ export const ChatSearchCommand: React.FC<ChatSearchCommandProps> = ({
 										{groupedChats.lastWeek.map((chat) => (
 											<CommandItem
 												key={chat.chatId}
-												value={chat.chatId + " " + chat.title}
+												value={`${chat.chatId} ${chat.title}`}
 												onSelect={() => onSelectChat(chat.chatId)}
 												className="cursor-pointer"
 											>
@@ -134,7 +134,7 @@ export const ChatSearchCommand: React.FC<ChatSearchCommandProps> = ({
 										{groupedChats.lastMonth.map((chat) => (
 											<CommandItem
 												key={chat.chatId}
-												value={chat.chatId + " " + chat.title}
+												value={`${chat.chatId} ${chat.title}`}
 												onSelect={() => onSelectChat(chat.chatId)}
 												className="cursor-pointer"
 											>
@@ -148,7 +148,7 @@ export const ChatSearchCommand: React.FC<ChatSearchCommandProps> = ({
 										{groupedChats.older.map((chat) => (
 											<CommandItem
 												key={chat.chatId}
-												value={chat.chatId + " " + chat.title}
+												value={`${chat.chatId} ${chat.title}`}
 												onSelect={() => onSelectChat(chat.chatId)}
 												className="cursor-pointer"
 											>

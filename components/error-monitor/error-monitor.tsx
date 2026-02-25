@@ -48,50 +48,49 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 				? "pending"
 				: "ready";
 
-	const getErrorKey = (error: Line) => {
-		return `${error.command}-${error.args.join(" ")}-${error.data.slice(
-			0,
-			100,
-		)}`;
-	};
+	const handleErrors = useCallback(
+		(errors: Line[], prev: Line[]) => {
+			const now = Date.now();
+			const timeSinceLastReport = now - lastErrorReportTime.current;
 
-	const handleErrors = (errors: Line[], prev: Line[]) => {
-		const now = Date.now();
-		const timeSinceLastReport = now - lastErrorReportTime.current;
-
-		if (timeSinceLastReport < 60000) {
-			return;
-		}
-
-		const errorKeys = errors.map(getErrorKey);
-		const uniqueErrorKeys = [...new Set(errorKeys)];
-
-		const newErrors = uniqueErrorKeys.filter((key) => {
-			const count = errorReportCount.current.get(key) || 0;
-			return count < 1;
-		});
-
-		if (newErrors.length === 0) {
-			return;
-		}
-
-		startTransition(async () => {
-			const summary = await getSummary(errors, prev);
-			if (summary.shouldBeFixed) {
-				newErrors.forEach((key) => {
-					errorReportCount.current.set(key, 1);
-				});
-
-				lastReportedErrors.current = newErrors;
-				lastErrorReportTime.current = Date.now();
-
-				sendMessage({
-					role: "user",
-					parts: [{ type: "data-report-errors", data: summary }],
-				});
+			if (timeSinceLastReport < 60000) {
+				return;
 			}
-		});
-	};
+
+			const errorKeys = errors.map(
+				(error) =>
+					`${error.command}-${error.args.join(" ")}-${error.data.slice(0, 100)}`,
+			);
+			const uniqueErrorKeys = [...new Set(errorKeys)];
+
+			const newErrors = uniqueErrorKeys.filter((key) => {
+				const count = errorReportCount.current.get(key) || 0;
+				return count < 1;
+			});
+
+			if (newErrors.length === 0) {
+				return;
+			}
+
+			startTransition(async () => {
+				const summary = await getSummary(errors, prev);
+				if (summary.shouldBeFixed) {
+					newErrors.forEach((key) => {
+						errorReportCount.current.set(key, 1);
+					});
+
+					lastReportedErrors.current = newErrors;
+					lastErrorReportTime.current = Date.now();
+
+					sendMessage({
+						role: "user",
+						parts: [{ type: "data-report-errors", data: summary }],
+					});
+				}
+			});
+		},
+		[sendMessage],
+	);
 
 	useEffect(() => {
 		if (messages.length === 0) {
@@ -116,8 +115,16 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 		} else if (status === "disabled") {
 			clearSubmitTimeout();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- This is fine
-	}, [clearSubmitTimeout, cursor, errors, status]);
+	}, [
+		clearSubmitTimeout,
+		cursor,
+		errors,
+		status,
+		debounceTimeMs,
+		handleErrors,
+		setCursor,
+		setScheduled,
+	]);
 
 	return <Context.Provider value={{ status }}>{children}</Context.Provider>;
 }

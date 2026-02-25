@@ -1,6 +1,6 @@
 "use server";
 
-import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import { cookies } from "next/headers";
 import type { ChatUIMessage } from "@/components/chat/types";
@@ -11,12 +11,12 @@ export async function generateTitleFromUserMessage({
 	message: ChatUIMessage;
 }) {
 	try {
-		const openai = createOpenAI({
-			apiKey: process.env.OPENAI_API_KEY,
+		const anthropic = createAnthropic({
+			apiKey: process.env.ANTHROPIC_API_KEY,
 		});
 
 		const { text: title } = await generateText({
-			model: openai("gpt-4.1-nano"),
+			model: anthropic("claude-haiku-4-5"),
 			system: `Generate a short title (max 80 characters) based on the user's message. 
 			The title should be a summary of what the user wants to create or build.
 			Do not use quotes or colons.`,

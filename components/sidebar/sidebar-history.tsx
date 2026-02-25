@@ -45,9 +45,9 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { ChatSearchCommand } from "./chat-search-command";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // Simple type definition for projects
 interface Project {

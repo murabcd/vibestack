@@ -60,7 +60,10 @@ async function* getCommandLogs(sandboxId: string, cmdId: string) {
 		{ headers: { "Content-Type": "application/json" } },
 	);
 
-	const reader = response.body!.getReader();
+	if (!response.body) {
+		throw new Error("Missing response body for command logs stream");
+	}
+	const reader = response.body.getReader();
 	const decoder = new TextDecoder();
 	let line = "";
 	while (true) {

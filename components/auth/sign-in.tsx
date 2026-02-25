@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Icons } from "@/components/icons/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -8,9 +10,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Icons } from "@/components/icons/icons";
 import { getEnabledAuthProviders } from "@/lib/auth/providers";
-import { useState } from "react";
 
 export function SignIn() {
 	const [showDialog, setShowDialog] = useState(false);

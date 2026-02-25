@@ -1,7 +1,7 @@
 "use client";
 
 import { CodeIcon, EyeIcon, PanelBottom } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
 	PanelGroup,
 	PanelResizeHandle,
@@ -22,6 +22,7 @@ interface Props {
 export function EnhancedPreview({ className }: Props) {
 	const [consoleExpanded, setConsoleExpanded] = useState(false);
 	const [activeTab, setActiveTab] = useState("preview");
+	const panelId = useId();
 	const { sandboxId, status, paths, commands, url } = useSandboxStore();
 
 	return (
@@ -61,7 +62,7 @@ export function EnhancedPreview({ className }: Props) {
 				<ResizePanel
 					defaultSize={consoleExpanded ? 70 : 100}
 					minSize={30}
-					id="main-panel"
+					id={`${panelId}-main-panel`}
 					order={1}
 				>
 					<Tabs
@@ -99,7 +100,7 @@ export function EnhancedPreview({ className }: Props) {
 						<ResizePanel
 							defaultSize={30}
 							minSize={15}
-							id="console-panel"
+							id={`${panelId}-console-panel`}
 							order={2}
 						>
 							<CommandsLogs className="h-full" commands={commands} />

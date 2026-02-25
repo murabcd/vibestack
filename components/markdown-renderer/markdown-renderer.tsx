@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { memo, useMemo } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
@@ -16,6 +17,35 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 					{children}
 				</a>
 			),
+			img: ({ src, alt, ...props }) => {
+				if (!src || typeof src !== "string") {
+					return null;
+				}
+
+				const width =
+					typeof props.width === "string"
+						? Number.parseInt(props.width, 10)
+						: typeof props.width === "number"
+							? props.width
+							: 1200;
+				const height =
+					typeof props.height === "string"
+						? Number.parseInt(props.height, 10)
+						: typeof props.height === "number"
+							? props.height
+							: 630;
+
+				return (
+					<Image
+						src={src}
+						alt={alt || "Markdown image"}
+						width={Number.isFinite(width) ? width : 1200}
+						height={Number.isFinite(height) ? height : 630}
+						unoptimized
+						className="max-w-full h-auto rounded-md"
+					/>
+				);
+			},
 			code: ({ children, className, ...props }) => {
 				const match = /language-(\w+)/.exec(className || "");
 				return match ? (

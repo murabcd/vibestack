@@ -1,8 +1,8 @@
-import { useId } from "react";
 import { ClockIcon } from "lucide-react";
+import { useId } from "react";
 import { saveSandboxDurationAsCookie } from "@/app/actions";
+import { useSandboxDuration } from "@/components/settings/use-settings";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,7 +20,6 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSandboxDuration } from "@/components/settings/use-settings";
 
 interface TaskOptionsProps {
 	initialSandboxDuration?: number;
@@ -41,7 +40,7 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 	];
 
 	const handleDurationChange = async (value: string) => {
-		const duration = parseInt(value);
+		const duration = parseInt(value, 10);
 		setSandboxDuration(duration);
 		saveSandboxDurationAsCookie(duration);
 	};

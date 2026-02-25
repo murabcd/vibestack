@@ -1,9 +1,9 @@
 import "server-only";
 
-import { db } from "./index";
-import { users, accounts } from "./schema";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { db } from "./index";
+import { users } from "./schema";
 
 export interface UpsertUserData {
 	provider: "github" | "vercel";

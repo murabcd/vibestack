@@ -121,30 +121,27 @@ export const messages = pgTable("messages", {
 });
 
 // Connectors table - MCP server connectors
-export const connectors = pgTable(
-	"connectors",
-	{
-		id: text("id").primaryKey().notNull(),
-		userId: text("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		name: text("name").notNull(),
-		description: text("description"),
-		type: varchar("type", { enum: ["local", "remote"] })
-			.notNull()
-			.default("remote"),
-		baseUrl: text("base_url"),
-		oauthClientId: text("oauth_client_id"),
-		oauthClientSecret: text("oauth_client_secret"), // Encrypted
-		command: text("command"),
-		env: text("env"), // Encrypted JSON string
-		status: varchar("status", { enum: ["connected", "disconnected"] })
-			.notNull()
-			.default("disconnected"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at").defaultNow().notNull(),
-	},
-);
+export const connectors = pgTable("connectors", {
+	id: text("id").primaryKey().notNull(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	name: text("name").notNull(),
+	description: text("description"),
+	type: varchar("type", { enum: ["local", "remote"] })
+		.notNull()
+		.default("remote"),
+	baseUrl: text("base_url"),
+	oauthClientId: text("oauth_client_id"),
+	oauthClientSecret: text("oauth_client_secret"), // Encrypted
+	command: text("command"),
+	env: text("env"), // Encrypted JSON string
+	status: varchar("status", { enum: ["connected", "disconnected"] })
+		.notNull()
+		.default("disconnected"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export type Connector = InferSelectModel<typeof connectors>;
 
@@ -160,9 +157,18 @@ export const insertConnectorSchema = createInsertSchema(connectors, {
 		.url()
 		.optional()
 		.or(z.literal("").transform(() => undefined)),
-	oauthClientId: z.string().optional().or(z.literal("").transform(() => undefined)),
-	oauthClientSecret: z.string().optional().or(z.literal("").transform(() => undefined)),
-	command: z.string().optional().or(z.literal("").transform(() => undefined)),
+	oauthClientId: z
+		.string()
+		.optional()
+		.or(z.literal("").transform(() => undefined)),
+	oauthClientSecret: z
+		.string()
+		.optional()
+		.or(z.literal("").transform(() => undefined)),
+	command: z
+		.string()
+		.optional()
+		.or(z.literal("").transform(() => undefined)),
 	env: z.record(z.string(), z.string()).optional(),
 	status: z.enum(["connected", "disconnected"]),
 	createdAt: z.date().optional(),

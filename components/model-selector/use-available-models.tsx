@@ -22,16 +22,15 @@ export function useAvailableModels() {
 		retryDelay: 5000,
 	});
 
-	const models: DisplayModel[] = data?.models?.map(
-		(model: { id: string; name: string }) => ({
+	const models: DisplayModel[] =
+		data?.models?.map((model: { id: string; name: string }) => ({
 			id: model.id,
 			label: model.name,
-		}),
-	) || [];
+		})) || [];
 
-	return { 
-		models, 
-		isLoading, 
-		error: error || null 
+	return {
+		models,
+		isLoading,
+		error: error || null,
 	};
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 import type { Connector } from "@/lib/db/schema";
 
 interface ConnectorsContextType {
@@ -63,5 +69,3 @@ export function ConnectorsProvider({ children }: ConnectorsProviderProps) {
 		</ConnectorsContext.Provider>
 	);
 }
-
-

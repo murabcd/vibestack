@@ -7,6 +7,7 @@ import { type File, getContents } from "./generate-files/get-contents";
 import { getWriteFiles } from "./generate-files/get-write-files";
 import description from "./generate-files.md";
 import { getRichError } from "./get-rich-error";
+import { getSandboxCredentials } from "./sandbox-env";
 
 interface Params {
 	modelId: string;
@@ -30,11 +31,12 @@ export const generateFiles = ({ writer, modelId }: Params) =>
 			let sandbox: Sandbox | null = null;
 
 			try {
+				const { teamId, projectId, token } = getSandboxCredentials();
 				sandbox = await Sandbox.get({
 					sandboxId,
-					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-					token: process.env.SANDBOX_VERCEL_TOKEN!,
+					teamId,
+					projectId,
+					token,
 				});
 			} catch (error) {
 				const richError = getRichError({

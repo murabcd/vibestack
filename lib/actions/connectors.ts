@@ -1,15 +1,15 @@
 "use server";
 
-import { db } from "@/lib/db/index";
-import { connectors, insertConnectorSchema } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
-import { ZodError } from "zod";
-import { eq, and } from "drizzle-orm";
-import { encrypt, decrypt } from "@/lib/crypto";
-import { getSessionFromCookie } from "@/lib/session/server";
 import { cookies } from "next/headers";
+import { ZodError } from "zod";
+import { decrypt, encrypt } from "@/lib/crypto";
+import { db } from "@/lib/db/index";
+import { connectors, insertConnectorSchema } from "@/lib/db/schema";
 import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
+import { getSessionFromCookie } from "@/lib/session/server";
 
 type FormState = {
 	success: boolean;

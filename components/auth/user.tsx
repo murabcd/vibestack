@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "@/components/auth/session-provider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -7,8 +9,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSession } from "@/components/auth/session-provider";
 
 export function User() {
 	const { session, signOut } = useSession();

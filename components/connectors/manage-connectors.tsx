@@ -1,18 +1,27 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useActionState, startTransition } from "react";
-import { toast } from "sonner";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+	ArrowLeft,
+	ChevronDown,
+	Eye,
+	EyeOff,
+	Pencil,
+	Plus,
+	Server,
+	X,
+} from "lucide-react";
+import {
+	startTransition,
+	useActionState,
+	useCallback,
+	useEffect,
+	useId,
+	useRef,
+	useState,
+} from "react";
+import { toast } from "sonner";
+import { useConnectors } from "@/components/connectors-provider";
+import { Icons } from "@/components/icons/icons";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,30 +32,28 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
 	createConnector,
-	updateConnector,
 	deleteConnector,
 	toggleConnectorStatus,
+	updateConnector,
 } from "@/lib/actions/connectors";
 import type { Connector } from "@/lib/db/schema";
-import { useConnectors } from "@/components/connectors-provider";
-import {
-	ArrowLeft,
-	Eye,
-	EyeOff,
-	Pencil,
-	Server,
-	Plus,
-	X,
-	ChevronDown,
-} from "lucide-react";
-import { Icons } from "@/components/icons/icons";
 
 interface ConnectorDialogProps {
 	open: boolean;
@@ -151,11 +158,18 @@ const getPresetIcon = (presetName: string): PresetIconKey | undefined => {
 };
 
 interface EnvVar {
+	id: string;
 	key: string;
 	value: string;
 }
 
 export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
+	const formId = useId();
+	const nameInputId = `${formId}-name`;
+	const baseUrlInputId = `${formId}-base-url`;
+	const commandInputId = `${formId}-command`;
+	const oauthClientIdInputId = `${formId}-oauth-client-id`;
+	const oauthClientSecretInputId = `${formId}-oauth-client-secret`;
 	const {
 		connectors,
 		refreshConnectors,
@@ -176,6 +190,15 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	const createEnvVar = useCallback(
+		(key = "", value = ""): EnvVar => ({
+			id: crypto.randomUUID(),
+			key,
+			value,
+		}),
+		[],
+	);
 
 	const [createState, createAction, createPending] = useActionState(
 		createConnector,
@@ -290,7 +313,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		setSelectedPreset(preset);
 		setServerType(preset.type);
 		setView("form");
-		setEnvVars(preset.envKeys?.map((key) => ({ key, value: "" })) || []);
+		setEnvVars(preset.envKeys?.map((key) => createEnvVar(key, "")) || []);
 	};
 
 	const addCustomServer = () => {
@@ -311,7 +334,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	};
 
 	const addEnvVar = () => {
-		setEnvVars([...envVars, { key: "", value: "" }]);
+		setEnvVars([...envVars, createEnvVar("", "")]);
 	};
 
 	const removeEnvVar = (index: number) => {
@@ -352,14 +375,13 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 			setServerType(editingConnector.type);
 			setEnvVars(
 				editingConnector.env
-					? Object.entries(editingConnector.env).map(([key, value]) => ({
-							key,
-							value,
-						}))
+					? Object.entries(editingConnector.env).map(([key, value]) =>
+							createEnvVar(key, value),
+						)
 					: [],
 			);
 		}
-	}, [editingConnector]);
+	}, [editingConnector, createEnvVar]);
 
 	return (
 		<>
@@ -589,9 +611,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										})()}
 
 									<div className="space-y-2">
-										<Label htmlFor="name">Name</Label>
+										<Label htmlFor={nameInputId}>Name</Label>
 										<Input
-											id="name"
+											id={nameInputId}
 											name="name"
 											placeholder="Example MCP Server"
 											defaultValue={
@@ -634,9 +656,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 
 									{serverType === "remote" ? (
 										<div className="space-y-2">
-											<Label htmlFor="baseUrl">Base URL</Label>
+											<Label htmlFor={baseUrlInputId}>Base URL</Label>
 											<Input
-												id="baseUrl"
+												id={baseUrlInputId}
 												name="baseUrl"
 												type="url"
 												placeholder="https://api.example.com"
@@ -662,9 +684,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										</div>
 									) : (
 										<div className="space-y-2">
-											<Label htmlFor="command">Command</Label>
+											<Label htmlFor={commandInputId}>Command</Label>
 											<Input
-												id="command"
+												id={commandInputId}
 												name="command"
 												placeholder="npx @browserbasehq/mcp"
 												defaultValue={
@@ -698,8 +720,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										<div className="flex items-center justify-between">
 											<Label>
 												Environment Variables
-												{selectedPreset &&
-												selectedPreset.envKeys &&
+												{selectedPreset?.envKeys &&
 												selectedPreset.envKeys.length > 0
 													? ""
 													: " (optional)"}
@@ -717,7 +738,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										{envVars.length > 0 && (
 											<div className="space-y-2">
 												{envVars.map((envVar, index) => (
-													<div key={index} className="flex gap-2">
+													<div key={envVar.id} className="flex gap-2">
 														<Input
 															placeholder="KEY"
 															value={envVar.key}
@@ -787,11 +808,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 											</CollapsibleTrigger>
 											<CollapsibleContent className="space-y-4 pt-2">
 												<div className="space-y-2">
-													<Label htmlFor="oauthClientId">
+													<Label htmlFor={oauthClientIdInputId}>
 														OAuth Client ID (optional)
 													</Label>
 													<Input
-														id="oauthClientId"
+														id={oauthClientIdInputId}
 														name="oauthClientId"
 														placeholder="OAuth Client ID (optional)"
 														defaultValue={editingConnector?.oauthClientId || ""}
@@ -799,11 +820,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 												</div>
 
 												<div className="space-y-2">
-													<Label htmlFor="oauthClientSecret">
+													<Label htmlFor={oauthClientSecretInputId}>
 														OAuth Client Secret (optional)
 													</Label>
 													<Input
-														id="oauthClientSecret"
+														id={oauthClientSecretInputId}
 														name="oauthClientSecret"
 														type="password"
 														placeholder="OAuth Client Secret (optional)"

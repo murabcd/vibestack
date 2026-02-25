@@ -43,7 +43,7 @@ export function GenerateFiles(props: {
 			/>
 			<TaskContent>
 				{generated.map((path) => (
-					<TaskItem key={"gen" + path} className="flex items-center gap-2">
+					<TaskItem key={`gen${path}`} className="flex items-center gap-2">
 						<CheckIcon className="size-3" />
 						<span className="whitespace-pre-wrap">{path}</span>
 					</TaskItem>

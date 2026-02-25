@@ -12,6 +12,7 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Message } from "@/components/chat/message";
 import type { ChatUIMessage } from "@/components/chat/types";
+import { useConnectors } from "@/components/connectors-provider";
 import { PromptForm } from "@/components/forms/prompt-form";
 import { useAvailableModels } from "@/components/model-selector/use-available-models";
 import { Panel, PanelHeader } from "@/components/panels/panels";
@@ -21,7 +22,6 @@ import { PromptInputProvider } from "@/components/ui/prompt-input";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
-import { useConnectors } from "@/components/connectors-provider";
 
 interface Props {
 	className: string;

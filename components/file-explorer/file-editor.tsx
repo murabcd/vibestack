@@ -58,7 +58,6 @@ export function FileEditor({
 	filename,
 	initialContent,
 	sandboxId,
-	viewMode = "local",
 	onUnsavedChanges,
 	onSavingStateChange,
 	onOpenFile,

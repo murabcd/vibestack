@@ -11,7 +11,11 @@ interface HProps {
 
 export function Horizontal({ defaultLayout, left, right }: HProps) {
 	const onLayout = (sizes: number[]) => {
-		document.cookie = `${HORIZONTAL_COOKIE}=${JSON.stringify(sizes)}`;
+		window.cookieStore?.set({
+			name: HORIZONTAL_COOKIE,
+			value: JSON.stringify(sizes),
+			path: "/",
+		});
 	};
 	return (
 		<PanelGroup direction="horizontal" onLayout={onLayout}>
@@ -35,7 +39,11 @@ interface VProps {
 
 export function Vertical({ defaultLayout, top, middle, bottom }: VProps) {
 	const onLayout = (sizes: number[]) => {
-		document.cookie = `${VERTICAL_COOKIE}=${JSON.stringify(sizes)}`;
+		window.cookieStore?.set({
+			name: VERTICAL_COOKIE,
+			value: JSON.stringify(sizes),
+			path: "/",
+		});
 	};
 	return (
 		<PanelGroup direction="vertical" onLayout={onLayout}>

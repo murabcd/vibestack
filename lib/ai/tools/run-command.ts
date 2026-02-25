@@ -5,6 +5,7 @@ import z from "zod/v3";
 import type { DataPart } from "../messages/data-parts";
 import { getRichError } from "./get-rich-error";
 import description from "./run-command.md";
+import { getSandboxCredentials } from "./sandbox-env";
 
 interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
@@ -51,11 +52,12 @@ export const runCommand = ({ writer }: Params) =>
 			let sandbox: Sandbox | null = null;
 
 			try {
+				const { teamId, projectId, token } = getSandboxCredentials();
 				sandbox = await Sandbox.get({
 					sandboxId,
-					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-					token: process.env.SANDBOX_VERCEL_TOKEN!,
+					teamId,
+					projectId,
+					token,
 				});
 			} catch (error) {
 				const richError = getRichError({

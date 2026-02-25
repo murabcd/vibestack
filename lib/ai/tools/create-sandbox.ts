@@ -2,11 +2,12 @@ import { Sandbox } from "@vercel/sandbox";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import { tool } from "ai";
 import z from "zod/v3";
+import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
 import type { DataPart } from "../messages/data-parts";
 import description from "./create-sandbox.md";
 import { getRichError } from "./get-rich-error";
+import { getSandboxCredentials } from "./sandbox-env";
 import type { ToolContext } from "./types";
-import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
 
 interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
@@ -61,11 +62,12 @@ export const createSandbox = ({ writer, context }: Params) =>
 
 				// Enforce maximum limit (5 hours = 300 minutes)
 				userTimeout = Math.min(userTimeout, 300 * 60 * 1000);
+				const { teamId, projectId, token } = getSandboxCredentials();
 
 				const sandbox = await Sandbox.create({
-					teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-					projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-					token: process.env.SANDBOX_VERCEL_TOKEN!,
+					teamId,
+					projectId,
+					token,
 					timeout: userTimeout,
 					ports,
 				});

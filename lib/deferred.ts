@@ -1,6 +1,6 @@
 export class Deferred<T> {
 	private resolveFn: (value: T | PromiseLike<T>) => void = () => {};
-	private rejectFn: (reason?: any) => void = () => {};
+	private rejectFn: (reason?: unknown) => void = () => {};
 	private _promise: Promise<T>;
 
 	constructor() {
@@ -18,7 +18,7 @@ export class Deferred<T> {
 		this.resolveFn(value);
 	}
 
-	reject(reason?: any): void {
+	reject(reason?: unknown): void {
 		this.rejectFn(reason);
 	}
 }
