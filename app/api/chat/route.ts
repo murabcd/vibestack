@@ -1,5 +1,6 @@
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import {
+	consumeStream,
 	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
@@ -179,6 +180,7 @@ export async function POST(req: NextRequest) {
 	}
 
 	return createUIMessageStreamResponse({
+		consumeSseStream: consumeStream,
 		stream: createUIMessageStream({
 			originalMessages: messages,
 			execute: async ({ writer }) => {
@@ -316,7 +318,7 @@ export async function POST(req: NextRequest) {
 				const result = streamText({
 					...getModelOptions(modelId, { reasoningEffort }),
 					system: prompt,
-					messages: convertToModelMessages(
+					messages: await convertToModelMessages(
 						messages.map((message) => {
 							message.parts = message.parts.map((part) => {
 								if (part.type === "data-report-errors") {
@@ -368,7 +370,6 @@ export async function POST(req: NextRequest) {
 					},
 				});
 
-				result.consumeStream();
 				writer.merge(
 					result.toUIMessageStream({
 						sendReasoning: true,
@@ -376,13 +377,7 @@ export async function POST(req: NextRequest) {
 						messageMetadata: ({ part }) => {
 							// Send metadata when streaming completes
 							if (part.type === "finish") {
-								const usage = {
-									inputTokens: part.totalUsage.inputTokens,
-									outputTokens: part.totalUsage.outputTokens,
-									totalTokens: part.totalUsage.totalTokens,
-									cachedInputTokens: part.totalUsage.cachedInputTokens || 0,
-									reasoningTokens: part.totalUsage.reasoningTokens || 0,
-								};
+								const usage = part.totalUsage;
 								console.log("Creating metadata with usage:", usage);
 								return {
 									model: model.name,
