@@ -8,7 +8,6 @@ import {
 	streamText,
 	validateUIMessages,
 } from "ai";
-import { checkBotId } from "botid/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { unstable_cache as cache } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
@@ -22,6 +21,7 @@ import { dataPartSchema } from "@/lib/ai/messages/data-parts";
 import { metadataSchema } from "@/lib/ai/messages/metadata";
 import { tools } from "@/lib/ai/tools";
 import type { AppUsage } from "@/lib/ai/usage";
+import { checkBotIdForRequest } from "@/lib/botid/server";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
 	// Parallelize bot check, model fetching, and request parsing for faster startup
 	const [checkResult, models, body] = await Promise.all([
-		checkBotId(),
+		checkBotIdForRequest(),
 		getAvailableModels(),
 		req.json() as Promise<BodyData>,
 	]);
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 	try {
 		validatedMessages = await validateUIMessages<ChatUIMessage>({
 			messages,
-			metadataSchema,
+			metadataSchema: metadataSchema.optional(),
 			dataSchemas: dataPartSchema.shape,
 		});
 	} catch (error) {

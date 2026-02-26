@@ -32,7 +32,7 @@ export async function convertToUIMessages(
 
 	return validateUIMessages<ChatUIMessage>({
 		messages: messages.map((message) => message.content as ChatUIMessage),
-		metadataSchema,
+		metadataSchema: metadataSchema.optional(),
 		dataSchemas: dataPartSchema.shape,
 	});
 }

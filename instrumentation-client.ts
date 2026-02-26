@@ -6,5 +6,9 @@ initBotId({
 			path: "/api/chat",
 			method: "POST",
 		},
+		{
+			path: "/api/errors",
+			method: "POST",
+		},
 	],
 });

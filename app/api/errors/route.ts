@@ -1,16 +1,19 @@
 import { generateObject } from "ai";
-import { checkBotId } from "botid/server";
 import { jsonrepair } from "jsonrepair";
 import { NextResponse } from "next/server";
 import { linesSchema, resultSchema } from "@/components/error-monitor/schemas";
 import { Models } from "@/lib/ai/constants";
 import { getModelOptions } from "@/lib/ai/gateway";
+import { checkBotIdForRequest } from "@/lib/botid/server";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import prompt from "./prompt.md";
 
 export async function POST(req: Request) {
 	const wide = createApiWideEvent(req, "errors.summarize");
-	const [checkResult, body] = await Promise.all([checkBotId(), req.json()]);
+	const [checkResult, body] = await Promise.all([
+		checkBotIdForRequest(),
+		req.json(),
+	]);
 	if (checkResult.isBot) {
 		wide.end(403, "error", new Error("Bot detected"));
 		return NextResponse.json({ error: `Bot detected` }, { status: 403 });
