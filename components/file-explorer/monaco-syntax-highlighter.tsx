@@ -3,6 +3,7 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
+import { MonacoLoadingSkeleton } from "./monaco-loading-skeleton";
 
 // Monaco types for editor and monaco instances
 type Monaco = Parameters<OnMount>[1];
@@ -190,6 +191,7 @@ export function MonacoSyntaxHighlighter({
 				width="100%"
 				language={getLanguageFromPath(path)}
 				value={code}
+				loading={<MonacoLoadingSkeleton />}
 				beforeMount={handleBeforeMount}
 				onMount={handleEditorMount}
 				theme={currentTheme === "dark" ? "vercel-dark" : "vercel-light"}

@@ -1,21 +1,15 @@
 import dynamic from "next/dynamic";
 import { memo, useEffect } from "react";
-import { PulseLoader } from "react-spinners";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { DiffViewer } from "./diff-viewer";
+import { MonacoLoadingSkeleton } from "./monaco-loading-skeleton";
 
 const FileEditor = dynamic(
 	() => import("./file-editor").then((mod) => mod.FileEditor),
 	{
 		ssr: false,
-		loading: () => (
-			<div className="absolute w-full h-full flex items-center text-center">
-				<div className="flex-1">
-					<PulseLoader className="opacity-60" size={8} />
-				</div>
-			</div>
-		),
+		loading: () => <MonacoLoadingSkeleton />,
 	},
 );
 
@@ -26,13 +20,7 @@ const MonacoSyntaxHighlighter = dynamic(
 		),
 	{
 		ssr: false,
-		loading: () => (
-			<div className="absolute w-full h-full flex items-center text-center">
-				<div className="flex-1">
-					<PulseLoader className="opacity-60" size={8} />
-				</div>
-			</div>
-		),
+		loading: () => <MonacoLoadingSkeleton />,
 	},
 );
 
@@ -82,13 +70,7 @@ export const FileContent = memo(function FileContent({
 	}, [content.data, sandboxId, path, captureOriginalBeforeAI]);
 
 	if (content.isLoading || !content.data) {
-		return (
-			<div className="absolute w-full h-full flex items-center text-center">
-				<div className="flex-1">
-					<PulseLoader className="opacity-60" size={8} />
-				</div>
-			</div>
-		);
+		return <MonacoLoadingSkeleton />;
 	}
 
 	// Helper function to get language from path

@@ -4,6 +4,7 @@ import Editor, { type OnMount } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { MonacoLoadingSkeleton } from "./monaco-loading-skeleton";
 
 // Monaco types for editor and monaco instances
 type MonacoEditor = Parameters<OnMount>[0];
@@ -341,6 +342,7 @@ export function FileEditor({
 				height="100%"
 				language={getLanguageFromPath(filename)}
 				value={content}
+				loading={<MonacoLoadingSkeleton />}
 				onChange={handleContentChange}
 				beforeMount={handleBeforeMount}
 				onMount={handleEditorMount}
