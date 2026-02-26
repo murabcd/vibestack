@@ -1,22 +1,18 @@
 import { useEffect, useState } from "react";
 
 export function useLocalStorageValue(key: string) {
-	const [value, setValue] = useState<string>("");
-	const [isInitialized, setIsInitialized] = useState(false);
-
-	useEffect(() => {
-		const storedValue = localStorage.getItem(key);
-		if (storedValue !== null) {
-			setValue(storedValue);
+	const [value, setValue] = useState<string>(() => {
+		if (typeof window === "undefined") {
+			return "";
 		}
-		setIsInitialized(true);
-	}, [key]);
+		return localStorage.getItem(key) ?? "";
+	});
 
 	useEffect(() => {
-		if (isInitialized) {
+		if (typeof window !== "undefined") {
 			localStorage.setItem(key, value);
 		}
-	}, [key, value, isInitialized]);
+	}, [key, value]);
 
 	return [value, setValue] as const;
 }

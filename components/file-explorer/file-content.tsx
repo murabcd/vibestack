@@ -1,10 +1,40 @@
+import dynamic from "next/dynamic";
 import { memo, useEffect } from "react";
 import { PulseLoader } from "react-spinners";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { DiffViewer } from "./diff-viewer";
-import { FileEditor } from "./file-editor";
-import { MonacoSyntaxHighlighter } from "./monaco-syntax-highlighter";
+
+const FileEditor = dynamic(
+	() => import("./file-editor").then((mod) => mod.FileEditor),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="absolute w-full h-full flex items-center text-center">
+				<div className="flex-1">
+					<PulseLoader className="opacity-60" size={8} />
+				</div>
+			</div>
+		),
+	},
+);
+
+const MonacoSyntaxHighlighter = dynamic(
+	() =>
+		import("./monaco-syntax-highlighter").then(
+			(mod) => mod.MonacoSyntaxHighlighter,
+		),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="absolute w-full h-full flex items-center text-center">
+				<div className="flex-1">
+					<PulseLoader className="opacity-60" size={8} />
+				</div>
+			</div>
+		),
+	},
+);
 
 interface Props {
 	sandboxId: string;
@@ -37,7 +67,11 @@ export const FileContent = memo(function FileContent({
 			const text = await response.text();
 			return text;
 		},
-		{ refreshInterval: 1000 },
+		{
+			refreshInterval: 3000,
+			dedupingInterval: 2000,
+			revalidateOnFocus: false,
+		},
 	);
 
 	// Track original content when first loaded - capture before AI modifications

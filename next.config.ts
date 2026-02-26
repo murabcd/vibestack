@@ -2,6 +2,9 @@ import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+	experimental: {
+		optimizePackageImports: ["lucide-react"],
+	},
 	webpack(config) {
 		config.module.rules.push({
 			test: /\.md/,

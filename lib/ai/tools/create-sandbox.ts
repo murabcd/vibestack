@@ -2,6 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import { tool } from "ai";
 import z from "zod/v3";
+import { MAX_ALLOWED_SANDBOX_DURATION } from "@/lib/constants";
 import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
 import type { DataPart } from "../messages/data-parts";
 import description from "./create-sandbox.md";
@@ -21,10 +22,10 @@ export const createSandbox = ({ writer, context }: Params) =>
 			timeout: z
 				.number()
 				.min(600000)
-				.max(3600000)
+				.max(MAX_ALLOWED_SANDBOX_DURATION * 60 * 1000)
 				.optional()
 				.describe(
-					"Maximum time in milliseconds the Vercel Sandbox will remain active before automatically shutting down. Minimum 600000ms (10 minutes), maximum 3600000ms (60 minutes). Defaults to 1800000ms (30 minutes). The sandbox will terminate all running processes when this timeout is reached.",
+					"Maximum time in milliseconds the Vercel Sandbox will remain active before automatically shutting down. Minimum 600000ms (10 minutes), maximum 2700000ms (45 minutes). Defaults to 1800000ms (30 minutes). The sandbox will terminate all running processes when this timeout is reached.",
 				),
 			ports: z
 				.array(z.number())
@@ -60,8 +61,11 @@ export const createSandbox = ({ writer, context }: Params) =>
 					userTimeout = timeout;
 				}
 
-				// Enforce maximum limit (5 hours = 300 minutes)
-				userTimeout = Math.min(userTimeout, 300 * 60 * 1000);
+				// Enforce Vercel Sandbox API maximum limit (45 minutes)
+				userTimeout = Math.min(
+					userTimeout,
+					MAX_ALLOWED_SANDBOX_DURATION * 60 * 1000,
+				);
 				const { teamId, projectId, token } = getSandboxCredentials();
 
 				const sandbox = await Sandbox.create({

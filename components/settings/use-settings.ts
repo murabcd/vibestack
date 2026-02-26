@@ -1,6 +1,10 @@
 import { parseAsBoolean, parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { DEFAULT_MODEL } from "@/lib/ai/constants";
+import {
+	MAX_ALLOWED_SANDBOX_DURATION,
+	MAX_SANDBOX_DURATION,
+} from "@/lib/constants";
 
 export function useSettings(
 	initialSandboxDuration?: number,
@@ -42,8 +46,11 @@ export function useFixErrors() {
 }
 
 export function useSandboxDuration(initialValue?: number) {
-	const [sandboxDuration, setSandboxDuration] = useState<number>(
-		initialValue ?? 60,
+	const clampedInitialValue = Math.min(
+		MAX_ALLOWED_SANDBOX_DURATION,
+		Math.max(10, initialValue ?? MAX_SANDBOX_DURATION),
 	);
+	const [sandboxDuration, setSandboxDuration] =
+		useState<number>(clampedInitialValue);
 	return [sandboxDuration, setSandboxDuration] as const;
 }
