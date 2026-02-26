@@ -1,16 +1,20 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import type { LanguageModelV2 } from "@ai-sdk/provider";
-import type { JSONValue } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import type { JSONValue, LanguageModel } from "ai";
 import { Models } from "./constants";
 
 const anthropic = createAnthropic({
 	apiKey: process.env.ANTHROPIC_API_KEY,
+});
+const openai = createOpenAI({
+	apiKey: process.env.OPENAI_API_KEY,
 });
 
 const AVAILABLE_MODELS = [
 	{ id: Models.AnthropicClaude4Sonnet, name: "Sonnet 4" },
 	{ id: Models.AnthropicClaude45Sonnet, name: "Sonnet 4.5" },
 	{ id: Models.AnthropicClaude45Haiku, name: "Haiku 4.5" },
+	{ id: Models.OpenAIGpt52, name: "GPT-5.2" },
 ];
 
 export async function getAvailableModels() {
@@ -18,7 +22,7 @@ export async function getAvailableModels() {
 }
 
 export interface ModelOptions {
-	model: LanguageModelV2;
+	model: LanguageModel;
 	providerOptions?: Record<string, Record<string, JSONValue>>;
 	headers?: Record<string, string>;
 }
@@ -69,13 +73,11 @@ export function getModelOptions(
 		};
 	}
 
-	return {
-		model: anthropic("claude-sonnet-4-5"),
-		headers: { "anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },
-		providerOptions: {
-			anthropic: {
-				cacheControl: { type: "ephemeral" },
-			},
-		},
-	};
+	if (modelId === Models.OpenAIGpt52) {
+		return {
+			model: openai("gpt-5.2"),
+		};
+	}
+
+	throw new Error(`Unsupported model: ${modelId}`);
 }

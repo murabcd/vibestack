@@ -25,7 +25,7 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 	const [pending, startTransition] = useTransition();
 	const { cursor, scheduled, setCursor, setScheduled } = useMonitorState();
 	const { errors } = useCommandErrorsLogs();
-	const { fixErrors } = useSettings();
+	const { fixErrors, modelId, reasoningEffort } = useSettings();
 	const { chat } = useSharedChatContext();
 	const { sendMessage, status: chatStatus, messages } = useChat({ chat });
 	const submitTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -82,14 +82,22 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 					lastReportedErrors.current = newErrors;
 					lastErrorReportTime.current = Date.now();
 
-					sendMessage({
-						role: "user",
-						parts: [{ type: "data-report-errors", data: summary }],
-					});
+					sendMessage(
+						{
+							role: "user",
+							parts: [{ type: "data-report-errors", data: summary }],
+						},
+						{
+							body: {
+								modelId,
+								reasoningEffort,
+							},
+						},
+					);
 				}
 			});
 		},
-		[sendMessage],
+		[modelId, reasoningEffort, sendMessage],
 	);
 
 	useEffect(() => {
