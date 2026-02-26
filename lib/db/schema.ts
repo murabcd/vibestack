@@ -1,6 +1,7 @@
 import type { InferSelectModel } from "drizzle-orm";
 import {
 	boolean,
+	index,
 	integer,
 	jsonb,
 	pgTable,
@@ -112,13 +113,21 @@ export const projects = pgTable("projects", {
 
 export type Project = InferSelectModel<typeof projects>;
 
-export const messages = pgTable("messages", {
-	id: uuid("id").primaryKey().notNull().defaultRandom(),
-	projectId: text("projectId").notNull(),
-	role: varchar("role", { enum: ["user", "assistant"] }).notNull(),
-	content: jsonb("content").notNull(),
-	createdAt: timestamp("createdAt").notNull().defaultNow(),
-});
+export const messages = pgTable(
+	"messages",
+	{
+		id: uuid("id").primaryKey().notNull().defaultRandom(),
+		projectId: text("projectId")
+			.notNull()
+			.references(() => projects.projectId, { onDelete: "cascade" }),
+		role: varchar("role", { enum: ["user", "assistant"] }).notNull(),
+		content: jsonb("content").notNull(),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+	},
+	(table) => ({
+		projectIdIdx: index("messages_project_id_idx").on(table.projectId),
+	}),
+);
 
 // Connectors table - MCP server connectors
 export const connectors = pgTable("connectors", {

@@ -50,6 +50,20 @@
 			"when": 1761948222647,
 			"tag": "0006_worried_silver_centurion",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1772133161685,
+			"tag": "0007_shallow_thena",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1772133245065,
+			"tag": "0008_big_gertrude_yorkes",
+			"breakpoints": true
 		}
 	]
 }

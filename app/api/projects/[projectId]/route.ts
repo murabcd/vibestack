@@ -1,6 +1,14 @@
+import { Sandbox } from "@vercel/sandbox";
+import { APIError } from "@vercel/sandbox/dist/api-client/api-error";
 import { NextResponse } from "next/server";
-import { deleteProject, getProjectById, updateProject } from "@/lib/db/queries";
+import {
+	deleteMessagesByProjectId,
+	deleteProject,
+	getProjectById,
+	updateProject,
+} from "@/lib/db/queries";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
+import { getSandboxConfig } from "@/lib/sandbox/config";
 
 export async function GET(
 	_request: Request,
@@ -93,6 +101,37 @@ export async function DELETE(
 	try {
 		const { projectId } = await params;
 		wide.add({ project_id: projectId });
+		const project = await getProjectById(projectId);
+
+		if (!project) {
+			wide.end(404, "error", new Error("Project not found"));
+			return NextResponse.json({ error: "Project not found" }, { status: 404 });
+		}
+
+		if (project.sandboxId) {
+			try {
+				const config = getSandboxConfig();
+				const sandbox = await Sandbox.get({
+					sandboxId: project.sandboxId,
+					...config,
+				});
+				await sandbox.stop();
+			} catch (error) {
+				if (
+					error instanceof APIError &&
+					((error.json as { error?: { code?: string } } | undefined)?.error
+						?.code === "sandbox_stopped" ||
+						(error.json as { error?: { code?: string } } | undefined)?.error
+							?.code === "sandbox_not_found")
+				) {
+					wide.add({ sandbox_cleanup: "already_stopped_or_missing" });
+				} else {
+					throw error;
+				}
+			}
+		}
+
+		await deleteMessagesByProjectId(projectId);
 		const success = await deleteProject(projectId);
 
 		if (!success) {
