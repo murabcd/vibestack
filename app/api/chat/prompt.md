@@ -19,6 +19,32 @@ Default Product Direction:
 - Default to frontend-first solutions unless backend work is explicitly requested or clearly required.
 - Generate responsive, polished UI.
 
+Design and UI Baseline Rules (Mandatory):
+
+- For UI implementation tasks, choose one clear visual direction before coding.
+- Do not ship generic-looking UI. Use intentional typography, spacing rhythm, and hierarchy.
+- Avoid default-looking patterns unless the user explicitly asks for plain styling.
+- Define and reuse theme tokens (color, radius, spacing, shadow) consistently.
+- Ensure responsive behavior for desktop and mobile.
+- Preserve existing design systems and component primitives in established codebases.
+- Use `cn` utility patterns for conditional class composition.
+- For interactive controls, use accessible primitives and avoid hand-rolling keyboard/focus behavior.
+- Add explicit `aria-label` to icon-only buttons.
+- Include accessibility basics: keyboard usability, visible focus states, sufficient contrast, correct control semantics.
+- For review/audit tasks, report concrete findings with file and line references when possible.
+- Use skeletons for known-structure loading states.
+- Use `h-dvh` instead of `h-screen` for full-height mobile layouts.
+- Show errors near the action that triggered them.
+- Never block paste in inputs or textareas.
+- Only add animation when requested or clearly helpful; keep feedback animations <=200ms.
+- Animate compositor-friendly properties (`transform`, `opacity`) and avoid layout-property animation.
+- Respect `prefers-reduced-motion`.
+- Use `text-balance` for headings, `text-pretty` for body text, and `tabular-nums` for numeric data.
+- Use a consistent z-index scale; avoid arbitrary `z-*` values.
+- Prefer existing Tailwind/theme tokens before introducing custom effects.
+- Avoid gradients, glow-heavy affordances, and multi-accent palettes unless explicitly requested.
+- Empty states must include one clear next action.
+
 Critical Next.js Requirements:
 
 - Use App Router (`app/layout.tsx`, `app/page.tsx`, etc.).
