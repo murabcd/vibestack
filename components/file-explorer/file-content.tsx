@@ -30,7 +30,12 @@ interface Props {
 	path: string;
 	editable?: boolean;
 	showDiff?: boolean;
+	revealRequest?: {
+		lineNumber: number;
+		requestId: number;
+	};
 	onDiffAvailabilityChange?: (hasDiff: boolean) => void;
+	onOpenFile?: (filename: string, lineNumber?: number) => void;
 	onUnsavedChanges?: (hasChanges: boolean) => void;
 	onSavingStateChange?: (isSaving: boolean) => void;
 	onSaveSuccess?: () => void;
@@ -41,7 +46,9 @@ export const FileContent = memo(function FileContent({
 	path,
 	editable = false,
 	showDiff = false,
+	revealRequest,
 	onDiffAvailabilityChange,
+	onOpenFile,
 	onUnsavedChanges,
 	onSavingStateChange,
 	onSaveSuccess,
@@ -157,6 +164,8 @@ export const FileContent = memo(function FileContent({
 					filename={path}
 					initialContent={content.data}
 					sandboxId={sandboxId}
+					revealRequest={revealRequest}
+					onOpenFile={onOpenFile}
 					onUnsavedChanges={onUnsavedChanges}
 					onSavingStateChange={onSavingStateChange}
 					onSaveSuccess={onSaveSuccess}

@@ -48,6 +48,13 @@ export const FileExplorer = memo(function FileExplorer({
 	const [isSaving, setIsSaving] = useState(false);
 	const [showDiff, setShowDiff] = useState(false);
 	const [hasDiffForSelected, setHasDiffForSelected] = useState(false);
+	const [revealRequest, setRevealRequest] = useState<
+		| {
+				lineNumber: number;
+				requestId: number;
+		  }
+		| undefined
+	>();
 
 	// Safety dialog states
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -90,9 +97,76 @@ export const FileExplorer = memo(function FileExplorer({
 				setHasUnsavedChanges(false);
 				setShowDiff(false);
 				setHasDiffForSelected(false);
+				setRevealRequest(undefined);
 			}
 		},
 		[hasUnsavedChanges, selected],
+	);
+
+	const findFileNodeByPath = useCallback(
+		(nodes: FileNode[], targetPath: string): FileNode | null => {
+			for (const node of nodes) {
+				if (node.type === "file" && node.path === targetPath) {
+					return node;
+				}
+				if (node.children) {
+					const found = findFileNodeByPath(node.children, targetPath);
+					if (found) return found;
+				}
+			}
+			return null;
+		},
+		[],
+	);
+
+	const expandPath = useCallback((path: string) => {
+		setFs((prev) => {
+			const parts = path.split("/").filter(Boolean);
+			const folderPaths = parts
+				.slice(0, -1)
+				.map((_, index) => `/${parts.slice(0, index + 1).join("/")}`);
+			const folderPathSet = new Set(folderPaths);
+
+			const expandNodes = (nodes: FileNode[]): FileNode[] =>
+				nodes.map((node) => {
+					if (node.type === "folder") {
+						const shouldExpand = folderPathSet.has(node.path);
+						return {
+							...node,
+							expanded: shouldExpand ? true : node.expanded,
+							children: node.children ? expandNodes(node.children) : undefined,
+						};
+					}
+					return node;
+				});
+
+			return expandNodes(prev);
+		});
+	}, []);
+
+	const handleOpenFile = useCallback(
+		(filePath: string, lineNumber?: number) => {
+			const normalizedPath = filePath.startsWith("/")
+				? filePath
+				: `/${filePath}`;
+			const targetNode =
+				findFileNodeByPath(fs, normalizedPath) ||
+				findFileNodeByPath(fileTree, normalizedPath);
+			if (!targetNode) return;
+
+			expandPath(normalizedPath);
+			setSelected(targetNode);
+			setIsEditMode(true);
+			setShowDiff(false);
+			setHasDiffForSelected(false);
+			if (lineNumber) {
+				setRevealRequest({
+					lineNumber,
+					requestId: Date.now(),
+				});
+			}
+		},
+		[expandPath, fileTree, findFileNodeByPath, fs],
 	);
 
 	const handleUnsavedChanges = useCallback((hasChanges: boolean) => {
@@ -290,7 +364,9 @@ export const FileExplorer = memo(function FileExplorer({
 								path={selected.path.substring(1)}
 								editable={isEditMode}
 								showDiff={showDiff}
+								revealRequest={revealRequest}
 								onDiffAvailabilityChange={setHasDiffForSelected}
+								onOpenFile={handleOpenFile}
 								onUnsavedChanges={handleUnsavedChanges}
 								onSavingStateChange={handleSavingStateChange}
 								onSaveSuccess={handleSaveSuccess}

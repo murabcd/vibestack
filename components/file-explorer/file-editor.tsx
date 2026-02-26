@@ -15,6 +15,10 @@ interface FileEditorProps {
 	initialContent: string;
 	sandboxId: string;
 	viewMode?: "local";
+	revealRequest?: {
+		lineNumber: number;
+		requestId: number;
+	};
 	onUnsavedChanges?: (hasChanges: boolean) => void;
 	onSavingStateChange?: (isSaving: boolean) => void;
 	onOpenFile?: (filename: string, lineNumber?: number) => void;
@@ -59,6 +63,7 @@ export function FileEditor({
 	filename,
 	initialContent,
 	sandboxId,
+	revealRequest,
 	onUnsavedChanges,
 	onSavingStateChange,
 	onOpenFile,
@@ -291,6 +296,40 @@ export function FileEditor({
 		editorRef.current = editor;
 		monacoRef.current = monaco;
 
+		// Use a stable file:// URI so Monaco and language services can resolve
+		// cross-file symbols reliably.
+		const model = editor.getModel();
+		if (model) {
+			const normalizedFilename = filename.startsWith("/")
+				? filename
+				: `/${filename}`;
+			const expectedUri = `file://${normalizedFilename}`;
+			const currentUri = model.uri.toString();
+
+			if (currentUri !== expectedUri) {
+				const currentContent = model.getValue();
+				const newUri = monaco.Uri.parse(expectedUri);
+				const existingModel = monaco.editor.getModel(newUri);
+
+				if (existingModel) {
+					model.dispose();
+					editor.setModel(existingModel);
+					if (existingModel.getValue() !== currentContent) {
+						existingModel.setValue(currentContent);
+					}
+				} else {
+					model.dispose();
+					const language = getLanguageFromPath(normalizedFilename);
+					const newModel = monaco.editor.createModel(
+						currentContent,
+						language,
+						newUri,
+					);
+					editor.setModel(newModel);
+				}
+			}
+		}
+
 		// Disable Monaco's built-in TypeScript diagnostics since we're using the sandbox
 		monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
 			noSemanticValidation: true,
@@ -310,7 +349,104 @@ export function FileEditor({
 				handleSaveRef.current();
 			}
 		});
+
+		const getDefinitions = async (
+			targetModel: ReturnType<MonacoEditor["getModel"]>,
+			position: ReturnType<MonacoEditor["getPosition"]>,
+		) => {
+			if (!targetModel || !position) return null;
+			try {
+				const response = await fetch(`/api/sandboxes/${sandboxId}/lsp`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						method: "textDocument/definition",
+						filename,
+						position: {
+							line: position.lineNumber - 1,
+							character: position.column - 1,
+						},
+					}),
+				});
+
+				if (!response.ok) return null;
+				const data = await response.json();
+				if (!data.definitions || data.definitions.length === 0) return null;
+				return data.definitions as Array<{
+					uri: string;
+					range: {
+						start: { line: number; character: number };
+						end: { line: number; character: number };
+					};
+				}>;
+			} catch {
+				return null;
+			}
+		};
+
+		const goToDefinition = async (
+			targetModel: ReturnType<MonacoEditor["getModel"]>,
+			position: ReturnType<MonacoEditor["getPosition"]>,
+		) => {
+			if (!targetModel || !position) return;
+			const definitions = await getDefinitions(targetModel, position);
+			if (!definitions || definitions.length === 0) return;
+
+			const definition = definitions[0];
+			const targetUri = definition.uri;
+			const currentUri = targetModel.uri.toString();
+			const targetLine = definition.range.start.line + 1;
+			const targetColumn = definition.range.start.character + 1;
+
+			if (targetUri !== currentUri) {
+				let filePath = targetUri.replace("file://", "");
+				filePath = filePath.replace(/^\/vercel\/sandbox/, "");
+				onOpenFileRef.current?.(filePath, targetLine);
+				return;
+			}
+
+			editor.setPosition({
+				lineNumber: targetLine,
+				column: targetColumn,
+			});
+			editor.revealLineInCenter(targetLine);
+		};
+
+		editor.addAction({
+			id: "editor.action.revealDefinition.custom",
+			label: "Go to Definition",
+			keybindings: [monaco.KeyCode.F12],
+			contextMenuGroupId: "navigation",
+			contextMenuOrder: 1.5,
+			run: async (activeEditor) => {
+				await goToDefinition(
+					activeEditor.getModel(),
+					activeEditor.getPosition(),
+				);
+			},
+		});
+
+		editor.onMouseDown(async (event) => {
+			if (
+				event.event.leftButton &&
+				(event.event.ctrlKey || event.event.metaKey) &&
+				event.target.position
+			) {
+				await goToDefinition(editor.getModel(), event.target.position);
+			}
+		});
 	};
+
+	useEffect(() => {
+		if (!revealRequest || !editorRef.current) return;
+		editorRef.current.setPosition({
+			lineNumber: revealRequest.lineNumber,
+			column: 1,
+		});
+		editorRef.current.revealLineInCenter(revealRequest.lineNumber);
+	}, [revealRequest]);
 
 	// Keyboard shortcut for save (Cmd/Ctrl + S) - fallback for outside editor
 	useEffect(() => {
