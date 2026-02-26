@@ -22,43 +22,13 @@ export function generateUUID(): string {
 }
 
 // Convert database messages to validated UI format for useChat hook.
-// Supports both legacy rows (content = parts[]) and v6-aligned rows (content = full UIMessage).
+// Expects v6-aligned persisted rows where content is a full UIMessage.
 export async function convertToUIMessages(
 	messages: Message[],
 ): Promise<ChatUIMessage[]> {
-	const mappedMessages = messages.map((message) => {
-		const content = message.content as unknown;
-
-		// v6-aligned persisted format: full UIMessage object
-		if (
-			typeof content === "object" &&
-			content !== null &&
-			"id" in content &&
-			"role" in content &&
-			"parts" in content
-		) {
-			return content as ChatUIMessage;
-		}
-
-		// Legacy persisted format: parts only
-		return {
-			id: message.id,
-			role: message.role as "user" | "assistant",
-			parts: content as ChatUIMessage["parts"],
-			metadata: {
-				model: "unknown",
-			},
-		} satisfies ChatUIMessage;
+	return validateUIMessages<ChatUIMessage>({
+		messages: messages.map((message) => message.content as ChatUIMessage),
+		metadataSchema,
+		dataSchemas: dataPartSchema.shape,
 	});
-
-	try {
-		return await validateUIMessages<ChatUIMessage>({
-			messages: mappedMessages,
-			metadataSchema,
-			dataSchemas: dataPartSchema.shape,
-		});
-	} catch {
-		// Fallback to unvalidated mapped messages to avoid blocking page load on malformed rows.
-		return mappedMessages;
-	}
 }

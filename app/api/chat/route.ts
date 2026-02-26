@@ -437,7 +437,7 @@ export async function POST(req: NextRequest) {
 										});
 									}
 								} catch {
-									wide.add({ save_assistant_message_error: true });
+									wide.add({ replace_project_messages_error: true });
 
 									// Update project status to error if message saving fails
 									await updateProject(projectId, {

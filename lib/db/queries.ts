@@ -172,37 +172,6 @@ export async function getMessagesByProjectId(projectId: string) {
 	}
 }
 
-export async function createMessage({
-	projectId,
-	role,
-	content,
-}: {
-	projectId: string;
-	role: "user" | "assistant";
-	content: unknown; // JSONB content with message parts
-}) {
-	try {
-		const [result] = await db
-			.insert(messages)
-			.values({
-				projectId,
-				role,
-				content,
-				createdAt: new Date(),
-			})
-			.returning();
-		return result;
-	} catch (error) {
-		logger.error({
-			event: "db.messages.create_failed",
-			project_id: projectId,
-			role,
-			error: error instanceof Error ? error.message : String(error),
-		});
-		throw new Error("Failed to create message");
-	}
-}
-
 export async function deleteMessagesByProjectId(
 	projectId: string,
 ): Promise<boolean> {
@@ -219,28 +188,6 @@ export async function deleteMessagesByProjectId(
 			error: error instanceof Error ? error.message : String(error),
 		});
 		throw new Error("Failed to delete messages by project id");
-	}
-}
-
-export async function saveMessages({
-	messages: messagesToSave,
-}: {
-	messages: Array<{
-		projectId: string;
-		role: "user" | "assistant";
-		content: unknown;
-	}>;
-}) {
-	try {
-		const result = await db.insert(messages).values(messagesToSave).returning();
-		return result;
-	} catch (error) {
-		logger.error({
-			event: "db.messages.bulk_save_failed",
-			message_count: messagesToSave.length,
-			error: error instanceof Error ? error.message : String(error),
-		});
-		throw new Error("Failed to save messages");
 	}
 }
 
