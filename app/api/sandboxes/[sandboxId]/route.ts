@@ -18,11 +18,11 @@ export async function GET(
 			sandboxId,
 			...config,
 		});
-		await sandbox.runCommand({
-			cmd: "echo",
-			args: ["Sandbox status check"],
-		});
-		return NextResponse.json({ status: "running" });
+		const status =
+			sandbox.status === "stopped" || sandbox.status === "failed"
+				? "stopped"
+				: "running";
+		return NextResponse.json({ status });
 	} catch (error) {
 		if (
 			error instanceof APIError &&

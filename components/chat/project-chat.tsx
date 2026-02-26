@@ -2,7 +2,14 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { type RefObject, useEffect, useRef, useState } from "react";
+import {
+	type RefObject,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useSandboxStore } from "@/app/state";
 import {
 	Conversation,
@@ -55,6 +62,10 @@ function ProjectChatInner({
 	// Initialize usage state from initialLastContext
 	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
 	const { models } = useAvailableModels();
+	const connectedServerIds = useMemo(
+		() => connectors.filter((c) => c.status === "connected").map((c) => c.id),
+		[connectors],
+	);
 
 	// Get the current model label
 	const currentModel = models.find((model) => model.id === modelId);
@@ -73,6 +84,23 @@ function ProjectChatInner({
 	const hasSentPendingMessage = sentMessageRef ?? localSentRef;
 	const hasInitializedMessages = useRef(false);
 
+	const waitForProject = useCallback(async () => {
+		const maxAttempts = 20;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const response = await fetch(`/api/projects/${projectId}`, {
+				cache: "no-store",
+			});
+			if (response.ok) {
+				return true;
+			}
+			if (response.status !== 404) {
+				return false;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		}
+		return false;
+	}, [projectId]);
+
 	// Reset shared chat state whenever the project changes to avoid leaking the
 	// previous conversation into the new project.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: projectId is intentionally included to reset messages when project changes
@@ -80,23 +108,31 @@ function ProjectChatInner({
 		setMessages([]);
 		hasInitializedMessages.current = false;
 
-		const targetRef = sentMessageRef ?? localSentRef;
-		targetRef.current = false;
+		// Only reset the local ref here. Shared ref lifecycle is controlled by parent.
+		if (!sentMessageRef) {
+			localSentRef.current = false;
+		}
 	}, [projectId, setMessages, sentMessageRef]);
 
 	// Send pending message if it exists (first message from home page)
 	// Only runs once due to shared ref guard across both mobile and desktop components
 	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a ref and doesn't need to be in deps
 	useEffect(() => {
-		if (pendingMessage && !hasSentPendingMessage.current) {
+		const sendPendingMessage = async () => {
+			if (!pendingMessage || hasSentPendingMessage.current) {
+				return;
+			}
 			hasSentPendingMessage.current = true;
 
-			// Get IDs of connected MCP servers
-			const connectedServerIds = connectors
-				.filter((c) => c.status === "connected")
-				.map((c) => c.id);
+			const projectReady = await waitForProject();
+			if (!projectReady) {
+				hasSentPendingMessage.current = false;
+				console.error("[ProjectChat] Project was not ready for first message");
+				return;
+			}
 
-			// Send message immediately when component is ready
+			sessionStorage.removeItem(`pending-message-${projectId}`);
+
 			sendMessage(
 				{
 					...pendingMessage,
@@ -113,7 +149,9 @@ function ProjectChatInner({
 					},
 				},
 			);
-		}
+		};
+
+		void sendPendingMessage();
 		// Note: hasSentPendingMessage is a ref and doesn't need to be in deps
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
@@ -122,7 +160,9 @@ function ProjectChatInner({
 		modelId,
 		reasoningEffort,
 		sendMessage,
-		connectors,
+		connectedServerIds,
+		waitForProject,
+		sandboxDuration,
 	]);
 
 	// Initialize messages from database if available and no pending message
@@ -196,11 +236,6 @@ function ProjectChatInner({
 	}, [initialMessages]);
 
 	const handleMessageSubmit = (message: PromptInputMessage) => {
-		// Get IDs of connected MCP servers
-		const connectedServerIds = connectors
-			.filter((c) => c.status === "connected")
-			.map((c) => c.id);
-
 		console.log(
 			"[ProjectChat] Submitting message with MCP servers:",
 			connectedServerIds,

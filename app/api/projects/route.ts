@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
 	try {
-		const session = await getSessionFromReq(request);
+		const sessionPromise = getSessionFromReq(request);
+		const bodyPromise = request.json();
+		const session = await sessionPromise;
 		if (!session) {
 			return NextResponse.json(
 				{ error: "Authentication required" },
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const body = await request.json();
+		const body = await bodyPromise;
 		const {
 			projectId: providedProjectId,
 			title,

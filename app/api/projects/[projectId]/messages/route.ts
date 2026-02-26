@@ -23,8 +23,7 @@ export async function POST(
 	{ params }: { params: Promise<{ projectId: string }> },
 ) {
 	try {
-		const { projectId } = await params;
-		const body = await request.json();
+		const [{ projectId }, body] = await Promise.all([params, request.json()]);
 		const { role, content } = body;
 
 		if (!role || !content) {

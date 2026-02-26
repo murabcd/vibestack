@@ -59,10 +59,8 @@ export async function POST(
 	request: NextRequest,
 	{ params }: { params: Promise<{ sandboxId: string }> },
 ) {
-	const { sandboxId } = await params;
-
 	try {
-		const body = await request.json();
+		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
 		const fileData = SaveFileSchema.safeParse(body);
 
 		if (fileData.success === false) {

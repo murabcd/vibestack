@@ -197,82 +197,95 @@ export async function POST(req: NextRequest) {
 					);
 
 					try {
-						for (const server of mcpServers) {
-							try {
-								if (server.type === "local" && server.command) {
-									// Local STDIO server
-									const commandParts = server.command.split(/\s+/);
-									const [command, ...args] = commandParts;
+						const serverConnections = await Promise.all(
+							mcpServers.map(async (server) => {
+								try {
+									if (server.type === "local" && server.command) {
+										// Local STDIO server
+										const commandParts = server.command.split(/\s+/);
+										const [command, ...args] = commandParts;
 
-									const { Experimental_StdioMCPTransport } = await import(
-										"@ai-sdk/mcp/mcp-stdio"
-									);
+										const { Experimental_StdioMCPTransport } = await import(
+											"@ai-sdk/mcp/mcp-stdio"
+										);
 
-									const client = await experimental_createMCPClient({
-										transport: new Experimental_StdioMCPTransport({
-											command,
-											args,
-											env: server.env || {},
-										}),
-									});
+										const client = await experimental_createMCPClient({
+											transport: new Experimental_StdioMCPTransport({
+												command,
+												args,
+												env: server.env || {},
+											}),
+										});
 
-									const serverTools = await client.tools();
-									console.log(
-										"[Chat API] Local MCP server tools:",
-										server.name,
-										Object.keys(serverTools),
-									);
-									mcpTools = { ...mcpTools, ...serverTools };
-									mcpClients.push(client);
-									console.log(
-										"[Chat API] Connected to local MCP server:",
-										server.name,
-									);
-								} else if (server.type === "remote" && server.baseUrl) {
-									// Remote HTTP/SSE server
-									const headers: Record<string, string> = {};
-									if (server.oauthClientSecret) {
-										headers.Authorization = `Bearer ${server.oauthClientSecret}`;
-									}
-									if (server.oauthClientId) {
-										headers["X-Client-ID"] = server.oauthClientId;
+										const serverTools = await client.tools();
+										console.log(
+											"[Chat API] Local MCP server tools:",
+											server.name,
+											Object.keys(serverTools),
+										);
+										console.log(
+											"[Chat API] Connected to local MCP server:",
+											server.name,
+										);
+										return { client, serverTools };
 									}
 
-									// Determine transport type based on URL
-									const url = new URL(server.baseUrl);
-									const isSSE =
-										url.pathname.includes("/sse") ||
-										server.baseUrl.includes("/sse");
+									if (server.type === "remote" && server.baseUrl) {
+										// Remote HTTP/SSE server
+										const headers: Record<string, string> = {};
+										if (server.oauthClientSecret) {
+											headers.Authorization = `Bearer ${server.oauthClientSecret}`;
+										}
+										if (server.oauthClientId) {
+											headers["X-Client-ID"] = server.oauthClientId;
+										}
 
-									const client = await experimental_createMCPClient({
-										transport: {
-											type: isSSE ? "sse" : "http",
-											url: server.baseUrl,
-											...(Object.keys(headers).length > 0 ? { headers } : {}),
-										},
-									});
+										// Determine transport type based on URL
+										const url = new URL(server.baseUrl);
+										const isSSE =
+											url.pathname.includes("/sse") ||
+											server.baseUrl.includes("/sse");
 
-									const serverTools = await client.tools();
-									console.log(
-										"[Chat API] Remote MCP server tools:",
-										server.name,
-										Object.keys(serverTools),
+										const client = await experimental_createMCPClient({
+											transport: {
+												type: isSSE ? "sse" : "http",
+												url: server.baseUrl,
+												...(Object.keys(headers).length > 0 ? { headers } : {}),
+											},
+										});
+
+										const serverTools = await client.tools();
+										console.log(
+											"[Chat API] Remote MCP server tools:",
+											server.name,
+											Object.keys(serverTools),
+										);
+										console.log(
+											"[Chat API] Connected to remote MCP server:",
+											server.name,
+											isSSE ? "SSE" : "HTTP",
+										);
+										return { client, serverTools };
+									}
+
+									return null;
+								} catch (serverError) {
+									console.error(
+										`[Chat API] Failed to connect to MCP server ${server.name}:`,
+										serverError,
 									);
-									mcpTools = { ...mcpTools, ...serverTools };
-									mcpClients.push(client);
-									console.log(
-										"[Chat API] Connected to remote MCP server:",
-										server.name,
-										isSSE ? "SSE" : "HTTP",
-									);
+									// Continue with other servers
+									return null;
 								}
-							} catch (serverError) {
-								console.error(
-									`[Chat API] Failed to connect to MCP server ${server.name}:`,
-									serverError,
-								);
-								// Continue with other servers
+							}),
+						);
+
+						for (const connection of serverConnections) {
+							if (!connection) {
+								continue;
 							}
+							mcpTools = { ...mcpTools, ...connection.serverTools };
+							mcpClients.push(connection.client);
 						}
 
 						console.log(

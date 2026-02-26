@@ -28,8 +28,7 @@ export async function PATCH(
 	{ params }: { params: Promise<{ projectId: string }> },
 ) {
 	try {
-		const { projectId } = await params;
-		const body = await request.json();
+		const [{ projectId }, body] = await Promise.all([params, request.json()]);
 		const {
 			title,
 			isPinned,

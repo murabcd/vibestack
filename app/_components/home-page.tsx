@@ -33,23 +33,6 @@ export function PageClient({
 			// Generate project ID
 			const projectId = nanoid();
 
-			// Create project with placeholder title for instant navigation
-			const response = await fetch("/api/projects", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					projectId,
-					title: " ", // Placeholder title - invisible to user
-					visibility: "private",
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Failed to create project");
-			}
-
-			await response.json();
-
 			// Store message in sessionStorage to be picked up by project page
 			sessionStorage.setItem(
 				`pending-message-${projectId}`,
@@ -60,35 +43,45 @@ export function PageClient({
 			);
 
 			// Navigate to project page immediately (no waiting!)
-			router.push(`/project/${projectId}`);
+			router.push(`/project/${projectId}?new=1`);
 
-			// Generate title in background using setTimeout to ensure it's truly async
-			setTimeout(() => {
-				generateTitleFromUserMessage({
-					message: {
-						id: generateUUID(),
-						role: "user",
-						parts: message.files
-							? [{ type: "text", text: message.text || "" }, ...message.files]
-							: [{ type: "text", text: message.text || "" }],
-					},
-				})
-					.then(async (title) => {
-						// Update project title in background
-						try {
-							await fetch(`/api/projects/${projectId}`, {
-								method: "PATCH",
-								headers: { "Content-Type": "application/json" },
-								body: JSON.stringify({ title }),
-							});
-						} catch (error) {
-							console.error("Failed to update project title:", error);
-						}
-					})
-					.catch((error) => {
-						console.error("Failed to generate title:", error);
+			// Create project in background while the UI transitions to project view.
+			void fetch("/api/projects", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					projectId,
+					title: " ", // Placeholder title - invisible to user
+					visibility: "private",
+				}),
+			})
+				.then(async (response) => {
+					if (!response.ok) {
+						throw new Error("Failed to create project");
+					}
+					await response.json();
+
+					// Generate title in background after project exists.
+					const title = await generateTitleFromUserMessage({
+						message: {
+							id: generateUUID(),
+							role: "user",
+							parts: message.files
+								? [{ type: "text", text: message.text || "" }, ...message.files]
+								: [{ type: "text", text: message.text || "" }],
+						},
 					});
-			}, 0);
+
+					await fetch(`/api/projects/${projectId}`, {
+						method: "PATCH",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ title }),
+					});
+				})
+				.catch((error) => {
+					console.error("Failed to initialize project:", error);
+					toast.error("Failed to initialize project. Please try again.");
+				});
 		} catch (error) {
 			console.error("Failed to create project:", error);
 			toast.error("Failed to create project. Please try again.");

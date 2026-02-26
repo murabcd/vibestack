@@ -8,23 +8,17 @@ import { getModelOptions } from "@/lib/ai/gateway";
 import prompt from "./prompt.md";
 
 export async function POST(req: Request) {
-	const checkResult = await checkBotId();
+	const [checkResult, body] = await Promise.all([checkBotId(), req.json()]);
 	if (checkResult.isBot) {
 		return NextResponse.json({ error: `Bot detected` }, { status: 403 });
 	}
 
-	const body = await req.json();
 	const parsedBody = linesSchema.safeParse(body);
 	if (!parsedBody.success) {
 		return NextResponse.json({ error: `Invalid request` }, { status: 400 });
 	}
 
-	const { model, providerOptions } = getModelOptions(
-		Models.AnthropicClaude45Haiku,
-		{
-			reasoningEffort: "minimal",
-		},
-	);
+	const { model, providerOptions } = getModelOptions(Models.OpenAIGpt52);
 
 	const result = await generateObject({
 		system: prompt,
