@@ -25,6 +25,15 @@ const MonacoSyntaxHighlighter = dynamic(
 	},
 );
 
+class FileContentError extends Error {
+	code?: string;
+
+	constructor(message: string, code?: string) {
+		super(message);
+		this.code = code;
+	}
+}
+
 interface Props {
 	sandboxId: string;
 	path: string;
@@ -63,8 +72,23 @@ export const FileContent = memo(function FileContent({
 		`/api/sandboxes/${sandboxId}/files?${searchParams.toString()}`,
 		async (pathname: string, init: RequestInit) => {
 			const response = await fetch(pathname, init);
-			const text = await response.text();
-			return text;
+			if (!response.ok) {
+				let message = `Failed to load ${path}`;
+				let code: string | undefined;
+				try {
+					const json = await response.json();
+					if (typeof json?.error === "string") {
+						message = json.error;
+					}
+					if (typeof json?.error?.code === "string") {
+						code = json.error.code;
+					}
+				} catch {
+					// keep fallback message
+				}
+				throw new FileContentError(message, code);
+			}
+			return response.text();
 		},
 		{
 			refreshInterval: 3000,
@@ -101,6 +125,29 @@ export const FileContent = memo(function FileContent({
 		setHasDiff,
 		onDiffAvailabilityChange,
 	]);
+
+	if (content.error) {
+		const message =
+			content.error instanceof Error
+				? content.error.message
+				: "Failed to load file";
+		const sandboxStopped =
+			content.error instanceof FileContentError &&
+			content.error.code === "sandbox_stopped";
+		return (
+			<div className="h-full w-full flex items-center justify-center p-4">
+				<div className="text-center">
+					<p className="text-destructive mb-2 text-sm">Unable to load file</p>
+					<p className="text-xs text-muted-foreground">{message}</p>
+					{sandboxStopped && (
+						<p className="text-xs text-muted-foreground mt-2">
+							Start or restart the dev server from the toolbar.
+						</p>
+					)}
+				</div>
+			</div>
+		);
+	}
 
 	if (content.isLoading || !content.data) {
 		return <MonacoLoadingSkeleton />;

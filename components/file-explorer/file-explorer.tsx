@@ -9,6 +9,7 @@ import {
 	LockIcon,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { FileContent } from "@/components/file-explorer/file-content";
 import { Panel, PanelHeader } from "@/components/panels/panels";
@@ -23,7 +24,6 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { buildFileTree, type FileNode } from "./build-file-tree";
 
@@ -34,13 +34,40 @@ interface Props {
 	sandboxId?: string;
 }
 
+interface FileDiffStat {
+	additions: number;
+	deletions: number;
+}
+
 export const FileExplorer = memo(function FileExplorer({
 	className,
 	disabled,
 	paths,
 	sandboxId,
 }: Props) {
-	const fileTree = useMemo(() => buildFileTree(paths), [paths]);
+	const [viewMode, setViewMode] = useState<"files" | "changes">("files");
+	const diffStats = useSWR<{ stats: Record<string, FileDiffStat> }>(
+		sandboxId ? `/api/sandboxes/${sandboxId}/diff-stats` : null,
+		async (url: string) => {
+			const response = await fetch(url);
+			if (!response.ok) return { stats: {} };
+			return response.json();
+		},
+		{
+			refreshInterval: 3000,
+			dedupingInterval: 2000,
+			revalidateOnFocus: false,
+		},
+	);
+	const statsByPath = diffStats.data?.stats ?? {};
+	const visiblePaths = useMemo(() => {
+		if (viewMode === "files") return paths;
+		return paths.filter((path) => {
+			const normalized = path.startsWith("/") ? path.substring(1) : path;
+			return Boolean(statsByPath[normalized]);
+		});
+	}, [paths, statsByPath, viewMode]);
+	const fileTree = useMemo(() => buildFileTree(visiblePaths), [visiblePaths]);
 	const [selected, setSelected] = useState<FileNode | null>(null);
 	const [fs, setFs] = useState<FileNode[]>(fileTree);
 	const [isEditMode, setIsEditMode] = useState(false);
@@ -64,6 +91,18 @@ export const FileExplorer = memo(function FileExplorer({
 	useEffect(() => {
 		setFs(fileTree);
 	}, [fileTree]);
+
+	useEffect(() => {
+		if (!selected) return;
+		const selectedPath = selected.path.startsWith("/")
+			? selected.path.substring(1)
+			: selected.path;
+		if (!visiblePaths.includes(selectedPath)) {
+			setSelected(null);
+			setShowDiff(false);
+			setHasDiffForSelected(false);
+		}
+	}, [selected, visiblePaths]);
 
 	const toggleFolder = useCallback((path: string) => {
 		setFs((prev) => {
@@ -258,21 +297,50 @@ export const FileExplorer = memo(function FileExplorer({
 					depth={depth}
 					selected={selected}
 					sandboxId={sandboxId}
+					statsByPath={statsByPath}
 					onToggleFolder={toggleFolder}
 					onSelectFile={selectFile}
 					renderFileTree={renderFileTree}
 				/>
 			));
 		},
-		[selected, toggleFolder, selectFile, sandboxId],
+		[selected, toggleFolder, selectFile, sandboxId, statsByPath],
 	);
 
 	return (
 		<>
-			<Panel className={cn(className, "border-0")}>
-				<PanelHeader className="text-xs px-2 py-0.5">
+			<Panel className={cn(className, "border-0 flex flex-col min-h-0")}>
+				<PanelHeader className="h-8 min-h-8 text-xs px-2 py-0.5">
 					<FileIcon className="size-3 mr-1.5" />
-					<span className="font-medium">Files</span>
+					<span className="font-medium">Explorer</span>
+					<div className="ml-2 flex items-center gap-1">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setViewMode("files")}
+							className={cn(
+								"h-6 px-2 text-xs",
+								viewMode === "files"
+									? "bg-accent/40 text-foreground border border-border"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							Files
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setViewMode("changes")}
+							className={cn(
+								"h-6 px-2 text-xs",
+								viewMode === "changes"
+									? "bg-accent/40 text-foreground border border-border"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							Changes
+						</Button>
+					</div>
 					{selected && !disabled && (
 						<>
 							<span className="ml-auto text-muted-foreground text-xs">
@@ -353,12 +421,29 @@ export const FileExplorer = memo(function FileExplorer({
 					)}
 				</PanelHeader>
 
-				<div className="flex text-sm h-[calc(100%-2rem-1px)]">
-					<ScrollArea className="w-1/4 border-r border-border shrink-0">
-						<div>{renderFileTree(fs)}</div>
-					</ScrollArea>
-					{selected && sandboxId && !disabled && (
-						<div className="w-3/4 shrink-0 h-full">
+				<div className="flex text-sm flex-1 min-h-0">
+					<div className="w-1/4 h-full border-r border-border shrink-0 overflow-auto">
+						{fs.length === 0 && viewMode === "changes" ? (
+							<div className="px-3 py-3 text-xs text-muted-foreground">
+								No changed files detected.
+							</div>
+						) : (
+							renderFileTree(fs)
+						)}
+					</div>
+					<div className="w-3/4 shrink-0 h-full">
+						{disabled ? (
+							<div className="h-full w-full flex items-center justify-center p-4">
+								<div className="text-center">
+									<p className="text-sm text-muted-foreground">
+										Sandbox is stopped
+									</p>
+									<p className="text-xs text-muted-foreground mt-1">
+										Start or restart the dev server from the toolbar.
+									</p>
+								</div>
+							</div>
+						) : selected && sandboxId ? (
 							<FileContent
 								sandboxId={sandboxId}
 								path={selected.path.substring(1)}
@@ -371,8 +456,19 @@ export const FileExplorer = memo(function FileExplorer({
 								onSavingStateChange={handleSavingStateChange}
 								onSaveSuccess={handleSaveSuccess}
 							/>
-						</div>
-					)}
+						) : (
+							<div className="h-full w-full flex items-center justify-center p-4">
+								<div className="text-center">
+									<p className="text-sm text-muted-foreground">
+										No file selected
+									</p>
+									<p className="text-xs text-muted-foreground mt-1">
+										Select a file from the tree to view or edit it.
+									</p>
+								</div>
+							</div>
+						)}
+					</div>
 				</div>
 			</Panel>
 
@@ -434,6 +530,7 @@ const FileTreeNode = memo(function FileTreeNode({
 	depth,
 	selected,
 	sandboxId,
+	statsByPath,
 	onToggleFolder,
 	onSelectFile,
 	renderFileTree,
@@ -442,6 +539,7 @@ const FileTreeNode = memo(function FileTreeNode({
 	depth: number;
 	selected: FileNode | null;
 	sandboxId?: string;
+	statsByPath: Record<string, FileDiffStat>;
 	onToggleFolder: (path: string) => void;
 	onSelectFile: (node: FileNode) => void;
 	renderFileTree: (nodes: FileNode[], depth: number) => React.ReactNode;
@@ -491,6 +589,16 @@ const FileTreeNode = memo(function FileTreeNode({
 							title="File has unsaved changes"
 						/>
 					)}
+				{node.type === "file" &&
+					(() => {
+						const stat = statsByPath[node.path.substring(1)];
+						if (!stat) return null;
+						return (
+							<span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
+								+{stat.additions} -{stat.deletions}
+							</span>
+						);
+					})()}
 			</button>
 
 			{node.type === "folder" && node.expanded && node.children && (

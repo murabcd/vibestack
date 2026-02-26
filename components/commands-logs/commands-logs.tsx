@@ -278,7 +278,7 @@ export function CommandsLogs(props: Props) {
 												<div
 													key={`${group.command.cmdId}-${log.timestamp}-${index}`}
 													className={cn(
-														"text-xs font-mono whitespace-pre-wrap break-words",
+														"text-xs font-mono whitespace-pre-wrap wrap-break-words",
 														{
 															"text-muted-foreground": log.level === "info",
 															"text-amber-500": log.level === "warn",
@@ -297,7 +297,7 @@ export function CommandsLogs(props: Props) {
 					})}
 					{filtered.length === 0 && (
 						<div className="text-xs text-muted-foreground px-1 py-2">
-							no logs found for current filters
+							No logs found for current filters
 						</div>
 					)}
 				</div>

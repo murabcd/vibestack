@@ -52,7 +52,7 @@ function ChatInner({ className }: Props) {
 
 	return (
 		<Panel className={className}>
-			<PanelHeader>
+			<PanelHeader className="h-10 min-h-10">
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<MessageCircleIcon className="size-3" />
 					<span className="font-medium">Chat</span>

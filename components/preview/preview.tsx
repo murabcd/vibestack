@@ -67,7 +67,12 @@ export function Preview({ className, disabled, url }: Props) {
 		<Panel className={cn(className, "border-0")}>
 			<PanelHeader className="text-xs px-2 py-0.5">
 				<div className="absolute flex items-center space-x-1">
-					<a href={currentUrl} target="_blank" className="cursor-pointer px-1">
+					<a
+						href={currentUrl}
+						target="_blank"
+						rel="noreferrer"
+						className="cursor-pointer px-1"
+					>
 						<CompassIcon className="w-3" />
 					</a>
 					<button
@@ -101,6 +106,18 @@ export function Preview({ className, disabled, url }: Props) {
 			</PanelHeader>
 
 			<div className="flex h-[calc(100%-2rem-1px)] relative">
+				{disabled && (
+					<div className="absolute inset-0 bg-background flex items-center justify-center p-4">
+						<div className="text-center">
+							<p className="text-sm text-muted-foreground">
+								Sandbox is stopped
+							</p>
+							<p className="text-xs text-muted-foreground mt-1">
+								Start or restart the dev server from the toolbar.
+							</p>
+						</div>
+					</div>
+				)}
 				{currentUrl && !disabled && (
 					<>
 						<ScrollArea className="w-full">
