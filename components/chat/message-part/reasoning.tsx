@@ -38,7 +38,7 @@ export function Reasoning({
 			<div className="px-3 py-2">
 				<div className="text-secondary-foreground leading-normal text-sm">
 					{isExpanded || !hasMoreContent ? (
-						<MarkdownRenderer content={text} />
+						<MarkdownRenderer content={text} isAnimating={isStreaming} />
 					) : (
 						<div className="overflow-hidden">{firstLine}</div>
 					)}

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
+import type { ChatUIMessage } from "@/components/chat/types";
 import type { AppUsage } from "@/lib/ai/usage";
 import { logger } from "@/lib/logging/logger";
 import { db } from "./index";
@@ -240,5 +241,47 @@ export async function saveMessages({
 			error: error instanceof Error ? error.message : String(error),
 		});
 		throw new Error("Failed to save messages");
+	}
+}
+
+export async function replaceProjectMessages({
+	projectId,
+	uiMessages,
+}: {
+	projectId: string;
+	uiMessages: ChatUIMessage[];
+}) {
+	try {
+		await db.delete(messages).where(eq(messages.projectId, projectId));
+
+		if (uiMessages.length === 0) {
+			return [];
+		}
+
+		const persistedMessages = uiMessages
+			.filter(
+				(message): message is ChatUIMessage & { role: "user" | "assistant" } =>
+					message.role === "user" || message.role === "assistant",
+			)
+			.map((message) => ({
+				projectId,
+				role: message.role,
+				content: message,
+				createdAt: new Date(),
+			}));
+
+		if (persistedMessages.length === 0) {
+			return [];
+		}
+
+		return await db.insert(messages).values(persistedMessages).returning();
+	} catch (error) {
+		logger.error({
+			event: "db.messages.replace_failed",
+			project_id: projectId,
+			message_count: uiMessages.length,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		throw new Error("Failed to replace project messages");
 	}
 }

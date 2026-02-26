@@ -23,7 +23,7 @@ import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import {
 	getProjectById,
-	saveMessages,
+	replaceProjectMessages,
 	updateProject,
 	updateProjectLastContext,
 } from "@/lib/db/queries";
@@ -174,26 +174,6 @@ export async function POST(req: NextRequest) {
 				{ error: `Project ${projectId} not found.` },
 				{ status: 404 },
 			);
-		}
-
-		// Save user message IMMEDIATELY before streaming starts
-		// This ensures the message is persisted even if user closes tab mid-stream
-		const latestUserMessage = messages[messages.length - 1];
-		if (latestUserMessage && latestUserMessage.role === "user") {
-			try {
-				await saveMessages({
-					messages: [
-						{
-							projectId,
-							role: "user" as const,
-							content: latestUserMessage.parts,
-						},
-					],
-				});
-			} catch {
-				wide.add({ save_user_message_error: true });
-				// Don't block the stream - just log the error
-			}
 		}
 	}
 
@@ -405,22 +385,13 @@ export async function POST(req: NextRequest) {
 							const latestAssistantMessage =
 								assistantMessages[assistantMessages.length - 1];
 
-							// Save assistant message to database if projectId is provided
-							// (User message was already saved before streaming started)
+							// Save complete UI message history to database if projectId is provided
 							if (projectId) {
 								try {
-									// Save assistant message
-									if (latestAssistantMessage) {
-										await saveMessages({
-											messages: [
-												{
-													projectId,
-													role: "assistant" as const,
-													content: latestAssistantMessage.parts,
-												},
-											],
-										});
-									}
+									await replaceProjectMessages({
+										projectId,
+										uiMessages: allMessages,
+									});
 
 									// Update project status to completed
 									await updateProject(projectId, {

@@ -39,7 +39,7 @@ export const TaskItem = ({ children, className, ...props }: TaskItemProps) => (
 export type TaskProps = ComponentProps<typeof Collapsible>;
 
 export const Task = ({
-	defaultOpen = true,
+	defaultOpen = false,
 	className,
 	...props
 }: TaskProps) => (
@@ -103,7 +103,7 @@ export const TaskContent = ({
 		)}
 		{...props}
 	>
-		<div className="mt-4 space-y-2 border-muted border-l-2 pl-4">
+		<div className="mt-4 space-y-2.5 border-muted border-l-2 pl-4">
 			{children}
 		</div>
 	</CollapsibleContent>

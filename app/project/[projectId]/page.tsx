@@ -42,33 +42,27 @@ export async function generateMetadata({
 
 export default async function ProjectPage({
 	params,
-	searchParams,
+	searchParams: _searchParams,
 }: ProjectPageProps) {
 	const cookieStore = await cookies();
 	const horizontalSizes = getHorizontal(cookieStore);
 
-	const [{ projectId }, routeSearchParams] = await Promise.all([
-		params,
-		searchParams,
-	]);
-	const isNewProject = routeSearchParams.new === "1";
+	const [{ projectId }] = await Promise.all([params, _searchParams]);
 
 	// Fetch messages from database with error handling
 	let initialMessages: ChatUIMessage[] = [];
 	let initialLastContext: AppUsage | undefined;
-	if (!isNewProject) {
-		try {
+	try {
 			const [messagesFromDb, project] = await Promise.all([
 				getMessagesByProjectId(projectId),
 				getProjectCached(projectId),
 			]);
-			initialMessages = convertToUIMessages(messagesFromDb);
+			initialMessages = await convertToUIMessages(messagesFromDb);
 			initialLastContext = project?.lastContext ?? undefined;
 		} catch (error) {
-			console.error("Failed to fetch messages or project:", error);
-			// Continue with empty messages array - this allows the page to load
-			// even if the database query fails
-		}
+		console.error("Failed to fetch messages or project:", error);
+		// Continue with empty messages array - this allows the page to load
+		// even if the database query fails
 	}
 
 	const modelIdFromCookie = cookieStore.get("selected-model")?.value;

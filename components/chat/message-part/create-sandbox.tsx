@@ -28,7 +28,7 @@ export function CreateSandbox({ message }: Props) {
 	};
 
 	return (
-		<Task defaultOpen={true}>
+		<Task >
 			<TaskTrigger
 				title="Create Sandbox"
 				icon={<BoxIcon className="size-4" />}

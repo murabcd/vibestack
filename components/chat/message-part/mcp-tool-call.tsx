@@ -56,7 +56,7 @@ export function MCPToolCall({
 	};
 
 	return (
-		<Task defaultOpen={true}>
+		<Task >
 			<TaskTrigger
 				title={getTitle()}
 				icon={<Code className="size-4" />}
