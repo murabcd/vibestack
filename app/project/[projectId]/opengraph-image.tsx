@@ -1,13 +1,13 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+export const alt = "Project - VibeStack Project";
+export const size = {
+	width: 1200,
+	height: 630,
+};
+export const contentType = "image/png";
 
-export function GET(request: Request) {
-	const url = new URL(request.url);
-	const title = url.searchParams.get("title") || "VibeStack";
-	// Truncate title if too long to prevent layout issues
-	const displayTitle = title.length > 60 ? `${title.slice(0, 57)}...` : title;
-
+export default function Image() {
 	return new ImageResponse(
 		<div
 			style={{
@@ -62,12 +62,9 @@ export function GET(request: Request) {
 					lineHeight: 1.4,
 				}}
 			>
-				{displayTitle}
+				Project
 			</div>
 		</div>,
-		{
-			width: 1200,
-			height: 630,
-		},
+		size,
 	);
 }
