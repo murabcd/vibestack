@@ -3,12 +3,15 @@
 import {
 	ChevronDownIcon,
 	ChevronRightIcon,
-	EditIcon,
 	FileIcon,
 	FolderIcon,
-	LockIcon,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import {
+	PanelGroup,
+	PanelResizeHandle,
+	Panel as ResizePanel,
+} from "react-resizable-panels";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { FileContent } from "@/components/file-explorer/file-content";
@@ -24,6 +27,13 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { buildFileTree, type FileNode } from "./build-file-tree";
 
@@ -45,6 +55,7 @@ export const FileExplorer = memo(function FileExplorer({
 	paths,
 	sandboxId,
 }: Props) {
+	const { isMobile } = useSidebar();
 	const [viewMode, setViewMode] = useState<"files" | "changes">("files");
 	const diffStats = useSWR<{ stats: Record<string, FileDiffStat> }>(
 		sandboxId ? `/api/sandboxes/${sandboxId}/diff-stats` : null,
@@ -70,11 +81,9 @@ export const FileExplorer = memo(function FileExplorer({
 	const fileTree = useMemo(() => buildFileTree(visiblePaths), [visiblePaths]);
 	const [selected, setSelected] = useState<FileNode | null>(null);
 	const [fs, setFs] = useState<FileNode[]>(fileTree);
-	const [isEditMode, setIsEditMode] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const [showDiff, setShowDiff] = useState(false);
-	const [hasDiffForSelected, setHasDiffForSelected] = useState(false);
+	const [isSelectedFileAvailable, setIsSelectedFileAvailable] = useState(true);
 	const [revealRequest, setRevealRequest] = useState<
 		| {
 				lineNumber: number;
@@ -99,8 +108,6 @@ export const FileExplorer = memo(function FileExplorer({
 			: selected.path;
 		if (!visiblePaths.includes(selectedPath)) {
 			setSelected(null);
-			setShowDiff(false);
-			setHasDiffForSelected(false);
 		}
 	}, [selected, visiblePaths]);
 
@@ -131,11 +138,8 @@ export const FileExplorer = memo(function FileExplorer({
 				}
 
 				setSelected(node);
-				// Reset edit mode when selecting a new file
-				setIsEditMode(false);
 				setHasUnsavedChanges(false);
-				setShowDiff(false);
-				setHasDiffForSelected(false);
+				setIsSelectedFileAvailable(true);
 				setRevealRequest(undefined);
 			}
 		},
@@ -195,9 +199,7 @@ export const FileExplorer = memo(function FileExplorer({
 
 			expandPath(normalizedPath);
 			setSelected(targetNode);
-			setIsEditMode(true);
-			setShowDiff(false);
-			setHasDiffForSelected(false);
+			setIsSelectedFileAvailable(true);
 			if (lineNumber) {
 				setRevealRequest({
 					lineNumber,
@@ -235,7 +237,6 @@ export const FileExplorer = memo(function FileExplorer({
 		setTimeout(() => {
 			if (pendingFile) {
 				setSelected(pendingFile);
-				setIsEditMode(false);
 				setHasUnsavedChanges(false);
 			}
 			setShowSaveDialog(false);
@@ -246,7 +247,6 @@ export const FileExplorer = memo(function FileExplorer({
 	const handleSaveDialogDontSave = useCallback(() => {
 		if (pendingFile) {
 			setSelected(pendingFile);
-			setIsEditMode(false);
 			setHasUnsavedChanges(false);
 		}
 		setShowSaveDialog(false);
@@ -271,7 +271,6 @@ export const FileExplorer = memo(function FileExplorer({
 		// Wait a moment for save to complete, then close
 		setTimeout(() => {
 			setSelected(null);
-			setIsEditMode(false);
 			setHasUnsavedChanges(false);
 			setShowCloseDialog(false);
 		}, 500);
@@ -279,7 +278,6 @@ export const FileExplorer = memo(function FileExplorer({
 
 	const handleCloseDialogDontSave = useCallback(() => {
 		setSelected(null);
-		setIsEditMode(false);
 		setHasUnsavedChanges(false);
 		setShowCloseDialog(false);
 	}, []);
@@ -306,6 +304,52 @@ export const FileExplorer = memo(function FileExplorer({
 		},
 		[selected, toggleFolder, selectFile, sandboxId, statsByPath],
 	);
+	const treePane = (
+		<div className="h-full overflow-auto">
+			{fs.length === 0 && viewMode === "changes" ? (
+				<div className="px-3 py-3 text-xs text-muted-foreground">
+					No changed files detected.
+				</div>
+			) : (
+				renderFileTree(fs)
+			)}
+		</div>
+	);
+	const contentPane = (
+		<div className="h-full min-h-0">
+			{disabled ? (
+				<div className="h-full w-full flex items-center justify-center p-4">
+					<div className="text-center">
+						<p className="text-sm text-muted-foreground">Sandbox is stopped</p>
+						<p className="text-xs text-muted-foreground mt-1">
+							Start or restart the dev server from the toolbar.
+						</p>
+					</div>
+				</div>
+			) : selected && sandboxId ? (
+				<FileContent
+					sandboxId={sandboxId}
+					path={selected.path.substring(1)}
+					editable={isSelectedFileAvailable}
+					revealRequest={revealRequest}
+					onOpenFile={handleOpenFile}
+					onUnsavedChanges={handleUnsavedChanges}
+					onSavingStateChange={handleSavingStateChange}
+					onSaveSuccess={handleSaveSuccess}
+					onEditorAvailabilityChange={setIsSelectedFileAvailable}
+				/>
+			) : (
+				<div className="h-full w-full flex items-center justify-center p-4">
+					<div className="text-center">
+						<p className="text-sm text-muted-foreground">No file selected</p>
+						<p className="text-xs text-muted-foreground mt-1">
+							Select a file from the tree to view or edit it.
+						</p>
+					</div>
+				</div>
+			)}
+		</div>
+	);
 
 	return (
 		<>
@@ -313,76 +357,56 @@ export const FileExplorer = memo(function FileExplorer({
 				<PanelHeader className="h-8 min-h-8 text-xs px-2 py-0.5">
 					<FileIcon className="size-3 mr-1.5" />
 					<span className="font-medium">Explorer</span>
-					<div className="ml-2 flex items-center gap-1">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setViewMode("files")}
-							className={cn(
-								"h-6 px-2 text-xs",
-								viewMode === "files"
-									? "bg-accent/40 text-foreground border border-border"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
-							Files
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setViewMode("changes")}
-							className={cn(
-								"h-6 px-2 text-xs",
-								viewMode === "changes"
-									? "bg-accent/40 text-foreground border border-border"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
-							Changes
-						</Button>
-					</div>
+					<TooltipProvider delayDuration={120}>
+						<div className="ml-2 flex items-center gap-1">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setViewMode("files")}
+										className={cn(
+											"h-6 px-2 text-xs",
+											viewMode === "files"
+												? "bg-accent/40 text-foreground border border-border"
+												: "text-muted-foreground hover:text-foreground",
+										)}
+									>
+										Files
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Show all files</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setViewMode("changes")}
+										className={cn(
+											"h-6 px-2 text-xs",
+											viewMode === "changes"
+												? "bg-accent/40 text-foreground border border-border"
+												: "text-muted-foreground hover:text-foreground",
+										)}
+									>
+										Changes
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Show changed files</TooltipContent>
+							</Tooltip>
+						</div>
+					</TooltipProvider>
 					{selected && !disabled && (
 						<>
 							<span className="ml-auto text-muted-foreground text-xs">
 								{selected.path}
 							</span>
 							<div className="ml-2 flex items-center gap-1">
-								<Button
-									variant={isEditMode ? "ghost" : "default"}
-									size="sm"
-									onClick={() => setIsEditMode(!isEditMode)}
-									className="h-6 px-2 text-xs"
-									disabled={isSaving}
-								>
-									{isEditMode ? (
-										<>
-											<LockIcon className="size-3" />
-											Lock
-										</>
-									) : (
-										<>
-											<EditIcon className="size-3" />
-											Edit
-										</>
-									)}
-								</Button>
-								{selected && sandboxId && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={() => setShowDiff(!showDiff)}
-										className="h-6 px-2 text-xs"
-										disabled={!hasDiffForSelected}
-										title={
-											!hasDiffForSelected
-												? "No file changes detected"
-												: showDiff
-													? "Hide file changes"
-													: "Show file changes"
-										}
-									>
-										{showDiff ? "Hide Changes" : "Show Changes"}
-									</Button>
+								{!isSelectedFileAvailable && (
+									<span className="text-xs text-muted-foreground">
+										Read only
+									</span>
 								)}
 								{hasUnsavedChanges && (
 									<span
@@ -398,77 +422,62 @@ export const FileExplorer = memo(function FileExplorer({
 									</span>
 								)}
 								{selected && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={() => {
-											if (hasUnsavedChanges) {
-												setShowCloseDialog(true);
-											} else {
-												setSelected(null);
-												setIsEditMode(false);
-												setHasUnsavedChanges(false);
-											}
-										}}
-										className="size-6 p-0 text-xs"
-										title="Close file"
-									>
-										×
-									</Button>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => {
+													if (hasUnsavedChanges) {
+														setShowCloseDialog(true);
+													} else {
+														setSelected(null);
+														setHasUnsavedChanges(false);
+													}
+												}}
+												className="size-6 p-0 text-xs"
+											>
+												×
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>Close file</TooltipContent>
+									</Tooltip>
 								)}
 							</div>
 						</>
 					)}
 				</PanelHeader>
 
-				<div className="flex text-sm flex-1 min-h-0">
-					<div className="w-1/4 h-full border-r border-border shrink-0 overflow-auto">
-						{fs.length === 0 && viewMode === "changes" ? (
-							<div className="px-3 py-3 text-xs text-muted-foreground">
-								No changed files detected.
-							</div>
-						) : (
-							renderFileTree(fs)
-						)}
-					</div>
-					<div className="w-3/4 shrink-0 h-full">
-						{disabled ? (
-							<div className="h-full w-full flex items-center justify-center p-4">
-								<div className="text-center">
-									<p className="text-sm text-muted-foreground">
-										Sandbox is stopped
-									</p>
-									<p className="text-xs text-muted-foreground mt-1">
-										Start or restart the dev server from the toolbar.
-									</p>
-								</div>
-							</div>
-						) : selected && sandboxId ? (
-							<FileContent
-								sandboxId={sandboxId}
-								path={selected.path.substring(1)}
-								editable={isEditMode}
-								showDiff={showDiff}
-								revealRequest={revealRequest}
-								onDiffAvailabilityChange={setHasDiffForSelected}
-								onOpenFile={handleOpenFile}
-								onUnsavedChanges={handleUnsavedChanges}
-								onSavingStateChange={handleSavingStateChange}
-								onSaveSuccess={handleSaveSuccess}
-							/>
-						) : (
-							<div className="h-full w-full flex items-center justify-center p-4">
-								<div className="text-center">
-									<p className="text-sm text-muted-foreground">
-										No file selected
-									</p>
-									<p className="text-xs text-muted-foreground mt-1">
-										Select a file from the tree to view or edit it.
-									</p>
-								</div>
-							</div>
-						)}
-					</div>
+				<div className="text-sm flex-1 min-h-0">
+					{isMobile ? (
+						<PanelGroup
+							direction="vertical"
+							className="flex h-full"
+							key="mobile"
+						>
+							<ResizePanel defaultSize={35} minSize={20} maxSize={60}>
+								<div className="h-full border-b border-border">{treePane}</div>
+							</ResizePanel>
+							<PanelResizeHandle className="h-px bg-border hover:bg-accent transition-colors" />
+							<ResizePanel defaultSize={65} minSize={40}>
+								{contentPane}
+							</ResizePanel>
+						</PanelGroup>
+					) : (
+						<PanelGroup
+							direction="horizontal"
+							className="flex h-full"
+							key="desktop"
+						>
+							<ResizePanel defaultSize={25} minSize={15} maxSize={45}>
+								<div className="h-full border-r border-border">{treePane}</div>
+							</ResizePanel>
+							<PanelResizeHandle className="w-px bg-border hover:bg-accent transition-colors" />
+							<ResizePanel defaultSize={75} minSize={55}>
+								{contentPane}
+							</ResizePanel>
+						</PanelGroup>
+					)}
 				</div>
 			</Panel>
 

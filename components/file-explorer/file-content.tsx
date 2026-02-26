@@ -48,6 +48,7 @@ interface Props {
 	onUnsavedChanges?: (hasChanges: boolean) => void;
 	onSavingStateChange?: (isSaving: boolean) => void;
 	onSaveSuccess?: () => void;
+	onEditorAvailabilityChange?: (isAvailable: boolean) => void;
 }
 
 export const FileContent = memo(function FileContent({
@@ -61,6 +62,7 @@ export const FileContent = memo(function FileContent({
 	onUnsavedChanges,
 	onSavingStateChange,
 	onSaveSuccess,
+	onEditorAvailabilityChange,
 }: Props) {
 	const getOriginal = useFileHistory((state) => state.getOriginal);
 	const setHasDiff = useFileHistory((state) => state.setHasDiff);
@@ -88,7 +90,46 @@ export const FileContent = memo(function FileContent({
 				}
 				throw new FileContentError(message, code);
 			}
-			return response.text();
+			const text = await response.text();
+			let parsed:
+				| {
+						error?:
+							| string
+							| {
+									code?: string;
+									message?: string;
+							  };
+				  }
+				| undefined;
+			try {
+				parsed = JSON.parse(text) as {
+					error?:
+						| string
+						| {
+								code?: string;
+								message?: string;
+						  };
+				};
+			} catch {
+				// Non-JSON file content is expected.
+			}
+			if (parsed) {
+				const code =
+					typeof parsed.error === "object" ? parsed.error?.code : undefined;
+				const message =
+					typeof parsed.error === "object"
+						? parsed.error?.message
+						: typeof parsed.error === "string"
+							? parsed.error
+							: undefined;
+				if (code === "sandbox_stopped") {
+					throw new FileContentError(
+						message ?? "Sandbox is stopped",
+						"sandbox_stopped",
+					);
+				}
+			}
+			return text;
 		},
 		{
 			refreshInterval: 3000,
@@ -96,6 +137,11 @@ export const FileContent = memo(function FileContent({
 			revalidateOnFocus: false,
 		},
 	);
+
+	// Track original content when first loaded - capture before AI modifications
+	useEffect(() => {
+		onEditorAvailabilityChange?.(!content.error && !content.isLoading);
+	}, [content.error, content.isLoading, onEditorAvailabilityChange]);
 
 	// Track original content when first loaded - capture before AI modifications
 	useEffect(() => {

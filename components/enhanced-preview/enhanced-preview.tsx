@@ -23,6 +23,12 @@ import { Panel, PanelHeader } from "@/components/panels/panels";
 import { Preview } from "@/components/preview/preview";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -85,87 +91,114 @@ export function EnhancedPreview({ className }: Props) {
 	};
 
 	return (
-		<Panel className={className}>
-			<PanelHeader className="h-10 min-h-10 text-xs gap-1 px-2">
-				<Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-					<TabsList className="h-7 bg-transparent border border-border rounded-md p-0.5">
-						<TabsTrigger
-							value="preview"
-							className="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 h-6 rounded-sm text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border"
-						>
-							<EyeIcon className="size-3" />
-							<span>Preview</span>
-						</TabsTrigger>
-						<TabsTrigger
-							value="code"
-							className="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 h-6 rounded-sm text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border"
-						>
-							<CodeIcon className="size-3" />
-							<span>Code</span>
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
+		<Panel className={cn(className, "flex flex-col min-h-0")}>
+			<PanelHeader className="h-10 min-h-10 text-xs gap-1 px-1.5 md:px-2 overflow-x-auto">
+				<TooltipProvider delayDuration={120}>
+					<Tabs
+						value={activeTab}
+						onValueChange={setActiveTab}
+						className="flex-1"
+					>
+						<TabsList className="h-7 bg-transparent border border-border rounded-md p-0.5">
+							<TabsTrigger
+								value="preview"
+								className="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 h-6 rounded-sm text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border"
+							>
+								<EyeIcon className="size-3" />
+								<span>Preview</span>
+							</TabsTrigger>
+							<TabsTrigger
+								value="code"
+								className="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 h-6 rounded-sm text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border"
+							>
+								<CodeIcon className="size-3" />
+								<span>Code</span>
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
 
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => setConsoleExpanded(!consoleExpanded)}
-					className={cn(
-						"ml-2 mr-0.5 cursor-pointer h-6 px-2 text-xs rounded-sm border",
-						consoleExpanded
-							? "bg-accent/40 text-foreground border-border"
-							: "border-transparent text-muted-foreground hover:text-foreground",
-					)}
-				>
-					<PanelBottom className="size-3" />
-					<span>Console</span>
-				</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setConsoleExpanded(!consoleExpanded)}
+								className={cn(
+									"ml-1 md:ml-2 mr-0.5 cursor-pointer h-6 px-2 text-xs rounded-sm border shrink-0",
+									consoleExpanded
+										? "bg-accent/40 text-foreground border-border"
+										: "border-transparent text-muted-foreground hover:text-foreground",
+								)}
+							>
+								<PanelBottom className="size-3" />
+								<span className="hidden sm:inline">Console</span>
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Toggle console</TooltipContent>
+					</Tooltip>
 
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => controlDevServer("start_dev_server")}
-					className="mr-0.5 cursor-pointer h-6 px-2 text-xs"
-					disabled={!sandboxId || isControllingDevServer}
-					title="Start dev server"
-				>
-					<Play className="size-3" />
-				</Button>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => controlDevServer("stop_dev_server")}
-					className="mr-0.5 cursor-pointer h-6 px-2 text-xs"
-					disabled={!sandboxId || isControllingDevServer}
-					title="Stop dev server"
-				>
-					<Square className="size-3" />
-				</Button>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => controlDevServer("restart_dev_server")}
-					className="mr-0.5 cursor-pointer h-6 px-2 text-xs"
-					disabled={!sandboxId || isControllingDevServer}
-					title="Restart dev server"
-				>
-					<RotateCcw className="size-3" />
-				</Button>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => {
-						if (url) window.open(url, "_blank", "noreferrer");
-					}}
-					className="mr-0.5 cursor-pointer h-6 px-2 text-xs"
-					disabled={!url}
-					title="Open preview in new tab"
-				>
-					<ExternalLink className="size-3" />
-				</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => controlDevServer("start_dev_server")}
+								className="mr-0.5 cursor-pointer h-6 w-6 p-0 text-xs shrink-0"
+								disabled={!sandboxId || isControllingDevServer}
+							>
+								<Play className="size-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Start dev server</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => controlDevServer("stop_dev_server")}
+								className="mr-0.5 cursor-pointer h-6 w-6 p-0 text-xs shrink-0"
+								disabled={!sandboxId || isControllingDevServer}
+							>
+								<Square className="size-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Stop dev server</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => controlDevServer("restart_dev_server")}
+								className="mr-0.5 cursor-pointer h-6 w-6 p-0 text-xs shrink-0"
+								disabled={!sandboxId || isControllingDevServer}
+							>
+								<RotateCcw className="size-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Restart dev server</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									if (url) window.open(url, "_blank", "noreferrer");
+								}}
+								className="mr-0.5 cursor-pointer h-6 w-6 p-0 text-xs shrink-0"
+								disabled={!url}
+							>
+								<ExternalLink className="size-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Open preview in new tab</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
 			</PanelHeader>
 
-			<PanelGroup direction="vertical" className="h-[calc(100%-2rem-1px)]">
+			<PanelGroup direction="vertical" className="flex-1 min-h-0">
 				<ResizePanel
 					defaultSize={consoleExpanded ? 70 : 100}
 					minSize={30}

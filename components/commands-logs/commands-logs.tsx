@@ -12,6 +12,12 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Command, CommandLog } from "./types";
 
@@ -159,42 +165,58 @@ export function CommandsLogs(props: Props) {
 			<PanelHeader className="border-t border-border text-xs px-2 py-0.5">
 				<SquareChevronRight className="size-3 mr-1.5" />
 				<span className="font-medium">Output</span>
-				<div className="ml-auto flex items-center gap-1">
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={() => setFollowTail((prev) => !prev)}
-						className="h-6 px-2 text-[11px]"
-						title={followTail ? "Pause auto-scroll" : "Resume auto-scroll"}
-					>
-						{followTail ? (
-							<Pause className="size-3" />
-						) : (
-							<Play className="size-3" />
-						)}
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={handleCopy}
-						className="h-6 px-2 text-[11px]"
-						title="Copy visible logs"
-					>
-						<Copy className="size-3" />
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={handleDownload}
-						className="h-6 px-2 text-[11px]"
-						title="Download visible logs"
-					>
-						<Download className="size-3" />
-					</Button>
-				</div>
+				<TooltipProvider delayDuration={120}>
+					<div className="ml-auto flex items-center gap-1">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => setFollowTail((prev) => !prev)}
+									className="h-6 px-2 text-[11px]"
+								>
+									{followTail ? (
+										<Pause className="size-3" />
+									) : (
+										<Play className="size-3" />
+									)}
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								{followTail ? "Pause auto-scroll" : "Resume auto-scroll"}
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={handleCopy}
+									className="h-6 px-2 text-[11px]"
+								>
+									<Copy className="size-3" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Copy visible logs</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={handleDownload}
+									className="h-6 px-2 text-[11px]"
+								>
+									<Download className="size-3" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Download visible logs</TooltipContent>
+						</Tooltip>
+					</div>
+				</TooltipProvider>
 			</PanelHeader>
 			<div className="h-[calc(100%-2rem)] flex flex-col">
 				<div className="border-b border-border px-2 py-1.5 flex items-center gap-2 text-[11px]">
