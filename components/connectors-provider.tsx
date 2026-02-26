@@ -1,12 +1,7 @@
 "use client";
 
-import {
-	createContext,
-	useCallback,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import { createContext, useCallback, useContext } from "react";
+import useSWR from "swr";
 import type { Connector } from "@/lib/db/schema";
 
 interface ConnectorsContextType {
@@ -32,35 +27,22 @@ interface ConnectorsProviderProps {
 }
 
 export function ConnectorsProvider({ children }: ConnectorsProviderProps) {
-	const [connectors, setConnectors] = useState<Connector[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-
-	const fetchConnectors = useCallback(async () => {
-		try {
-			const response = await fetch("/api/connectors");
-			if (response.ok) {
-				const data = await response.json();
-				setConnectors(data.data || []);
-			}
-		} catch (error) {
-			console.error("Error fetching connectors:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		fetchConnectors();
-	}, [fetchConnectors]);
+	const { data, isLoading, mutate } = useSWR<{ data?: Connector[] }>(
+		"/api/connectors",
+		{
+			revalidateOnFocus: false,
+			dedupingInterval: 10_000,
+		},
+	);
 
 	const refreshConnectors = useCallback(async () => {
-		await fetchConnectors();
-	}, [fetchConnectors]);
+		await mutate();
+	}, [mutate]);
 
 	return (
 		<ConnectorsContext.Provider
 			value={{
-				connectors,
+				connectors: data?.data ?? [],
 				refreshConnectors,
 				isLoading,
 			}}

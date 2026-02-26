@@ -9,6 +9,7 @@ import { CommandLogsStream } from "@/components/commands-logs/commands-logs-stre
 import { ConnectorsProvider } from "@/components/connectors-provider";
 import { ErrorMonitor } from "@/components/error-monitor/error-monitor";
 import { SandboxState } from "@/components/modals/sandbox-state";
+import { SWRProvider } from "@/components/providers/swr-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
@@ -40,14 +41,6 @@ export const metadata: Metadata = {
 		title: "VibeStack",
 		description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
 		siteName: "VibeStack",
-		images: [
-			{
-				url: "/api/og",
-				width: 1200,
-				height: 630,
-				alt: "VibeStack - AI-Powered Full Stack Development Platform",
-			},
-		],
 		locale: "en_US",
 		type: "website",
 	},
@@ -55,7 +48,6 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "VibeStack",
 		description: `This is a end-to-end coding platform where the user can enter text prompts, and the agent will create a full stack application. It uses Vercel's AI Cloud services like Sandbox for secure code execution, Fluid Compute for efficient rendering and streaming, and it's built with Next.js and the AI SDK.`,
-		images: ["/api/og"],
 	},
 };
 
@@ -90,22 +82,24 @@ export default async function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<SessionProvider>
-						<ConnectorsProvider>
-							<SidebarProvider
-								defaultOpen={defaultSidebarOpen}
-								defaultIsMobile={defaultIsMobile}
-							>
-								<Suspense fallback={null}>
-									<NuqsAdapter>
-										<ChatProvider>
-											<ErrorMonitor>{children}</ErrorMonitor>
-										</ChatProvider>
-									</NuqsAdapter>
-								</Suspense>
-							</SidebarProvider>
-						</ConnectorsProvider>
-					</SessionProvider>
+					<SWRProvider>
+						<SessionProvider>
+							<ConnectorsProvider>
+								<SidebarProvider
+									defaultOpen={defaultSidebarOpen}
+									defaultIsMobile={defaultIsMobile}
+								>
+									<Suspense fallback={null}>
+										<NuqsAdapter>
+											<ChatProvider>
+												<ErrorMonitor>{children}</ErrorMonitor>
+											</ChatProvider>
+										</NuqsAdapter>
+									</Suspense>
+								</SidebarProvider>
+							</ConnectorsProvider>
+						</SessionProvider>
+					</SWRProvider>
 					<Toaster />
 					<CommandLogsStream />
 					<SandboxState />

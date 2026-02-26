@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
+import useSWR from "swr";
 import type { Session } from "@/lib/session/types";
 
 interface SessionContextValue {
@@ -14,34 +15,24 @@ const SessionContext = createContext<SessionContextValue | undefined>(
 );
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-	const [session, setSession] = useState<Session | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-
-	useEffect(() => {
-		// Check for existing session on mount
-		const checkSession = async () => {
-			try {
-				const response = await fetch("/api/auth/info");
-				if (response.ok) {
-					const data = await response.json();
-					setSession(data.session);
-				}
-			} catch (error) {
+	const { data, isLoading, mutate } = useSWR<{ session: Session | null }>(
+		"/api/auth/info",
+		{
+			revalidateOnFocus: false,
+			onError: (error) => {
 				console.error("Session check error:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		checkSession();
-	}, []);
+			},
+		},
+	);
 
 	const signOut = () => {
-		setSession(null);
+		void mutate({ session: null }, { revalidate: false });
 	};
 
 	return (
-		<SessionContext.Provider value={{ session, isLoading, signOut }}>
+		<SessionContext.Provider
+			value={{ session: data?.session ?? null, isLoading, signOut }}
+		>
 			{children}
 		</SessionContext.Provider>
 	);

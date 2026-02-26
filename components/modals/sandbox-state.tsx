@@ -57,21 +57,20 @@ interface DirtyCheckerProps {
 }
 
 function DirtyChecker({ sandboxId, setStatus }: DirtyCheckerProps) {
-	const content = useSWR<"ok" | "stopped">(
+	const content = useSWR<{ status: "running" | "stopped" }>(
 		`/api/sandboxes/${sandboxId}`,
-		async (pathname: string, init: RequestInit) => {
-			const response = await fetch(pathname, init);
-			const { status } = await response.json();
-			return status;
+		{
+			refreshInterval: (data) => (data?.status === "stopped" ? 0 : 5000),
+			dedupingInterval: 4000,
+			revalidateOnFocus: false,
 		},
-		{ refreshInterval: 1000 },
 	);
 
 	useEffect(() => {
-		if (content.data === "stopped") {
+		if (content.data?.status === "stopped") {
 			setStatus("stopped");
 		}
-	}, [setStatus, content.data]);
+	}, [setStatus, content.data?.status]);
 
 	return null;
 }

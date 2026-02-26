@@ -341,44 +341,55 @@ export function SidebarHistory({
 	// Fetch projects from API
 	const { data, error, mutate } = useSWR<{ projects: Project[] }>(
 		"/api/projects",
-		async (url: string) => {
-			const response = await fetch(url);
-			if (!response.ok) {
-				throw new Error("Failed to fetch projects");
-			}
-			return response.json();
-		},
 	);
 
 	const projects = data?.projects || [];
 
 	const handleDelete = async () => {
 		if (!deleteId) return;
+		const idToDelete = deleteId;
 
 		try {
-			const response = await fetch(`/api/projects/${deleteId}`, {
-				method: "DELETE",
-			});
-
-			if (!response.ok) {
-				throw new Error("Failed to delete project");
-			}
-
-			// Optimistically update the UI
-			mutate((data) => {
-				if (!data) return data;
-				return {
-					...data,
-					projects: data.projects.filter(
-						(project) => project.projectId !== deleteId,
-					),
-				};
-			});
+			await mutate(
+				async (current) => {
+					const response = await fetch(`/api/projects/${idToDelete}`, {
+						method: "DELETE",
+					});
+					if (!response.ok) {
+						throw new Error("Failed to delete project");
+					}
+					if (!current) {
+						return { projects: [] };
+					}
+					return {
+						...current,
+						projects: current.projects.filter(
+							(project) => project.projectId !== idToDelete,
+						),
+					};
+				},
+				{
+					optimisticData: (current) => {
+						if (!current) {
+							return { projects: [] };
+						}
+						return {
+							...current,
+							projects: current.projects.filter(
+								(project) => project.projectId !== idToDelete,
+							),
+						};
+					},
+					rollbackOnError: true,
+					populateCache: true,
+					revalidate: false,
+				},
+			);
 
 			setShowDeleteDialog(false);
 			setDeleteId(null);
 
-			if (deleteId === projectId) {
+			if (idToDelete === projectId) {
 				router.push("/");
 			}
 
@@ -394,30 +405,49 @@ export function SidebarHistory({
 		updates: Partial<Project>,
 	) => {
 		try {
-			const response = await fetch(`/api/projects/${projectId}`, {
-				method: "PATCH",
-				headers: {
-					"Content-Type": "application/json",
+			await mutate(
+				async (current) => {
+					const response = await fetch(`/api/projects/${projectId}`, {
+						method: "PATCH",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(updates),
+					});
+					if (!response.ok) {
+						throw new Error("Failed to update project");
+					}
+					if (!current) {
+						return { projects: [] };
+					}
+					return {
+						...current,
+						projects: current.projects.map((project) =>
+							project.projectId === projectId
+								? { ...project, ...updates }
+								: project,
+						),
+					};
 				},
-				body: JSON.stringify(updates),
-			});
-
-			if (!response.ok) {
-				throw new Error("Failed to update project");
-			}
-
-			// Optimistically update the UI
-			mutate((data) => {
-				if (!data) return data;
-				return {
-					...data,
-					projects: data.projects.map((project) =>
-						project.projectId === projectId
-							? { ...project, ...updates }
-							: project,
-					),
-				};
-			});
+				{
+					optimisticData: (current) => {
+						if (!current) {
+							return { projects: [] };
+						}
+						return {
+							...current,
+							projects: current.projects.map((project) =>
+								project.projectId === projectId
+									? { ...project, ...updates }
+									: project,
+							),
+						};
+					},
+					rollbackOnError: true,
+					populateCache: true,
+					revalidate: false,
+				},
+			);
 		} catch (error) {
 			console.error("Failed to update project:", error);
 			toast.error("Failed to update project");
