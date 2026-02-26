@@ -2,6 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import { tool } from "ai";
 import z from "zod/v3";
+import { logger } from "@/lib/logging/logger";
 import type { DataPart } from "../messages/data-parts";
 import description from "./get-sandbox-url.md";
 import { getSandboxCredentials } from "./sandbox-env";
@@ -57,7 +58,16 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 						previewUrl: url,
 					});
 				} catch (error) {
-					console.error("Failed to update project with sandbox URL:", error);
+					logger.error({
+						event: "sandbox.url.project_update.failed",
+						project_id: context.projectId,
+						sandbox_id: sandboxId,
+						port,
+						error:
+							error instanceof Error
+								? { name: error.name, message: error.message }
+								: { message: String(error) },
+					});
 				}
 			}
 

@@ -28,6 +28,8 @@ import {
 	updateProjectLastContext,
 } from "@/lib/db/queries";
 import { connectors } from "@/lib/db/schema";
+import { logger } from "@/lib/logging/logger";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSessionFromReq } from "@/lib/session/server";
 import prompt from "./prompt.md";
 
@@ -35,11 +37,11 @@ const getTokenlensCatalog = cache(
 	async (): Promise<ModelCatalog | undefined> => {
 		try {
 			return await fetchModels();
-		} catch (err) {
-			console.warn(
-				"TokenLens: catalog fetch failed, using default catalog",
-				err,
-			);
+		} catch (error) {
+			logger.error({
+				event: "tokenlens.catalog.fetch_failed",
+				error: error instanceof Error ? error.message : String(error),
+			});
 			return; // tokenlens helpers will fall back to defaultCatalog
 		}
 	},
@@ -57,6 +59,19 @@ interface BodyData {
 }
 
 export async function POST(req: NextRequest) {
+	const wide = createApiWideEvent(req, "chat.stream");
+	let logged = false;
+	const endWide = (
+		statusCode: number,
+		outcome: "success" | "error",
+		error?: unknown,
+		extra?: Record<string, unknown>,
+	) => {
+		if (logged) return;
+		logged = true;
+		wide.end(statusCode, outcome, error, extra);
+	};
+
 	// Parallelize bot check, model fetching, and request parsing for faster startup
 	const [checkResult, models, body] = await Promise.all([
 		checkBotId(),
@@ -65,6 +80,7 @@ export async function POST(req: NextRequest) {
 	]);
 
 	if (checkResult.isBot) {
+		endWide(403, "error", new Error("Bot detected"));
 		return NextResponse.json({ error: `Bot detected` }, { status: 403 });
 	}
 
@@ -77,11 +93,11 @@ export async function POST(req: NextRequest) {
 		mcpServerIds,
 	} = body;
 
-	console.log("[Chat API] Request received:", {
-		modelId,
-		projectId,
-		mcpServerIds,
-		messageCount: messages.length,
+	wide.add({
+		model_id: modelId,
+		project_id: projectId,
+		message_count: messages.length,
+		mcp_server_ids_count: mcpServerIds?.length ?? 0,
 	});
 
 	// Fetch MCP servers if IDs are provided
@@ -97,10 +113,10 @@ export async function POST(req: NextRequest) {
 
 	if (mcpServerIds && mcpServerIds.length > 0) {
 		try {
-			console.log("[Chat API] Fetching MCP servers with IDs:", mcpServerIds);
 			const session = await getSessionFromReq(req);
 
 			if (session?.user?.id) {
+				wide.add({ user_id: session.user.id });
 				const userConnectors = await db
 					.select()
 					.from(connectors)
@@ -111,8 +127,6 @@ export async function POST(req: NextRequest) {
 							inArray(connectors.id, mcpServerIds),
 						),
 					);
-
-				console.log("[Chat API] Found connectors:", userConnectors.length);
 
 				mcpServers = userConnectors.map((connector) => ({
 					name: connector.name,
@@ -126,21 +140,22 @@ export async function POST(req: NextRequest) {
 						: null,
 				}));
 
-				console.log(
-					"[Chat API] Decrypted MCP servers:",
-					mcpServers.map((s) => s.name),
-				);
+				wide.add({
+					mcp_connected_count: mcpServers.length,
+					mcp_names: mcpServers.map((s) => s.name),
+				});
 			} else {
-				console.log("[Chat API] No session found, skipping MCP servers");
+				wide.add({ mcp_skipped_no_session: true });
 			}
-		} catch (error) {
-			console.error("[Chat API] Error fetching MCP servers:", error);
+		} catch {
+			wide.add({ mcp_fetch_error: true });
 			// Continue without MCP servers if there's an error
 		}
 	}
 
 	const model = models.find((model) => model.id === modelId);
 	if (!model) {
+		endWide(400, "error", new Error(`Model ${modelId} not found`));
 		return NextResponse.json(
 			{ error: `Model ${modelId} not found.` },
 			{ status: 400 },
@@ -152,6 +167,9 @@ export async function POST(req: NextRequest) {
 	if (projectId) {
 		project = await getProjectById(projectId);
 		if (!project) {
+			endWide(404, "error", new Error(`Project ${projectId} not found`), {
+				project_id: projectId,
+			});
 			return NextResponse.json(
 				{ error: `Project ${projectId} not found.` },
 				{ status: 404 },
@@ -172,8 +190,8 @@ export async function POST(req: NextRequest) {
 						},
 					],
 				});
-			} catch (error) {
-				console.error("Failed to save user message:", error);
+			} catch {
+				wide.add({ save_user_message_error: true });
 				// Don't block the stream - just log the error
 			}
 		}
@@ -191,11 +209,6 @@ export async function POST(req: NextRequest) {
 				let mcpTools: Record<string, unknown> = {};
 
 				if (mcpServers.length > 0) {
-					console.log(
-						"[Chat API] Initializing MCP clients:",
-						mcpServers.length,
-					);
-
 					try {
 						const serverConnections = await Promise.all(
 							mcpServers.map(async (server) => {
@@ -218,15 +231,6 @@ export async function POST(req: NextRequest) {
 										});
 
 										const serverTools = await client.tools();
-										console.log(
-											"[Chat API] Local MCP server tools:",
-											server.name,
-											Object.keys(serverTools),
-										);
-										console.log(
-											"[Chat API] Connected to local MCP server:",
-											server.name,
-										);
 										return { client, serverTools };
 									}
 
@@ -255,25 +259,15 @@ export async function POST(req: NextRequest) {
 										});
 
 										const serverTools = await client.tools();
-										console.log(
-											"[Chat API] Remote MCP server tools:",
-											server.name,
-											Object.keys(serverTools),
-										);
-										console.log(
-											"[Chat API] Connected to remote MCP server:",
-											server.name,
-											isSSE ? "SSE" : "HTTP",
-										);
 										return { client, serverTools };
 									}
 
 									return null;
-								} catch (serverError) {
-									console.error(
-										`[Chat API] Failed to connect to MCP server ${server.name}:`,
-										serverError,
-									);
+								} catch {
+									wide.add({
+										mcp_server_connect_error: true,
+										mcp_server_name: server.name,
+									});
 									// Continue with other servers
 									return null;
 								}
@@ -288,15 +282,11 @@ export async function POST(req: NextRequest) {
 							mcpClients.push(connection.client);
 						}
 
-						console.log(
-							"[Chat API] MCP tools loaded:",
-							Object.keys(mcpTools).length,
-						);
-					} catch (mcpError) {
-						console.error(
-							"[Chat API] Error initializing MCP clients:",
-							mcpError,
-						);
+						wide.add({
+							mcp_tools_count: Object.keys(mcpTools).length,
+						});
+					} catch {
+						wide.add({ mcp_init_error: true });
 						// Continue without MCP if initialization fails
 					}
 				}
@@ -320,13 +310,10 @@ export async function POST(req: NextRequest) {
 
 				const allTools = { ...baseTools, ...mcpTools };
 
-				console.log("[Chat API] Base tools:", Object.keys(baseTools));
-				console.log(
-					"[Chat API] MCP tools count:",
-					Object.keys(mcpTools).length,
-				);
-				console.log("[Chat API] All tools combined:", Object.keys(allTools));
-				console.log("[Chat API] MCP tool names:", Object.keys(mcpTools));
+				wide.add({
+					base_tools_count: Object.keys(baseTools).length,
+					all_tools_count: Object.keys(allTools).length,
+				});
 
 				const result = streamText({
 					...getModelOptions(modelId, { reasoningEffort }),
@@ -355,11 +342,7 @@ export async function POST(req: NextRequest) {
 					stopWhen: stepCountIs(20),
 					tools: allTools,
 					onError: async (error) => {
-						console.error("[Chat API] Error communicating with AI");
-						console.error(
-							"[Chat API] Error details:",
-							JSON.stringify(error, null, 2),
-						);
+						wide.add({ ai_error: true });
 
 						// Update project status to error
 						if (projectId) {
@@ -371,15 +354,23 @@ export async function POST(req: NextRequest) {
 
 						// Close MCP clients on error
 						await Promise.all(
-							mcpClients.map((client) => client.close().catch(console.error)),
+							mcpClients.map((client) =>
+								client.close().catch(() => {
+									wide.add({ mcp_client_close_error: true });
+								}),
+							),
 						);
+						endWide(500, "error", error);
 					},
 					onFinish: async () => {
 						// Close MCP clients when streamText finishes
 						await Promise.all(
-							mcpClients.map((client) => client.close().catch(console.error)),
+							mcpClients.map((client) =>
+								client.close().catch(() => {
+									wide.add({ mcp_client_close_error: true });
+								}),
+							),
 						);
-						console.log("[Chat API] Closed MCP clients in streamText onFinish");
 					},
 				});
 
@@ -391,7 +382,6 @@ export async function POST(req: NextRequest) {
 							// Send metadata when streaming completes
 							if (part.type === "finish") {
 								const usage = part.totalUsage;
-								console.log("Creating metadata with usage:", usage);
 								return {
 									model: model.name,
 									usage,
@@ -401,9 +391,12 @@ export async function POST(req: NextRequest) {
 						onFinish: async ({ messages: allMessages }) => {
 							// Close MCP clients when finished
 							await Promise.all(
-								mcpClients.map((client) => client.close().catch(console.error)),
+								mcpClients.map((client) =>
+									client.close().catch(() => {
+										wide.add({ mcp_client_close_error: true });
+									}),
+								),
 							);
-							console.log("[Chat API] Closed MCP clients");
 
 							// Log message parts to debug tool calls
 							const assistantMessages = allMessages.filter(
@@ -411,17 +404,6 @@ export async function POST(req: NextRequest) {
 							);
 							const latestAssistantMessage =
 								assistantMessages[assistantMessages.length - 1];
-
-							if (latestAssistantMessage) {
-								console.log(
-									"[Chat API] Assistant message parts:",
-									latestAssistantMessage.parts.map((p) => ({
-										type: p.type,
-										toolName: "toolName" in p ? p.toolName : undefined,
-										toolCallId: "toolCallId" in p ? p.toolCallId : undefined,
-									})),
-								);
-							}
 
 							// Save assistant message to database if projectId is provided
 							// (User message was already saved before streaming started)
@@ -469,8 +451,8 @@ export async function POST(req: NextRequest) {
 											} else {
 												enrichedUsage = { ...baseUsage, modelId } as AppUsage;
 											}
-										} catch (err) {
-											console.warn("TokenLens enrichment failed", err);
+										} catch {
+											wide.add({ tokenlens_enrichment_failed: true });
 											enrichedUsage = {
 												...baseUsage,
 												modelId: model.id,
@@ -479,9 +461,12 @@ export async function POST(req: NextRequest) {
 
 										// Persist enriched usage to database
 										await updateProjectLastContext(projectId, enrichedUsage);
+										wide.add({
+											usage_total_tokens: enrichedUsage.totalTokens,
+										});
 									}
-								} catch (error) {
-									console.error("Failed to save messages:", error);
+								} catch {
+									wide.add({ save_assistant_message_error: true });
 
 									// Update project status to error if message saving fails
 									await updateProject(projectId, {
@@ -490,6 +475,7 @@ export async function POST(req: NextRequest) {
 									});
 								}
 							}
+							endWide(200, "success");
 						},
 					}),
 				);

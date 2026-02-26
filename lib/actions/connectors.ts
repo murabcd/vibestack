@@ -8,6 +8,7 @@ import { ZodError } from "zod";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import { connectors, insertConnectorSchema } from "@/lib/db/schema";
+import { logger } from "@/lib/logging/logger";
 import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
 import { getSessionFromCookie } from "@/lib/session/server";
 
@@ -97,7 +98,14 @@ export async function createConnector(
 			errors: {},
 		};
 	} catch (error) {
-		console.error("[createConnector] Error:", error);
+		logger.error({
+			event: "connector.create.failed",
+			user_id: "unknown",
+			error:
+				error instanceof Error
+					? { name: error.name, message: error.message }
+					: { message: String(error) },
+		});
 
 		if (error instanceof ZodError) {
 			const fieldErrors: Record<string, string> = {};
@@ -153,7 +161,15 @@ export async function toggleConnectorStatus(
 			message: `Connector ${status === "connected" ? "connected" : "disconnected"} successfully`,
 		};
 	} catch (error) {
-		console.error("Error toggling connector status:", error);
+		logger.error({
+			event: "connector.toggle_status.failed",
+			connector_id: id,
+			status,
+			error:
+				error instanceof Error
+					? { name: error.name, message: error.message }
+					: { message: String(error) },
+		});
 
 		return {
 			success: false,
@@ -244,7 +260,14 @@ export async function updateConnector(
 			errors: {},
 		};
 	} catch (error) {
-		console.error("Error updating connector:", error);
+		logger.error({
+			event: "connector.update.failed",
+			user_id: "unknown",
+			error:
+				error instanceof Error
+					? { name: error.name, message: error.message }
+					: { message: String(error) },
+		});
 
 		if (error instanceof ZodError) {
 			const fieldErrors: Record<string, string> = {};
@@ -296,7 +319,14 @@ export async function deleteConnector(id: string) {
 			message: "Connector deleted successfully",
 		};
 	} catch (error) {
-		console.error("Error deleting connector:", error);
+		logger.error({
+			event: "connector.delete.failed",
+			connector_id: id,
+			error:
+				error instanceof Error
+					? { name: error.name, message: error.message }
+					: { message: String(error) },
+		});
 
 		return {
 			success: false,
@@ -337,7 +367,13 @@ export async function getConnectors() {
 			data: decryptedConnectors,
 		};
 	} catch (error) {
-		console.error("Error fetching connectors:", error);
+		logger.error({
+			event: "connector.list.failed",
+			error:
+				error instanceof Error
+					? { name: error.name, message: error.message }
+					: { message: String(error) },
+		});
 
 		return {
 			success: false,

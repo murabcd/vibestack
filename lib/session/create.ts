@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { encrypt } from "@/lib/crypto";
 import { upsertUser } from "@/lib/db/users";
 import { encryptJWE } from "@/lib/jwe/encrypt";
+import { logger } from "@/lib/logging/logger";
 import { SESSION_COOKIE_NAME } from "./constants";
 import type { Session, Tokens } from "./types";
 
@@ -47,7 +48,11 @@ export async function createSession(
 		},
 	};
 
-	console.log("Created session with internal user ID:", session.user.id);
+	logger.info({
+		event: "session.created",
+		user_id: session.user.id,
+		auth_provider: provider,
+	});
 	return session;
 }
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 import type { AppUsage } from "@/lib/ai/usage";
+import { logger } from "@/lib/logging/logger";
 import { db } from "./index";
 import { messages, type Project, projects } from "./schema";
 
@@ -18,7 +19,11 @@ export async function getProjectsList(userId?: string): Promise<Project[]> {
 
 		return await query;
 	} catch (error) {
-		console.error("Failed to get projects list:", error);
+		logger.error({
+			event: "db.projects.list_failed",
+			user_id: userId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to get projects list");
 	}
 }
@@ -33,7 +38,11 @@ export async function getProjectById(
 			.where(eq(projects.projectId, projectId));
 		return result || null;
 	} catch (error) {
-		console.error("Failed to get project by id:", error);
+		logger.error({
+			event: "db.projects.get_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to get project by id");
 	}
 }
@@ -65,7 +74,12 @@ export async function createProject({
 			.returning();
 		return result;
 	} catch (error) {
-		console.error("Failed to create project:", error);
+		logger.error({
+			event: "db.projects.create_failed",
+			project_id: projectId,
+			user_id: userId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to create project");
 	}
 }
@@ -92,7 +106,11 @@ export async function updateProject(
 			.returning();
 		return result || null;
 	} catch (error) {
-		console.error("Failed to update project:", error);
+		logger.error({
+			event: "db.projects.update_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to update project");
 	}
 }
@@ -107,7 +125,11 @@ export async function updateProjectLastContext(
 			.set({ lastContext })
 			.where(eq(projects.projectId, projectId));
 	} catch (error) {
-		console.warn("Failed to update lastContext for project", projectId, error);
+		logger.error({
+			event: "db.projects.update_last_context_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		// Don't throw error - this is not critical for the main flow
 	}
 }
@@ -120,7 +142,11 @@ export async function deleteProject(projectId: string): Promise<boolean> {
 			.returning();
 		return result.length > 0;
 	} catch (error) {
-		console.error("Failed to delete project:", error);
+		logger.error({
+			event: "db.projects.delete_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to delete project");
 	}
 }
@@ -135,7 +161,11 @@ export async function getMessagesByProjectId(projectId: string) {
 			.orderBy(messages.createdAt);
 		return result;
 	} catch (error) {
-		console.error("Failed to get messages by project id:", error);
+		logger.error({
+			event: "db.messages.list_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		// Return empty array instead of throwing to allow graceful degradation
 		return [];
 	}
@@ -162,7 +192,12 @@ export async function createMessage({
 			.returning();
 		return result;
 	} catch (error) {
-		console.error("Failed to create message:", error);
+		logger.error({
+			event: "db.messages.create_failed",
+			project_id: projectId,
+			role,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to create message");
 	}
 }
@@ -177,7 +212,11 @@ export async function deleteMessagesByProjectId(
 			.returning();
 		return result.length > 0;
 	} catch (error) {
-		console.error("Failed to delete messages by project id:", error);
+		logger.error({
+			event: "db.messages.delete_by_project_failed",
+			project_id: projectId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to delete messages by project id");
 	}
 }
@@ -195,7 +234,11 @@ export async function saveMessages({
 		const result = await db.insert(messages).values(messagesToSave).returning();
 		return result;
 	} catch (error) {
-		console.error("Failed to save messages:", error);
+		logger.error({
+			event: "db.messages.bulk_save_failed",
+			message_count: messagesToSave.length,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		throw new Error("Failed to save messages");
 	}
 }

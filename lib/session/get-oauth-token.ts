@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import { accounts, users } from "@/lib/db/schema";
+import { logger } from "@/lib/logging/logger";
 
 type OAuthProvider = "github" | "vercel";
 
@@ -90,7 +91,12 @@ export async function getOAuthToken(
 
 		return null;
 	} catch (error) {
-		console.error("Error fetching OAuth token:", error);
+		logger.error({
+			event: "oauth.token.fetch_failed",
+			user_id: userId,
+			provider,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

@@ -9,6 +9,7 @@ import { mutate } from "swr";
 import { useDataStateMapper } from "@/app/state";
 import type { ChatUIMessage } from "@/components/chat/types";
 import type { DataPart } from "@/lib/ai/messages/data-parts";
+import { logger } from "@/lib/logging/logger";
 
 interface ChatContextValue {
 	chat: Chat<ChatUIMessage>;
@@ -28,7 +29,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 				onData: (data: DataUIPart<DataPart>) => mapDataToStateRef.current(data),
 				onError: (error) => {
 					toast.error(`Communication error with the AI: ${error.message}`);
-					console.error("Error sending message:", error);
+					logger.error({
+						event: "chat.client.send.failed",
+						error: {
+							name: error.name,
+							message: error.message,
+						},
+					});
 				},
 			}),
 		[],

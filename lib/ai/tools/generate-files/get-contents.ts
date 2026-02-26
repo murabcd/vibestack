@@ -3,6 +3,7 @@ import { jsonrepair } from "jsonrepair";
 import z from "zod/v3";
 import { getModelOptions } from "@/lib/ai/gateway";
 import { Deferred } from "@/lib/deferred";
+import { logger } from "@/lib/logging/logger";
 
 export type File = z.infer<typeof fileSchema>;
 
@@ -60,8 +61,15 @@ export async function* getContents(
 		},
 		onError: (error) => {
 			deferred.reject(error);
-			console.error("Error communicating with AI");
-			console.error(JSON.stringify(error, null, 2));
+			logger.error({
+				event: "generate_files.ai_call.failed",
+				model_id: params.modelId,
+				requested_path_count: params.paths.length,
+				error:
+					error instanceof Error
+						? { name: error.name, message: error.message }
+						: { message: String(error) },
+			});
 		},
 	});
 

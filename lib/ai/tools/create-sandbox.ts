@@ -3,6 +3,7 @@ import type { UIMessage, UIMessageStreamWriter } from "ai";
 import { tool } from "ai";
 import z from "zod/v3";
 import { MAX_ALLOWED_SANDBOX_DURATION } from "@/lib/constants";
+import { logger } from "@/lib/logging/logger";
 import { validateSandboxEnvironmentVariables } from "@/lib/sandbox/config";
 import type { DataPart } from "../messages/data-parts";
 import description from "./create-sandbox.md";
@@ -90,7 +91,15 @@ export const createSandbox = ({ writer, context }: Params) =>
 							status: "processing",
 						});
 					} catch (error) {
-						console.error("Failed to update project with sandbox ID:", error);
+						logger.error({
+							event: "sandbox.create.project_update.failed",
+							project_id: context.projectId,
+							sandbox_id: sandbox.sandboxId,
+							error:
+								error instanceof Error
+									? { name: error.name, message: error.message }
+									: { message: String(error) },
+						});
 					}
 				}
 
@@ -113,7 +122,12 @@ export const createSandbox = ({ writer, context }: Params) =>
 					},
 				});
 
-				console.log("Error creating Sandbox:", richError.error);
+				logger.error({
+					event: "sandbox.create.failed",
+					error: {
+						message: richError.error.message,
+					},
+				});
 				return richError.message;
 			}
 		},
