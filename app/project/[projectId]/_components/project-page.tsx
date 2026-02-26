@@ -45,14 +45,12 @@ export function ProjectPageClient({
 	useEffect(() => {
 		if (hasCheckedStorage.current) return;
 		hasCheckedStorage.current = true;
+		hasSentPendingMessage.current = false;
 
 		const messageKey = `pending-message-${projectId}`;
 		const storedMessage = sessionStorage.getItem(messageKey);
 
 		if (storedMessage && initialMessages.length === 0) {
-			// Clear IMMEDIATELY before parsing to prevent double-read
-			sessionStorage.removeItem(messageKey);
-
 			try {
 				const parsedMessage = JSON.parse(storedMessage);
 				setPendingMessage(parsedMessage);

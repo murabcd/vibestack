@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { generateUUID } from "@/lib/utils";
-import { InitialScreen } from "./initial-screen";
+import { InitialScreen } from "../initial-screen";
 
 export function PageClient({
 	initialSandboxDuration,

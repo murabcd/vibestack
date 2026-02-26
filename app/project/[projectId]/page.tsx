@@ -6,7 +6,7 @@ import type { AppUsage } from "@/lib/ai/usage";
 import { MAX_SANDBOX_DURATION } from "@/lib/constants";
 import { getMessagesByProjectId, getProjectById } from "@/lib/db/queries";
 import { convertToUIMessages } from "@/lib/utils";
-import { ProjectPageClient } from "./page-client";
+import { ProjectPageClient } from "./_components/project-page";
 
 interface ProjectPageProps {
 	params: Promise<{

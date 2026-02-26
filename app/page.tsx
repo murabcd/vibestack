@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { PageClient } from "@/app/page-client";
+import { PageClient } from "@/app/_components/home-page";
 import { MAX_SANDBOX_DURATION } from "@/lib/constants";
 
 export default async function Page() {
