@@ -4,6 +4,7 @@ import {
 	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
+	pruneMessages,
 	stepCountIs,
 	streamText,
 	validateUIMessages,
@@ -313,32 +314,46 @@ export async function POST(req: NextRequest) {
 					all_tools_count: Object.keys(allTools).length,
 				});
 
+				const modelMessages = await convertToModelMessages(
+					validatedMessages.map((message) => {
+						return {
+							...message,
+							parts: message.parts.map((part) => {
+								if (part.type === "data-report-errors") {
+									return {
+										type: "text",
+										text:
+											`There are errors in the generated code. This is the summary of the errors we have:\n` +
+											`\`\`\`${part.data.summary}\`\`\`\n` +
+											(part.data.paths?.length
+												? `The following files may contain errors:\n` +
+													`\`\`\`${part.data.paths?.join("\n")}\`\`\`\n`
+												: "") +
+											`Fix the errors reported.`,
+									};
+								}
+								return part;
+							}),
+						};
+					}),
+				);
+
+				const prunedMessages = pruneMessages({
+					messages: modelMessages,
+					reasoning: "before-last-message",
+					toolCalls: "before-last-2-messages",
+					emptyMessages: "remove",
+				});
+
+				wide.add({
+					model_messages_count: modelMessages.length,
+					pruned_messages_count: prunedMessages.length,
+				});
+
 				const result = streamText({
 					...getModelOptions(modelId, { reasoningEffort }),
 					system: prompt,
-					messages: await convertToModelMessages(
-						validatedMessages.map((message) => {
-							return {
-								...message,
-								parts: message.parts.map((part) => {
-									if (part.type === "data-report-errors") {
-										return {
-											type: "text",
-											text:
-												`There are errors in the generated code. This is the summary of the errors we have:\n` +
-												`\`\`\`${part.data.summary}\`\`\`\n` +
-												(part.data.paths?.length
-													? `The following files may contain errors:\n` +
-														`\`\`\`${part.data.paths?.join("\n")}\`\`\`\n`
-													: "") +
-												`Fix the errors reported.`,
-										};
-									}
-									return part;
-								}),
-							};
-						}),
-					),
+					messages: prunedMessages,
 					stopWhen: stepCountIs(20),
 					tools: allTools,
 					onError: async (error) => {

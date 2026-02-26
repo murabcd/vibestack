@@ -75,6 +75,7 @@ export function PromptForm({
 	const hasChatContext = chat && messages.length > 0;
 	const shouldHideAuxiliaryTools =
 		hideAuxiliaryToolsWhenChatActive && hasChatContext;
+	const usedContextTokens = usage?.inputTokens ?? usage?.totalTokens ?? 0;
 
 	useEffect(() => {
 		const currentValue = controller.textInput.value;
@@ -119,12 +120,12 @@ export function PromptForm({
 							}
 							className="flex-1 min-w-0"
 						/>
-						{hasChatContext && usage && (usage.totalTokens ?? 0) > 0 && (
+						{hasChatContext && usage && usedContextTokens > 0 && (
 							<div className="shrink-0">
 								<Context
 									modelId={modelId}
 									usage={usage}
-									usedTokens={usage.totalTokens || 0}
+									usedTokens={usedContextTokens}
 								>
 									<ContextTrigger />
 									<ContextContent>
