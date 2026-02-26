@@ -1,11 +1,11 @@
 import { BugIcon } from "lucide-react";
-import Markdown from "react-markdown";
 import {
 	Task,
 	TaskContent,
 	TaskItem,
 	TaskTrigger,
 } from "@/components/ai-elements/task";
+import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
 import type { DataPart } from "@/lib/ai/messages/data-parts";
 
 export function ReportErrors({
@@ -22,7 +22,7 @@ export function ReportErrors({
 			/>
 			<TaskContent>
 				<TaskItem>
-					<Markdown>{message.summary}</Markdown>
+					<MarkdownRenderer content={message.summary} />
 				</TaskItem>
 			</TaskContent>
 		</Task>
