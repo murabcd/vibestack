@@ -26,6 +26,10 @@ export function generateUUID(): string {
 export async function convertToUIMessages(
 	messages: Message[],
 ): Promise<ChatUIMessage[]> {
+	if (messages.length === 0) {
+		return [];
+	}
+
 	return validateUIMessages<ChatUIMessage>({
 		messages: messages.map((message) => message.content as ChatUIMessage),
 		metadataSchema,

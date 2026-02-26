@@ -43,7 +43,7 @@ export function PageClient({
 			);
 
 			// Navigate to project page immediately (no waiting!)
-			router.push(`/project/${projectId}?new=1`);
+			router.push(`/project/${projectId}`);
 
 			// Create project in background while the UI transitions to project view.
 			void fetch("/api/projects", {
