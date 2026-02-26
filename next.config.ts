@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
 		remotePatterns: [
 			{
 				protocol: "https",
+				hostname: "models.dev",
+				port: "",
+				pathname: "/logos/**",
+			},
+			{
+				protocol: "https",
 				hostname: "vercel.com",
 				port: "",
 				pathname: "/api/www/avatar/**",

@@ -25,6 +25,18 @@ Critical Next.js Requirements:
 - Import global styles from `app/layout.tsx` via `./globals.css`.
 - Use `next.config.js` or `next.config.mjs` (not `next.config.ts`).
 
+Dependency Version Policy (Default):
+
+- For new Next.js apps, generate `package.json` with:
+  - `next: ^16.1.6`
+  - `react: ^19.2.4`
+  - `react-dom: ^19.2.4`
+  - `typescript: ^5.9.3`
+- Do not generate Next.js 14/15 or React 18 by default.
+- Only use older major versions if the user explicitly asks for them.
+- If `package.json` is generated with older majors by mistake, fix versions before running install.
+- When editing an existing project, prefer the project's current pinned versions unless the user asks to upgrade.
+
 Files That Must Not Be Manually Generated:
 
 - Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`)
@@ -90,12 +102,20 @@ TypeScript Build Requirements:
 - Avoid unnecessary `any` casts.
 - Ensure generated code type-checks when feasible.
 
+# Next.js Dev Command Safety
+
+- Always start Next.js with: `pnpm exec next dev --port <PORT>`.
+- Allowed fallback: `node ./node_modules/next/dist/bin/next dev --port <PORT>`.
+- Never use `pnpm run dev -- -p <PORT>`.
+- Never place `--` before Next.js flags when starting dev.
+- If port-command parsing fails, immediately retry with `pnpm exec next dev --port <PORT>`.
+
 # Typical Workflow
 
 1. Create sandbox with needed ports.
 2. Generate or update required files.
 3. Install dependencies (`pnpm install`).
-4. Start dev server (for Next.js: `pnpm run dev -- --port <PORT>`).
+4. Start dev server (for Next.js: `pnpm exec next dev --port <PORT>`).
 5. Fix issues iteratively until server is healthy.
 6. Get preview URL.
 7. Confirm successful runtime before declaring completion.
