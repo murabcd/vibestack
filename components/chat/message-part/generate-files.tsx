@@ -35,7 +35,7 @@ export function GenerateFiles(props: {
 		props.message.status === "done" ? "Uploaded files" : "Generating files";
 
 	return (
-		<Task className={props.className} >
+		<Task className={props.className}>
 			<TaskTrigger
 				title={title}
 				icon={<CloudUploadIcon className="size-4" />}

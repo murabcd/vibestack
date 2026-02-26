@@ -63,7 +63,9 @@ export function Text({
 				>
 					<MarkdownRenderer
 						content={part.text}
-						isAnimating={messageRole === "assistant" && part.state === "streaming"}
+						isAnimating={
+							messageRole === "assistant" && part.state === "streaming"
+						}
 					/>
 				</div>
 				<div className="absolute top-0 right-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

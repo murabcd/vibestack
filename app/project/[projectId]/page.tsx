@@ -53,13 +53,13 @@ export default async function ProjectPage({
 	let initialMessages: ChatUIMessage[] = [];
 	let initialLastContext: AppUsage | undefined;
 	try {
-			const [messagesFromDb, project] = await Promise.all([
-				getMessagesByProjectId(projectId),
-				getProjectCached(projectId),
-			]);
-			initialMessages = await convertToUIMessages(messagesFromDb);
-			initialLastContext = project?.lastContext ?? undefined;
-		} catch (error) {
+		const [messagesFromDb, project] = await Promise.all([
+			getMessagesByProjectId(projectId),
+			getProjectCached(projectId),
+		]);
+		initialMessages = await convertToUIMessages(messagesFromDb);
+		initialLastContext = project?.lastContext ?? undefined;
+	} catch (error) {
 		console.error("Failed to fetch messages or project:", error);
 		// Continue with empty messages array - this allows the page to load
 		// even if the database query fails

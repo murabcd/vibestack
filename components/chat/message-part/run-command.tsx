@@ -35,7 +35,7 @@ export function RunCommand({ message }: { message: DataPart["run-command"] }) {
 	const commandText = `${message.command} ${message.args.join(" ")}`;
 
 	return (
-		<Task >
+		<Task>
 			<TaskTrigger
 				title={getTitle()}
 				icon={<SquareChevronRightIcon className="size-4" />}

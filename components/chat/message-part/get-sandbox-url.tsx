@@ -19,7 +19,7 @@ export function GetSandboxURL({
 	};
 
 	return (
-		<Task >
+		<Task>
 			<TaskTrigger
 				title="Get Sandbox URL"
 				icon={<LinkIcon className="size-4" />}

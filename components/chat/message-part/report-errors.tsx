@@ -14,7 +14,7 @@ export function ReportErrors({
 	message: DataPart["report-errors"];
 }) {
 	return (
-		<Task >
+		<Task>
 			<TaskTrigger
 				title="Auto-detected errors"
 				icon={<BugIcon className="size-4" />}
