@@ -17,7 +17,7 @@ const lineWidths = [
 
 export function MonacoLoadingSkeleton() {
 	return (
-		<div className="absolute inset-0 flex gap-3 bg-background p-3">
+		<div className="h-full w-full flex gap-3 bg-background p-3">
 			<Skeleton className="h-full w-10 rounded-sm bg-muted/60" />
 			<div className="flex-1 space-y-2 pt-1">
 				{lineWidths.map((line) => (

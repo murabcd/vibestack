@@ -47,9 +47,7 @@ export const FileExplorer = memo(function FileExplorer({
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [showDiff, setShowDiff] = useState(false);
-
-	// File history for diff viewer
-	const hasOriginal = useFileHistory((state) => state.hasOriginal);
+	const [hasDiffForSelected, setHasDiffForSelected] = useState(false);
 
 	// Safety dialog states
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -90,6 +88,8 @@ export const FileExplorer = memo(function FileExplorer({
 				// Reset edit mode when selecting a new file
 				setIsEditMode(false);
 				setHasUnsavedChanges(false);
+				setShowDiff(false);
+				setHasDiffForSelected(false);
 			}
 		},
 		[hasUnsavedChanges, selected],
@@ -230,12 +230,10 @@ export const FileExplorer = memo(function FileExplorer({
 										size="sm"
 										onClick={() => setShowDiff(!showDiff)}
 										className="h-6 px-2 text-xs"
-										disabled={
-											!hasOriginal(sandboxId, selected.path.substring(1))
-										}
+										disabled={!hasDiffForSelected}
 										title={
-											!hasOriginal(sandboxId, selected.path.substring(1))
-												? "No original content to compare with"
+											!hasDiffForSelected
+												? "No file changes detected"
 												: showDiff
 													? "Hide file changes"
 													: "Show file changes"
@@ -292,6 +290,7 @@ export const FileExplorer = memo(function FileExplorer({
 								path={selected.path.substring(1)}
 								editable={isEditMode}
 								showDiff={showDiff}
+								onDiffAvailabilityChange={setHasDiffForSelected}
 								onUnsavedChanges={handleUnsavedChanges}
 								onSavingStateChange={handleSavingStateChange}
 								onSaveSuccess={handleSaveSuccess}
@@ -371,7 +370,7 @@ const FileTreeNode = memo(function FileTreeNode({
 	onSelectFile: (node: FileNode) => void;
 	renderFileTree: (nodes: FileNode[], depth: number) => React.ReactNode;
 }) {
-	const hasOriginal = useFileHistory((state) => state.hasOriginal);
+	const hasDiff = useFileHistory((state) => state.hasDiff);
 	const handleClick = useCallback(() => {
 		if (node.type === "folder") {
 			onToggleFolder(node.path);
@@ -410,10 +409,10 @@ const FileTreeNode = memo(function FileTreeNode({
 				<span className="">{node.name}</span>
 				{node.type === "file" &&
 					sandboxId &&
-					hasOriginal(sandboxId, node.path.substring(1)) && (
+					hasDiff(sandboxId, node.path.substring(1)) && (
 						<span
 							className="w-2 h-2 rounded-full bg-blue-500 ml-2 animate-pulse"
-							title="File has been modified - click 'Show Changes' to see diff"
+							title="File has unsaved changes"
 						/>
 					)}
 			</button>

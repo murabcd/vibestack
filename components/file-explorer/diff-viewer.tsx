@@ -5,6 +5,7 @@ import { DiffModeEnum, DiffView } from "@git-diff-view/react";
 import { useMemo } from "react";
 import "@git-diff-view/react/styles/diff-view-pure.css";
 import { useTheme } from "next-themes";
+import { hasMeaningfulDiff } from "./diff-utils";
 
 interface DiffViewerProps {
 	originalContent: string;
@@ -20,8 +21,13 @@ export function DiffViewer({
 	language,
 }: DiffViewerProps) {
 	const { theme } = useTheme();
+	const hasChanges = hasMeaningfulDiff(originalContent, newContent);
 
 	const diffFile = useMemo(() => {
+		// Avoid parsing diffs when content is identical. Some patch generators
+		// produce header-only output with no hunks, which the parser rejects.
+		if (!hasChanges) return null;
+
 		try {
 			const file = generateDiffFile(
 				filename,
@@ -33,26 +39,19 @@ export function DiffViewer({
 			);
 			if (!file) return null;
 			file.initTheme(theme === "dark" ? "dark" : "light");
-
-			// Wrap file.init() in try-catch to handle diff parsing errors
-			try {
-				file.init();
-				file.buildSplitDiffLines();
-				file.buildUnifiedDiffLines();
-			} catch (initError) {
-				console.error("Error initializing diff file:", initError);
-				throw initError;
-			}
+			file.init();
+			file.buildSplitDiffLines();
+			file.buildUnifiedDiffLines();
 
 			return file;
 		} catch {
 			return null;
 		}
-	}, [originalContent, newContent, filename, language, theme]);
+	}, [originalContent, newContent, filename, language, theme, hasChanges]);
 
 	if (!diffFile) {
 		// Check if contents are identical - no diff to show
-		if (originalContent === newContent) {
+		if (!hasChanges) {
 			return (
 				<div className="flex items-center justify-center h-full p-4">
 					<div className="text-center">

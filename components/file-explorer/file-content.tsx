@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { memo, useEffect } from "react";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
+import { hasMeaningfulDiff } from "./diff-utils";
 import { DiffViewer } from "./diff-viewer";
 import { MonacoLoadingSkeleton } from "./monaco-loading-skeleton";
 
@@ -29,6 +30,7 @@ interface Props {
 	path: string;
 	editable?: boolean;
 	showDiff?: boolean;
+	onDiffAvailabilityChange?: (hasDiff: boolean) => void;
 	onUnsavedChanges?: (hasChanges: boolean) => void;
 	onSavingStateChange?: (isSaving: boolean) => void;
 	onSaveSuccess?: () => void;
@@ -39,11 +41,13 @@ export const FileContent = memo(function FileContent({
 	path,
 	editable = false,
 	showDiff = false,
+	onDiffAvailabilityChange,
 	onUnsavedChanges,
 	onSavingStateChange,
 	onSaveSuccess,
 }: Props) {
 	const getOriginal = useFileHistory((state) => state.getOriginal);
+	const setHasDiff = useFileHistory((state) => state.setHasDiff);
 	const captureOriginalBeforeAI = useFileHistory(
 		(state) => state.captureOriginalBeforeAI,
 	);
@@ -68,6 +72,28 @@ export const FileContent = memo(function FileContent({
 			captureOriginalBeforeAI(sandboxId, path, content.data);
 		}
 	}, [content.data, sandboxId, path, captureOriginalBeforeAI]);
+
+	// Report whether this file currently has real changes to diff.
+	useEffect(() => {
+		if (!content.data) {
+			setHasDiff(sandboxId, path, false);
+			onDiffAvailabilityChange?.(false);
+			return;
+		}
+		const original = getOriginal(sandboxId, path);
+		const hasDiff = original
+			? hasMeaningfulDiff(original, content.data)
+			: false;
+		setHasDiff(sandboxId, path, hasDiff);
+		onDiffAvailabilityChange?.(hasDiff);
+	}, [
+		content.data,
+		sandboxId,
+		path,
+		getOriginal,
+		setHasDiff,
+		onDiffAvailabilityChange,
+	]);
 
 	if (content.isLoading || !content.data) {
 		return <MonacoLoadingSkeleton />;
@@ -112,7 +138,7 @@ export const FileContent = memo(function FileContent({
 		const original = getOriginal(sandboxId, path);
 		if (original) {
 			return (
-				<div className="absolute w-full h-full">
+				<div className="relative h-full w-full overflow-hidden">
 					<DiffViewer
 						originalContent={original}
 						newContent={content.data}
@@ -125,7 +151,7 @@ export const FileContent = memo(function FileContent({
 	}
 
 	return (
-		<div className="absolute w-full h-full">
+		<div className="relative h-full w-full overflow-hidden">
 			{editable ? (
 				<FileEditor
 					filename={path}

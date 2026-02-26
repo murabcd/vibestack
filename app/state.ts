@@ -130,9 +130,12 @@ export const useFileExplorerStore = create<FileExplorerStore>()((set) => ({
 
 interface FileHistoryStore {
 	originals: Record<string, string>; // key: "sandboxId:path", value: original content
+	diffStatus: Record<string, boolean>; // key: "sandboxId:path", value: has diff
 	setOriginal: (sandboxId: string, path: string, content: string) => void;
 	getOriginal: (sandboxId: string, path: string) => string | null;
 	hasOriginal: (sandboxId: string, path: string) => boolean;
+	setHasDiff: (sandboxId: string, path: string, hasDiff: boolean) => void;
+	hasDiff: (sandboxId: string, path: string) => boolean;
 	captureOriginalBeforeAI: (
 		sandboxId: string,
 		path: string,
@@ -142,6 +145,7 @@ interface FileHistoryStore {
 
 export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
 	originals: {},
+	diffStatus: {},
 
 	setOriginal: (sandboxId, path, content) => {
 		const key = `${sandboxId}:${path}`;
@@ -155,6 +159,15 @@ export const useFileHistory = create<FileHistoryStore>()((set, get) => ({
 
 	hasOriginal: (sandboxId, path) => {
 		return !!get().originals[`${sandboxId}:${path}`];
+	},
+
+	setHasDiff: (sandboxId, path, hasDiff) => {
+		const key = `${sandboxId}:${path}`;
+		set({ diffStatus: { ...get().diffStatus, [key]: hasDiff } });
+	},
+
+	hasDiff: (sandboxId, path) => {
+		return !!get().diffStatus[`${sandboxId}:${path}`];
 	},
 
 	captureOriginalBeforeAI: (sandboxId, path, content) => {
