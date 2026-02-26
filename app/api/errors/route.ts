@@ -5,16 +5,20 @@ import { NextResponse } from "next/server";
 import { linesSchema, resultSchema } from "@/components/error-monitor/schemas";
 import { Models } from "@/lib/ai/constants";
 import { getModelOptions } from "@/lib/ai/gateway";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import prompt from "./prompt.md";
 
 export async function POST(req: Request) {
+	const wide = createApiWideEvent(req, "errors.summarize");
 	const [checkResult, body] = await Promise.all([checkBotId(), req.json()]);
 	if (checkResult.isBot) {
+		wide.end(403, "error", new Error("Bot detected"));
 		return NextResponse.json({ error: `Bot detected` }, { status: 403 });
 	}
 
 	const parsedBody = linesSchema.safeParse(body);
 	if (!parsedBody.success) {
+		wide.end(400, "error", new Error("Invalid request body"));
 		return NextResponse.json({ error: `Invalid request` }, { status: 400 });
 	}
 
@@ -35,6 +39,11 @@ export async function POST(req: Request) {
 		},
 	});
 
+	wide.add({
+		model_id: Models.OpenAIGpt52,
+		error_lines: parsedBody.data.lines.length,
+	});
+	wide.end(200, "success");
 	return NextResponse.json(result.object, {
 		status: 200,
 	});

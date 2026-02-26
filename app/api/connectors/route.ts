@@ -4,13 +4,16 @@ import { NextResponse } from "next/server";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import { connectors } from "@/lib/db/schema";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSessionFromReq } from "@/lib/session/server";
 
 export async function GET(req: NextRequest) {
+	const wide = createApiWideEvent(req, "connectors.list");
 	try {
 		const session = await getSessionFromReq(req);
 
 		if (!session?.user?.id) {
+			wide.end(401, "error", new Error("Unauthorized"));
 			return NextResponse.json(
 				{
 					success: false,
@@ -25,6 +28,10 @@ export async function GET(req: NextRequest) {
 			.select()
 			.from(connectors)
 			.where(eq(connectors.userId, session.user.id));
+		wide.add({
+			user_id: session.user.id,
+			connector_count: userConnectors.length,
+		});
 
 		// Decrypt sensitive fields
 		const decryptedConnectors = userConnectors.map((connector) => ({
@@ -35,12 +42,13 @@ export async function GET(req: NextRequest) {
 			env: connector.env ? JSON.parse(decrypt(connector.env)) : null,
 		}));
 
+		wide.end(200, "success");
 		return NextResponse.json({
 			success: true,
 			data: decryptedConnectors,
 		});
 	} catch (error) {
-		console.error("Error fetching connectors:", error);
+		wide.end(500, "error", error);
 
 		return NextResponse.json(
 			{

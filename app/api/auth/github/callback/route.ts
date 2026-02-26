@@ -1,18 +1,22 @@
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { createSession, saveSession } from "@/lib/session/create";
 
 export async function GET(req: NextRequest): Promise<Response> {
+	const wide = createApiWideEvent(req, "auth.github.callback");
 	const url = new URL(req.url);
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
 	const error = url.searchParams.get("error");
 
 	if (error) {
+		wide.end(302, "error", new Error(`OAuth error: ${error}`));
 		return Response.redirect(new URL(`/?error=${error}`, req.url));
 	}
 
 	if (!code || !state) {
+		wide.end(302, "error", new Error("Missing code or state"));
 		return Response.redirect(new URL("/?error=missing_code_or_state", req.url));
 	}
 
@@ -23,6 +27,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 	const userId = store.get("github_oauth_user_id")?.value;
 
 	if (!storedState || storedState !== state) {
+		wide.end(302, "error", new Error("Invalid OAuth state"));
 		return Response.redirect(new URL("/?error=invalid_state", req.url));
 	}
 
@@ -48,6 +53,11 @@ export async function GET(req: NextRequest): Promise<Response> {
 		const tokenData = await tokenResponse.json();
 
 		if (tokenData.error) {
+			wide.end(
+				302,
+				"error",
+				new Error(`Token exchange error: ${tokenData.error}`),
+			);
 			return Response.redirect(new URL(`/?error=${tokenData.error}`, req.url));
 		}
 
@@ -64,7 +74,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 		if (authMode === "connect" && userId) {
 			// Connect GitHub account to existing user
 			// This would be implemented in a real scenario
-			console.log("Connecting GitHub account to user:", userId);
+			wide.add({ auth_mode: "connect", user_id: userId });
 		} else {
 			// Create new session with real GitHub user data
 			const session = await createSession(
@@ -84,18 +94,22 @@ export async function GET(req: NextRequest): Promise<Response> {
 			);
 
 			if (!session) {
+				wide.end(302, "error", new Error("Session creation failed"));
 				return Response.redirect(
 					new URL("/?error=session_creation_failed", req.url),
 				);
 			}
 
 			await saveSession(session);
+			wide.add({ auth_mode: "signin", provider_user: userData.login });
+			wide.end(302, "success");
 			return Response.redirect(new URL(redirectTo, req.url));
 		}
 
+		wide.end(302, "success");
 		return Response.redirect(new URL(redirectTo, req.url));
 	} catch (error) {
-		console.error("GitHub OAuth error:", error);
+		wide.end(302, "error", error);
 		return Response.redirect(new URL("/?error=oauth_error", req.url));
 	} finally {
 		// Clean up cookies

@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
 
 const FileParamsSchema = z.object({
@@ -17,13 +18,19 @@ export async function GET(
 	request: NextRequest,
 	{ params }: { params: Promise<{ sandboxId: string }> },
 ) {
+	const wide = createApiWideEvent(request, "sandboxes.files.read");
 	const { sandboxId } = await params;
 	const fileParams = FileParamsSchema.safeParse({
 		path: request.nextUrl.searchParams.get("path"),
 		sandboxId,
 	});
+	wide.add({
+		sandbox_id: sandboxId,
+		file_path: request.nextUrl.searchParams.get("path"),
+	});
 
 	if (fileParams.success === false) {
+		wide.end(400, "error", new Error("Invalid file params"));
 		return NextResponse.json(
 			{ error: "Invalid parameters. You must pass a `path` as query" },
 			{ status: 400 },
@@ -37,11 +44,13 @@ export async function GET(
 	});
 	const stream = await sandbox.readFile(fileParams.data);
 	if (!stream) {
+		wide.end(404, "error", new Error("File not found"));
 		return NextResponse.json(
 			{ error: "File not found in the Sandbox" },
 			{ status: 404 },
 		);
 	}
+	wide.end(200, "success");
 
 	return new NextResponse(
 		new ReadableStream({
@@ -59,11 +68,13 @@ export async function POST(
 	request: NextRequest,
 	{ params }: { params: Promise<{ sandboxId: string }> },
 ) {
+	const wide = createApiWideEvent(request, "sandboxes.files.write");
 	try {
 		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
 		const fileData = SaveFileSchema.safeParse(body);
 
 		if (fileData.success === false) {
+			wide.end(400, "error", new Error("Invalid file payload"));
 			return NextResponse.json(
 				{ error: "Invalid request body. You must pass `path` and `content`" },
 				{ status: 400 },
@@ -84,12 +95,14 @@ export async function POST(
 			},
 		]);
 
+		wide.add({ sandbox_id: sandboxId, file_path: fileData.data.path });
+		wide.end(200, "success");
 		return NextResponse.json({
 			success: true,
 			message: "File saved successfully",
 		});
 	} catch (error) {
-		console.error("Error saving file:", error);
+		wide.end(500, "error", error);
 		return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
 	}
 }

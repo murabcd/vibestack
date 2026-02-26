@@ -1,19 +1,23 @@
 import { OAuth2Client, type OAuth2Tokens } from "arctic";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { createSession, saveSession } from "@/lib/session/create";
 
 export async function GET(req: NextRequest): Promise<Response> {
+	const wide = createApiWideEvent(req, "auth.vercel.callback");
 	const url = new URL(req.url);
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
 	const error = url.searchParams.get("error");
 
 	if (error) {
+		wide.end(302, "error", new Error(`OAuth error: ${error}`));
 		return Response.redirect(new URL(`/?error=${error}`, req.url));
 	}
 
 	if (!code || !state) {
+		wide.end(302, "error", new Error("Missing code or state"));
 		return Response.redirect(new URL("/?error=missing_code_or_state", req.url));
 	}
 
@@ -23,6 +27,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 	const codeVerifier = store.get("vercel_oauth_code_verifier")?.value;
 
 	if (!storedState || storedState !== state || !codeVerifier) {
+		wide.end(302, "error", new Error("Invalid OAuth state"));
 		return Response.redirect(new URL("/?error=invalid_state", req.url));
 	}
 
@@ -69,15 +74,18 @@ export async function GET(req: NextRequest): Promise<Response> {
 		);
 
 		if (!session) {
+			wide.end(302, "error", new Error("Session creation failed"));
 			return Response.redirect(
 				new URL("/?error=session_creation_failed", req.url),
 			);
 		}
 
 		await saveSession(session);
+		wide.add({ provider_user: userData.username });
+		wide.end(302, "success");
 		return Response.redirect(new URL(redirectTo, req.url));
 	} catch (error) {
-		console.error("Vercel OAuth error:", error);
+		wide.end(302, "error", error);
 		return Response.redirect(new URL("/?error=oauth_error", req.url));
 	} finally {
 		// Clean up cookies
