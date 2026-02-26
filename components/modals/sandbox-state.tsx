@@ -23,7 +23,7 @@ export function SandboxState() {
 			<Dialog open>
 				<DialogHeader className="sr-only">
 					<DialogTitle className="sr-only">
-						Sandbox max. duration reached
+						Sandbox duration reached
 					</DialogTitle>
 					<DialogDescription className="sr-only">
 						The Vercel Sandbox is already stopped. You can start a new session
@@ -31,7 +31,7 @@ export function SandboxState() {
 					</DialogDescription>
 				</DialogHeader>
 				<DialogContent className="flex flex-col items-center gap-4">
-					Sandbox max. duration has been reached
+					Sandbox duration has been reached
 					<Button
 						className="cursor-pointer"
 						onClick={() => {

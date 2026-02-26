@@ -23,6 +23,21 @@ else
 fi
 `.trim();
 
+function isSandboxGoneError(error: unknown) {
+	if (!(error instanceof Error)) return false;
+	const anyError = error as Error & {
+		status?: number;
+		statusCode?: number;
+		response?: { status?: number };
+	};
+	return (
+		anyError.status === 410 ||
+		anyError.statusCode === 410 ||
+		anyError.response?.status === 410 ||
+		anyError.message.includes("Status code 410")
+	);
+}
+
 export async function POST(
 	request: NextRequest,
 	{ params }: { params: Promise<{ sandboxId: string }> },
@@ -83,6 +98,17 @@ export async function POST(
 			message: "Dev server stop command executed",
 		});
 	} catch (error) {
+		if (isSandboxGoneError(error)) {
+			wide.end(410, "error", error);
+			return NextResponse.json(
+				{
+					error:
+						"Sandbox is no longer available. Create or resume a sandbox first.",
+					code: "sandbox_stopped",
+				},
+				{ status: 410 },
+			);
+		}
 		wide.end(500, "error", error);
 		return NextResponse.json(
 			{ error: "Failed to control sandbox dev server" },

@@ -3,8 +3,11 @@
 import {
 	ChevronDownIcon,
 	ChevronRightIcon,
+	FileDiff,
 	FileIcon,
 	FolderIcon,
+	FolderOpenIcon,
+	FolderTree,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -49,6 +52,8 @@ interface FileDiffStat {
 	deletions: number;
 }
 
+const EMPTY_DIFF_STATS: Record<string, FileDiffStat> = {};
+
 export const FileExplorer = memo(function FileExplorer({
 	className,
 	disabled,
@@ -58,7 +63,7 @@ export const FileExplorer = memo(function FileExplorer({
 	const { isMobile } = useSidebar();
 	const [viewMode, setViewMode] = useState<"files" | "changes">("files");
 	const diffStats = useSWR<{ stats: Record<string, FileDiffStat> }>(
-		sandboxId ? `/api/sandboxes/${sandboxId}/diff-stats` : null,
+		sandboxId && !disabled ? `/api/sandboxes/${sandboxId}/diff-stats` : null,
 		async (url: string) => {
 			const response = await fetch(url);
 			if (!response.ok) return { stats: {} };
@@ -70,7 +75,7 @@ export const FileExplorer = memo(function FileExplorer({
 			revalidateOnFocus: false,
 		},
 	);
-	const statsByPath = diffStats.data?.stats ?? {};
+	const statsByPath = diffStats.data?.stats ?? EMPTY_DIFF_STATS;
 	const visiblePaths = useMemo(() => {
 		if (viewMode === "files") return paths;
 		return paths.filter((path) => {
@@ -96,6 +101,12 @@ export const FileExplorer = memo(function FileExplorer({
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
 	const [pendingFile, setPendingFile] = useState<FileNode | null>(null);
 	const [showCloseDialog, setShowCloseDialog] = useState(false);
+	const showFiles = useCallback(() => {
+		setViewMode((current) => (current === "files" ? current : "files"));
+	}, []);
+	const showChanges = useCallback(() => {
+		setViewMode((current) => (current === "changes" ? current : "changes"));
+	}, []);
 
 	useEffect(() => {
 		setFs(fileTree);
@@ -287,12 +298,11 @@ export const FileExplorer = memo(function FileExplorer({
 	}, []);
 
 	const renderFileTree = useCallback(
-		(nodes: FileNode[], depth = 0) => {
+		(nodes: FileNode[]) => {
 			return nodes.map((node) => (
 				<FileTreeNode
 					key={node.path}
 					node={node}
-					depth={depth}
 					selected={selected}
 					sandboxId={sandboxId}
 					statsByPath={statsByPath}
@@ -306,13 +316,15 @@ export const FileExplorer = memo(function FileExplorer({
 	);
 	const treePane = (
 		<div className="h-full overflow-auto">
-			{fs.length === 0 && viewMode === "changes" ? (
-				<div className="px-3 py-3 text-xs text-muted-foreground">
-					No changed files detected.
-				</div>
-			) : (
-				renderFileTree(fs)
-			)}
+			<div className="py-1">
+				{fs.length === 0 && viewMode === "changes" ? (
+					<div className="px-3 py-3 text-xs text-muted-foreground">
+						No changed files detected.
+					</div>
+				) : (
+					renderFileTree(fs)
+				)}
+			</div>
 		</div>
 	);
 	const contentPane = (
@@ -354,25 +366,24 @@ export const FileExplorer = memo(function FileExplorer({
 	return (
 		<>
 			<Panel className={cn(className, "border-0 flex flex-col min-h-0")}>
-				<PanelHeader className="h-8 min-h-8 text-xs px-2 py-0.5">
-					<FileIcon className="size-3 mr-1.5" />
-					<span className="font-medium">Explorer</span>
+				<PanelHeader className="h-10 min-h-10 text-xs px-2 py-0.5">
 					<TooltipProvider delayDuration={120}>
-						<div className="ml-2 flex items-center gap-1">
+						<div className="inline-flex items-center gap-1 border border-border/80 rounded-xl p-0.5">
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => setViewMode("files")}
+										onClick={showFiles}
 										className={cn(
-											"h-6 px-2 text-xs",
+											"h-7 w-7 p-0 rounded-lg",
 											viewMode === "files"
-												? "bg-accent/40 text-foreground border border-border"
+												? "bg-accent/40 text-foreground border border-border/80"
 												: "text-muted-foreground hover:text-foreground",
 										)}
+										aria-label="Show all files"
 									>
-										Files
+										<FolderTree className="size-3.5" />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>Show all files</TooltipContent>
@@ -382,15 +393,16 @@ export const FileExplorer = memo(function FileExplorer({
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => setViewMode("changes")}
+										onClick={showChanges}
 										className={cn(
-											"h-6 px-2 text-xs",
+											"h-7 w-7 p-0 rounded-lg",
 											viewMode === "changes"
-												? "bg-accent/40 text-foreground border border-border"
+												? "bg-accent/40 text-foreground border border-border/80"
 												: "text-muted-foreground hover:text-foreground",
 										)}
+										aria-label="Show changed files"
 									>
-										Changes
+										<FileDiff className="size-3.5" />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>Show changed files</TooltipContent>
@@ -422,26 +434,28 @@ export const FileExplorer = memo(function FileExplorer({
 									</span>
 								)}
 								{selected && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={() => {
-													if (hasUnsavedChanges) {
-														setShowCloseDialog(true);
-													} else {
-														setSelected(null);
-														setHasUnsavedChanges(false);
-													}
-												}}
-												className="size-6 p-0 text-xs"
-											>
-												×
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>Close file</TooltipContent>
-									</Tooltip>
+									<TooltipProvider delayDuration={120}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														if (hasUnsavedChanges) {
+															setShowCloseDialog(true);
+														} else {
+															setSelected(null);
+															setHasUnsavedChanges(false);
+														}
+													}}
+													className="size-6 p-0 text-xs"
+												>
+													×
+												</Button>
+											</TooltipTrigger>
+											<TooltipContent>Close file</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 								)}
 							</div>
 						</>
@@ -536,7 +550,6 @@ export const FileExplorer = memo(function FileExplorer({
 // Memoized file tree node component
 const FileTreeNode = memo(function FileTreeNode({
 	node,
-	depth,
 	selected,
 	sandboxId,
 	statsByPath,
@@ -545,13 +558,12 @@ const FileTreeNode = memo(function FileTreeNode({
 	renderFileTree,
 }: {
 	node: FileNode;
-	depth: number;
 	selected: FileNode | null;
 	sandboxId?: string;
 	statsByPath: Record<string, FileDiffStat>;
 	onToggleFolder: (path: string) => void;
 	onSelectFile: (node: FileNode) => void;
-	renderFileTree: (nodes: FileNode[], depth: number) => React.ReactNode;
+	renderFileTree: (nodes: FileNode[]) => React.ReactNode;
 }) {
 	const hasDiff = useFileHistory((state) => state.hasDiff);
 	const handleClick = useCallback(() => {
@@ -566,30 +578,40 @@ const FileTreeNode = memo(function FileTreeNode({
 		<div>
 			<button
 				className={cn(
-					`flex items-center py-0.5 px-1 hover:bg-accent cursor-pointer text-left w-full`,
-					{ "bg-accent": selected?.path === node.path },
+					"flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-sm w-full text-left",
+					selected?.path === node.path ? "bg-card" : "hover:bg-card/50",
 				)}
-				style={{ paddingLeft: `${depth * 16 + 8}px` }}
 				type="button"
 				aria-expanded={node.type === "folder" ? node.expanded : undefined}
 				onClick={handleClick}
 			>
 				{node.type === "folder" ? (
 					<>
-						{node.expanded ? (
-							<ChevronDownIcon className="w-4 mr-1" />
-						) : (
-							<ChevronRightIcon className="w-4 mr-1" />
-						)}
-						<FolderIcon className="w-4 mr-2" />
+						<div className="flex items-center gap-1 flex-shrink-0">
+							{node.expanded ? (
+								<ChevronDownIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+							) : (
+								<ChevronRightIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+							)}
+							{node.expanded ? (
+								<FolderOpenIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+							) : (
+								<FolderIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+							)}
+						</div>
+						<span className="text-xs md:text-sm font-medium truncate">
+							{node.name}
+						</span>
 					</>
 				) : (
 					<>
-						<div className="w-4 mr-1" />
-						<FileIcon className="w-4 mr-2 " />
+						<div className="flex items-center gap-1 flex-shrink-0">
+							<div className="w-3.5 h-3.5 md:w-4 md:h-4" />
+							<FileIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-muted-foreground" />
+						</div>
+						<span className="text-xs md:text-sm truncate">{node.name}</span>
 					</>
 				)}
-				<span className="">{node.name}</span>
 				{node.type === "file" &&
 					sandboxId &&
 					hasDiff(sandboxId, node.path.substring(1)) && (
@@ -611,7 +633,7 @@ const FileTreeNode = memo(function FileTreeNode({
 			</button>
 
 			{node.type === "folder" && node.expanded && node.children && (
-				<div>{renderFileTree(node.children, depth + 1)}</div>
+				<div className="ml-3 md:ml-4">{renderFileTree(node.children)}</div>
 			)}
 		</div>
 	);

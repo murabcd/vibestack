@@ -8,6 +8,21 @@ interface FileDiffStat {
 	deletions: number;
 }
 
+function isSandboxGoneError(error: unknown) {
+	if (!(error instanceof Error)) return false;
+	const anyError = error as Error & {
+		status?: number;
+		statusCode?: number;
+		response?: { status?: number };
+	};
+	return (
+		anyError.status === 410 ||
+		anyError.statusCode === 410 ||
+		anyError.response?.status === 410 ||
+		anyError.message.includes("Status code 410")
+	);
+}
+
 function parseNumstat(output: string) {
 	const stats: Record<string, FileDiffStat> = {};
 	for (const rawLine of output.split("\n")) {
@@ -66,6 +81,11 @@ export async function GET(
 		wide.end(200, "success");
 		return NextResponse.json({ stats });
 	} catch (error) {
+		if (isSandboxGoneError(error)) {
+			// Sandbox can expire while UI still has its id; treat as no diff data.
+			wide.end(200, "success");
+			return NextResponse.json({ stats: {}, sandboxStopped: true });
+		}
 		wide.end(500, "error", error);
 		return NextResponse.json(
 			{ error: "Failed to get diff stats" },

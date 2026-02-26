@@ -45,7 +45,7 @@ export function Text({
 
 	return (
 		<div
-			className={cn("text-xs", {
+			className={cn("text-sm", {
 				"w-fit wrap-break-word rounded-2xl px-3 py-2 bg-primary text-primary-foreground":
 					messageRole === "user",
 				"bg-transparent px-0 py-0 text-left": messageRole === "assistant",

@@ -5,6 +5,13 @@ import { CompassIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BarLoader } from "react-spinners";
 import { Panel, PanelHeader } from "@/components/panels/panels";
+import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -65,43 +72,61 @@ export function Preview({ className, disabled, url }: Props) {
 
 	return (
 		<Panel className={cn(className, "border-0")}>
-			<PanelHeader className="text-xs px-2 py-0.5">
-				<div className="absolute flex items-center space-x-1">
-					<a
-						href={currentUrl}
-						target="_blank"
-						rel="noreferrer"
-						className="cursor-pointer px-1"
-					>
-						<CompassIcon className="w-3" />
-					</a>
-					<button
-						onClick={refreshIframe}
-						type="button"
-						className={cn("cursor-pointer px-1", {
-							"animate-spin": isLoading,
-						})}
-					>
-						<RefreshCwIcon className="w-3" />
-					</button>
-				</div>
+			<PanelHeader className="h-10 min-h-10 text-xs px-2 py-0.5">
+				<div className="flex w-full items-center gap-2">
+					<TooltipProvider delayDuration={120}>
+						<div className="inline-flex items-center gap-1 border border-border/80 rounded-xl p-0.5">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										asChild
+										variant="ghost"
+										size="sm"
+										className="h-7 w-7 p-0 rounded-lg"
+									>
+										<a href={currentUrl} target="_blank" rel="noreferrer">
+											<CompassIcon className="size-3.5" />
+										</a>
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Open in new tab</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										onClick={refreshIframe}
+										type="button"
+										variant="ghost"
+										size="sm"
+										className={cn("h-7 w-7 p-0 rounded-lg", {
+											"animate-spin": isLoading,
+										})}
+									>
+										<RefreshCwIcon className="size-3.5" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Refresh preview</TooltipContent>
+							</Tooltip>
+						</div>
+					</TooltipProvider>
 
-				<div className="m-auto h-6">
-					{url && (
-						<input
-							type="text"
-							className="text-xs h-6 border border-input px-4 bg-background rounded focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent min-w-[300px]"
-							onChange={(event) => setInputValue(event.target.value)}
-							onClick={(event) => event.currentTarget.select()}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") {
-									event.currentTarget.blur();
-									loadNewUrl();
-								}
-							}}
-							value={inputValue}
-						/>
-					)}
+					<div className="flex-1 flex justify-center">
+						{url && (
+							<input
+								type="text"
+								className="text-xs h-7 border border-border/80 px-3 bg-background rounded-lg focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring w-full max-w-[640px] min-w-[220px]"
+								onChange={(event) => setInputValue(event.target.value)}
+								onClick={(event) => event.currentTarget.select()}
+								onKeyDown={(event) => {
+									if (event.key === "Enter") {
+										event.currentTarget.blur();
+										loadNewUrl();
+									}
+								}}
+								value={inputValue}
+							/>
+						)}
+					</div>
 				</div>
 			</PanelHeader>
 
