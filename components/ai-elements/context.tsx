@@ -14,67 +14,6 @@ import { cn } from "@/lib/utils";
 
 type ModelId = string;
 
-// Convert our model IDs to tokenlens format and real pricing for Anthropic models (per 1M tokens)
-// Current Anthropic pricing as of 2025
-const MODEL_PRICING = {
-	"anthropic:claude-sonnet-4.5": {
-		inputCost: 3.0,
-		outputCost: 15.0,
-		maxTokens: 200000,
-	},
-	"anthropic:claude-4-sonnet": {
-		inputCost: 3.0,
-		outputCost: 15.0,
-		maxTokens: 200000,
-	},
-	"anthropic:claude-haiku-4-5": {
-		inputCost: 1.0,
-		outputCost: 5.0,
-		maxTokens: 200000,
-	},
-} as const;
-
-// Convert our internal model IDs to tokenlens format
-const toTokenlensModelId = (modelId: string): string => {
-	return modelId.replace(/^anthropic\//, "anthropic:");
-};
-
-const estimateCost = (params: {
-	modelId: string;
-	usage: {
-		promptTokens?: number;
-		completionTokens?: number;
-		reasoningTokens?: number;
-	};
-}) => {
-	const tokenlensModelId = toTokenlensModelId(params.modelId);
-	const pricing = MODEL_PRICING[tokenlensModelId as keyof typeof MODEL_PRICING];
-
-	if (!pricing) {
-		// Fallback for unknown models
-		return {
-			totalUSD: 0,
-			inputUSD: 0,
-			outputUSD: 0,
-			reasoningUSD: 0,
-		};
-	}
-
-	const inputCost =
-		((params.usage.promptTokens || 0) / 1_000_000) * pricing.inputCost;
-	const outputCost =
-		((params.usage.completionTokens || 0) / 1_000_000) * pricing.outputCost;
-	const reasoningCost =
-		((params.usage.reasoningTokens || 0) / 1_000_000) * pricing.inputCost; // Usually same as input
-
-	return {
-		totalUSD: inputCost + outputCost + reasoningCost,
-		inputUSD: inputCost,
-		outputUSD: outputCost,
-		reasoningUSD: reasoningCost,
-	};
-};
-
 const PERCENT_MAX = 100;
 
 // Extract max tokens from TokenLens usage data or fallback to default
@@ -238,16 +177,8 @@ export const ContextContentFooter = ({
 	className,
 	...props
 }: ContextContentFooter) => {
-	const { modelId, usage } = useContextValue();
-	const costUSD = modelId
-		? estimateCost({
-				modelId,
-				usage: {
-					promptTokens: usage?.inputTokens ?? 0,
-					completionTokens: usage?.outputTokens ?? 0,
-				},
-			}).totalUSD
-		: undefined;
+	const { usage } = useContextValue();
+	const costUSD = usage?.costUSD?.totalUSD;
 	const totalCost = new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
@@ -280,7 +211,7 @@ export const ContextInputUsage = ({
 	children,
 	...props
 }: ContextInputUsageProps) => {
-	const { usage, modelId } = useContextValue();
+	const { usage } = useContextValue();
 	const inputTokens = usage?.inputTokens ?? 0;
 
 	if (children) {
@@ -288,12 +219,7 @@ export const ContextInputUsage = ({
 	}
 
 	// Always show Input section, even with 0 tokens
-	const inputCost = modelId
-		? estimateCost({
-				modelId,
-				usage: { promptTokens: inputTokens, completionTokens: 0 },
-			}).inputUSD
-		: undefined;
+	const inputCost = usage?.costUSD?.inputUSD;
 	const inputCostText = new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
@@ -319,7 +245,7 @@ export const ContextOutputUsage = ({
 	children,
 	...props
 }: ContextOutputUsageProps) => {
-	const { usage, modelId } = useContextValue();
+	const { usage } = useContextValue();
 	const outputTokens = usage?.outputTokens ?? 0;
 
 	if (children) {
@@ -327,12 +253,7 @@ export const ContextOutputUsage = ({
 	}
 
 	// Always show Output section, even with 0 tokens
-	const outputCost = modelId
-		? estimateCost({
-				modelId,
-				usage: { promptTokens: 0, completionTokens: outputTokens },
-			}).outputUSD
-		: undefined;
+	const outputCost = usage?.costUSD?.outputUSD;
 	const outputCostText = new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
@@ -358,7 +279,7 @@ export const ContextReasoningUsage = ({
 	children,
 	...props
 }: ContextReasoningUsageProps) => {
-	const { usage, modelId } = useContextValue();
+	const { usage } = useContextValue();
 	const reasoningTokens = usage?.reasoningTokens ?? 0;
 
 	if (children) {
@@ -369,12 +290,7 @@ export const ContextReasoningUsage = ({
 		return null;
 	}
 
-	const reasoningCost = modelId
-		? estimateCost({
-				modelId,
-				usage: { reasoningTokens },
-			}).reasoningUSD
-		: undefined;
+	const reasoningCost = usage?.costUSD?.reasoningUSD;
 	const reasoningCostText = new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: "USD",
