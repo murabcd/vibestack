@@ -15,9 +15,6 @@ interface ProjectPageProps {
 	params: Promise<{
 		projectId: string;
 	}>;
-	searchParams: Promise<{
-		new?: string;
-	}>;
 }
 
 export async function generateMetadata({
@@ -40,14 +37,11 @@ export async function generateMetadata({
 	};
 }
 
-export default async function ProjectPage({
-	params,
-	searchParams: _searchParams,
-}: ProjectPageProps) {
+export default async function ProjectPage({ params }: ProjectPageProps) {
 	const cookieStore = await cookies();
 	const horizontalSizes = getHorizontal(cookieStore);
 
-	const [{ projectId }] = await Promise.all([params, _searchParams]);
+	const { projectId } = await params;
 
 	// Fetch messages from database with error handling
 	let initialMessages: ChatUIMessage[] = [];

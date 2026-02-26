@@ -6,6 +6,7 @@ import {
 	createUIMessageStreamResponse,
 	stepCountIs,
 	streamText,
+	validateUIMessages,
 } from "ai";
 import { checkBotId } from "botid/server";
 import { and, eq, inArray } from "drizzle-orm";
@@ -17,6 +18,8 @@ import { getUsage } from "tokenlens/helpers";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { DEFAULT_MODEL } from "@/lib/ai/constants";
 import { getAvailableModels, getModelOptions } from "@/lib/ai/gateway";
+import { dataPartSchema } from "@/lib/ai/messages/data-parts";
+import { metadataSchema } from "@/lib/ai/messages/metadata";
 import { tools } from "@/lib/ai/tools";
 import type { AppUsage } from "@/lib/ai/usage";
 import { decrypt } from "@/lib/crypto";
@@ -93,10 +96,25 @@ export async function POST(req: NextRequest) {
 		mcpServerIds,
 	} = body;
 
+	let validatedMessages: ChatUIMessage[];
+	try {
+		validatedMessages = await validateUIMessages<ChatUIMessage>({
+			messages,
+			metadataSchema,
+			dataSchemas: dataPartSchema.shape,
+		});
+	} catch (error) {
+		endWide(400, "error", error, { invalid_messages: true });
+		return NextResponse.json(
+			{ error: "Invalid chat message format." },
+			{ status: 400 },
+		);
+	}
+
 	wide.add({
 		model_id: modelId,
 		project_id: projectId,
-		message_count: messages.length,
+		message_count: validatedMessages.length,
 		mcp_server_ids_count: mcpServerIds?.length ?? 0,
 	});
 
@@ -180,7 +198,7 @@ export async function POST(req: NextRequest) {
 	return createUIMessageStreamResponse({
 		consumeSseStream: consumeStream,
 		stream: createUIMessageStream({
-			originalMessages: messages,
+			originalMessages: validatedMessages,
 			execute: async ({ writer }) => {
 				// Initialize MCP clients and collect tools
 				const mcpClients: Array<
@@ -299,24 +317,26 @@ export async function POST(req: NextRequest) {
 					...getModelOptions(modelId, { reasoningEffort }),
 					system: prompt,
 					messages: await convertToModelMessages(
-						messages.map((message) => {
-							message.parts = message.parts.map((part) => {
-								if (part.type === "data-report-errors") {
-									return {
-										type: "text",
-										text:
-											`There are errors in the generated code. This is the summary of the errors we have:\n` +
-											`\`\`\`${part.data.summary}\`\`\`\n` +
-											(part.data.paths?.length
-												? `The following files may contain errors:\n` +
-													`\`\`\`${part.data.paths?.join("\n")}\`\`\`\n`
-												: "") +
-											`Fix the errors reported.`,
-									};
-								}
-								return part;
-							});
-							return message;
+						validatedMessages.map((message) => {
+							return {
+								...message,
+								parts: message.parts.map((part) => {
+									if (part.type === "data-report-errors") {
+										return {
+											type: "text",
+											text:
+												`There are errors in the generated code. This is the summary of the errors we have:\n` +
+												`\`\`\`${part.data.summary}\`\`\`\n` +
+												(part.data.paths?.length
+													? `The following files may contain errors:\n` +
+														`\`\`\`${part.data.paths?.join("\n")}\`\`\`\n`
+													: "") +
+												`Fix the errors reported.`,
+										};
+									}
+									return part;
+								}),
+							};
 						}),
 					),
 					stopWhen: stepCountIs(20),

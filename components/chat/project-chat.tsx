@@ -180,14 +180,13 @@ function ProjectChatInner({
 
 	// Update usage when messages change (for new assistant messages with metadata)
 	useEffect(() => {
-		// Find the latest assistant message with usage metadata
-		const latestAssistantMessage = messages
-			.filter((msg) => msg.role === "assistant")
-			.reverse()
-			.find((msg) => msg.metadata?.usage);
-
-		if (latestAssistantMessage?.metadata?.usage) {
-			setUsage(latestAssistantMessage.metadata.usage);
+		// Walk backward once to find the latest assistant message with usage metadata.
+		for (let i = messages.length - 1; i >= 0; i--) {
+			const message = messages[i];
+			if (message.role === "assistant" && message.metadata?.usage) {
+				setUsage(message.metadata.usage);
+				break;
+			}
 		}
 	}, [messages]);
 
