@@ -28,13 +28,10 @@ export const ModelSelector = memo(function ModelSelector({
 	onModelChange,
 }: Props) {
 	const { models, isLoading, error } = useAvailableModels();
+	type ModelOption = NonNullable<typeof models>[number];
 
 	const { openaiModels, anthropicModels, otherModels } = useMemo(() => {
-		const sortedModels = [...(models || [])].sort((a, b) =>
-			a.label.localeCompare(b.label),
-		);
-
-		return sortedModels.reduce(
+		const providerGroups = (models || []).reduce(
 			(acc, model) => {
 				const provider = model.id.split("/")[0]?.toLowerCase();
 				if (provider === "openai") {
@@ -49,11 +46,52 @@ export const ModelSelector = memo(function ModelSelector({
 				return acc;
 			},
 			{
-				openaiModels: [] as typeof sortedModels,
-				anthropicModels: [] as typeof sortedModels,
-				otherModels: [] as typeof sortedModels,
+				openaiModels: [] as ModelOption[],
+				anthropicModels: [] as ModelOption[],
+				otherModels: [] as ModelOption[],
 			},
 		);
+
+		const openAIOrder: Record<string, number> = {
+			"openai/gpt-5.2": 0,
+			"openai/gpt-5-mini": 1,
+			"openai/gpt-5-nano": 2,
+		};
+		const anthropicOrder: Record<string, number> = {
+			"anthropic/claude-opus-4.6": 0,
+			"anthropic/claude-sonnet-4.5": 1,
+			"anthropic/claude-haiku-4-5": 2,
+		};
+
+		const sortedOpenAIModels = [...providerGroups.openaiModels].sort((a, b) => {
+			const aOrder = openAIOrder[a.id] ?? Number.MAX_SAFE_INTEGER;
+			const bOrder = openAIOrder[b.id] ?? Number.MAX_SAFE_INTEGER;
+			if (aOrder !== bOrder) {
+				return aOrder - bOrder;
+			}
+			return a.label.localeCompare(b.label);
+		});
+
+		const sortedAnthropicModels = [...providerGroups.anthropicModels].sort(
+			(a, b) => {
+				const aOrder = anthropicOrder[a.id] ?? Number.MAX_SAFE_INTEGER;
+				const bOrder = anthropicOrder[b.id] ?? Number.MAX_SAFE_INTEGER;
+				if (aOrder !== bOrder) {
+					return aOrder - bOrder;
+				}
+				return a.label.localeCompare(b.label);
+			},
+		);
+
+		const sortedOtherModels = [...providerGroups.otherModels].sort((a, b) =>
+			a.label.localeCompare(b.label),
+		);
+
+		return {
+			openaiModels: sortedOpenAIModels,
+			anthropicModels: sortedAnthropicModels,
+			otherModels: sortedOtherModels,
+		};
 	}, [models]);
 
 	return (
