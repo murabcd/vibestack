@@ -28,7 +28,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 				onToolCall: () => mutate("/api/auth/info"),
 				onData: (data: DataUIPart<DataPart>) => mapDataToStateRef.current(data),
 				onError: (error) => {
-					toast.error(`Communication error with the AI: ${error.message}`);
+					toast.error("You need to sign in to continue with this project");
 					logger.error({
 						event: "chat.client.send.failed",
 						error: {

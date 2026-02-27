@@ -1,6 +1,6 @@
 import { Sandbox } from "@vercel/sandbox";
 import { APIError } from "@vercel/sandbox/dist/api-client/api-error";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import {
 	deleteMessagesByProjectId,
 	deleteProject,
@@ -9,18 +9,38 @@ import {
 } from "@/lib/db/queries";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { getSessionFromReq } from "@/lib/session/server";
 
 export async function GET(
-	_request: Request,
+	_request: NextRequest,
 	{ params }: { params: Promise<{ projectId: string }> },
 ) {
 	const wide = createApiWideEvent(_request, "projects.get");
 	try {
 		const { projectId } = await params;
+		const session = await getSessionFromReq(_request);
 		const project = await getProjectById(projectId);
-		wide.add({ project_id: projectId });
+		wide.add({
+			project_id: projectId,
+			permission: "read_project",
+			auth_user_id: session?.user?.id ?? null,
+		});
 
 		if (!project) {
+			wide.add({ error_type: "project_not_found" });
+			wide.end(404, "error", new Error("Project not found"));
+			return NextResponse.json({ error: "Project not found" }, { status: 404 });
+		}
+		wide.add({
+			project_visibility: project.visibility,
+			project_owner_id: project.userId,
+			is_owner: project.userId === session?.user?.id,
+		});
+		if (
+			project.visibility !== "public" &&
+			project.userId !== session?.user?.id
+		) {
+			wide.add({ denial_reason: "access_denied_private_project" });
 			wide.end(404, "error", new Error("Project not found"));
 			return NextResponse.json({ error: "Project not found" }, { status: 404 });
 		}
@@ -37,12 +57,50 @@ export async function GET(
 }
 
 export async function PATCH(
-	request: Request,
+	request: NextRequest,
 	{ params }: { params: Promise<{ projectId: string }> },
 ) {
 	const wide = createApiWideEvent(request, "projects.update");
 	try {
+		const session = await getSessionFromReq(request);
+		wide.add({
+			permission: "write_project",
+			auth_user_id: session?.user?.id ?? null,
+		});
+		if (!session?.user?.id) {
+			wide.add({
+				error_type: "authentication_required",
+				denial_reason: "missing_session",
+			});
+			wide.end(401, "error", new Error("Authentication required"));
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 },
+			);
+		}
+
 		const [{ projectId }, body] = await Promise.all([params, request.json()]);
+		const existingProject = await getProjectById(projectId);
+		wide.add({ project_id: projectId });
+		if (!existingProject) {
+			wide.add({ error_type: "project_not_found" });
+			wide.end(404, "error", new Error("Project not found"));
+			return NextResponse.json({ error: "Project not found" }, { status: 404 });
+		}
+		wide.add({
+			project_visibility: existingProject.visibility,
+			project_owner_id: existingProject.userId,
+			is_owner: existingProject.userId === session.user.id,
+		});
+		if (existingProject.userId !== session.user.id) {
+			wide.add({
+				error_type: "forbidden",
+				denial_reason: "owner_mismatch",
+			});
+			wide.end(403, "error", new Error("Forbidden"));
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		}
+
 		const {
 			title,
 			isPinned,
@@ -53,6 +111,18 @@ export async function PATCH(
 			status,
 			progress,
 		} = body;
+		if (
+			visibility !== undefined &&
+			visibility !== "public" &&
+			visibility !== "private"
+		) {
+			wide.add({ error_type: "invalid_visibility" });
+			wide.end(400, "error", new Error("Invalid visibility"));
+			return NextResponse.json(
+				{ error: "Invalid visibility" },
+				{ status: 400 },
+			);
+		}
 
 		const updates: {
 			title?: string;
@@ -94,18 +164,49 @@ export async function PATCH(
 }
 
 export async function DELETE(
-	request: Request,
+	request: NextRequest,
 	{ params }: { params: Promise<{ projectId: string }> },
 ) {
 	const wide = createApiWideEvent(request, "projects.delete");
 	try {
+		const session = await getSessionFromReq(request);
+		wide.add({
+			permission: "delete_project",
+			auth_user_id: session?.user?.id ?? null,
+		});
+		if (!session?.user?.id) {
+			wide.add({
+				error_type: "authentication_required",
+				denial_reason: "missing_session",
+			});
+			wide.end(401, "error", new Error("Authentication required"));
+			return NextResponse.json(
+				{ error: "Authentication required" },
+				{ status: 401 },
+			);
+		}
+
 		const { projectId } = await params;
 		wide.add({ project_id: projectId });
 		const project = await getProjectById(projectId);
 
 		if (!project) {
+			wide.add({ error_type: "project_not_found" });
 			wide.end(404, "error", new Error("Project not found"));
 			return NextResponse.json({ error: "Project not found" }, { status: 404 });
+		}
+		wide.add({
+			project_visibility: project.visibility,
+			project_owner_id: project.userId,
+			is_owner: project.userId === session.user.id,
+		});
+		if (project.userId !== session.user.id) {
+			wide.add({
+				error_type: "forbidden",
+				denial_reason: "owner_mismatch",
+			});
+			wide.end(403, "error", new Error("Forbidden"));
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 
 		if (project.sandboxId) {

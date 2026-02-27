@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
 		project_id: projectId,
 		message_count: validatedMessages.length,
 		mcp_server_ids_count: mcpServerIds?.length ?? 0,
+		permission: "stream_chat",
 	});
 
 	// Fetch MCP servers if IDs are provided
@@ -188,11 +189,40 @@ export async function POST(req: NextRequest) {
 		if (!project) {
 			endWide(404, "error", new Error(`Project ${projectId} not found`), {
 				project_id: projectId,
+				error_type: "project_not_found",
 			});
 			return NextResponse.json(
 				{ error: `Project ${projectId} not found.` },
 				{ status: 404 },
 			);
+		}
+
+		const session = await getSessionFromReq(req);
+		wide.add({
+			auth_user_id: session?.user?.id ?? null,
+			project_owner_id: project.userId,
+			project_visibility: project.visibility,
+			is_owner: project.userId === session?.user?.id,
+		});
+		if (!session?.user?.id) {
+			endWide(401, "error", new Error("Authentication required"), {
+				project_id: projectId,
+				error_type: "authentication_required",
+				denial_reason: "missing_session",
+			});
+			return NextResponse.json(
+				{ error: "Authentication required." },
+				{ status: 401 },
+			);
+		}
+		if (project.userId !== session.user.id) {
+			endWide(403, "error", new Error("Forbidden"), {
+				project_id: projectId,
+				user_id: session.user.id,
+				error_type: "forbidden",
+				denial_reason: "owner_mismatch",
+			});
+			return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 		}
 	}
 

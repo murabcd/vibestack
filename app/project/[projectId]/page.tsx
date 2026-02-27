@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { getHorizontal } from "@/components/layout/sizing";
 import type { AppUsage } from "@/lib/ai/usage";
 import { MAX_SANDBOX_DURATION } from "@/lib/constants";
 import { getMessagesByProjectId, getProjectById } from "@/lib/db/queries";
+import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
+import { getSessionFromCookie } from "@/lib/session/server";
 import { convertToUIMessages } from "@/lib/utils";
 import { ProjectPageClient } from "./_components/project-page";
 
@@ -42,19 +45,26 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 	const horizontalSizes = getHorizontal(cookieStore);
 
 	const { projectId } = await params;
+	const project = await getProjectCached(projectId);
+	if (!project) {
+		notFound();
+	}
+	const session = await getSessionFromCookie(
+		cookieStore.get(SESSION_COOKIE_NAME)?.value,
+	);
+	if (project.visibility !== "public" && project.userId !== session?.user?.id) {
+		notFound();
+	}
 
 	// Fetch messages from database with error handling
 	let initialMessages: ChatUIMessage[] = [];
-	let initialLastContext: AppUsage | undefined;
+	const initialLastContext: AppUsage | undefined =
+		project.lastContext ?? undefined;
 	try {
-		const [messagesFromDb, project] = await Promise.all([
-			getMessagesByProjectId(projectId),
-			getProjectCached(projectId),
-		]);
+		const messagesFromDb = await getMessagesByProjectId(projectId);
 		initialMessages = await convertToUIMessages(messagesFromDb);
-		initialLastContext = project?.lastContext ?? undefined;
 	} catch (error) {
-		console.error("Failed to fetch messages or project:", error);
+		console.error("Failed to fetch project messages:", error);
 		// Continue with empty messages array - this allows the page to load
 		// even if the database query fails
 	}
