@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, LogOut, Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useRef } from "react";
@@ -34,7 +34,7 @@ export function SidebarUserNav() {
 					<DropdownMenuTrigger asChild>
 						<SidebarMenuButton
 							ref={triggerRef}
-							className="h-10 bg-background data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+							className="cursor-pointer h-10 bg-background data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 						>
 							<Image
 								alt={
@@ -59,20 +59,26 @@ export function SidebarUserNav() {
 						align="start"
 					>
 						<DropdownMenuItem
-							className="cursor-pointer w-full block"
+							className="cursor-pointer w-full flex items-center"
 							onClick={() =>
 								setTheme(resolvedTheme === "dark" ? "light" : "dark")
 							}
 						>
+							{resolvedTheme === "dark" ? (
+								<Sun className="mr-2 size-4" />
+							) : (
+								<Moon className="mr-2 size-4" />
+							)}
 							{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
-							className="cursor-pointer w-full block"
+							className="cursor-pointer w-full flex items-center"
 							onClick={() => {
 								signOut();
 							}}
 						>
+							<LogOut className="mr-2 size-4" />
 							Sign out
 						</DropdownMenuItem>
 					</DropdownMenuContent>
