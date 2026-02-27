@@ -52,7 +52,7 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="rounded-full h-8 w-8 p-0"
+							className="cursor-pointer rounded-full h-8 w-8 p-0"
 						>
 							<ClockIcon className="h-4 w-4" />
 						</Button>

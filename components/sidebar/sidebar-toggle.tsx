@@ -11,6 +11,8 @@ import {
 export function SidebarToggle() {
 	const { toggleSidebar, state } = useSidebar();
 	const router = useRouter();
+	const toggleSidebarTooltip =
+		state === "collapsed" ? "Expand sidebar" : "Collapse sidebar";
 
 	return (
 		<div className="flex items-center gap-2">
@@ -19,12 +21,12 @@ export function SidebarToggle() {
 					<Button
 						onClick={toggleSidebar}
 						variant="outline"
-						className="md:px-2 md:h-fit"
+						className="cursor-pointer md:px-2 md:h-fit"
 					>
 						<PanelLeft className="w-4 h-4" />
 					</Button>
 				</TooltipTrigger>
-				<TooltipContent align="start">Toggle sidebar</TooltipContent>
+				<TooltipContent align="start">{toggleSidebarTooltip}</TooltipContent>
 			</Tooltip>
 
 			{state === "collapsed" && (
@@ -36,7 +38,7 @@ export function SidebarToggle() {
 								router.refresh();
 							}}
 							variant="outline"
-							className="hidden md:flex md:px-2 md:h-fit"
+							className="cursor-pointer hidden md:flex md:px-2 md:h-fit"
 						>
 							<Plus className="w-4 h-4" />
 						</Button>

@@ -70,7 +70,7 @@ export const AppSidebar = () => {
 									<Button
 										variant="ghost"
 										type="button"
-										className="p-2 h-fit"
+										className="cursor-pointer p-2 h-fit"
 										onClick={() => setOpenCommandDialog(true)}
 									>
 										<TextSearch className="w-4 h-4" />
@@ -85,7 +85,7 @@ export const AppSidebar = () => {
 									<Button
 										variant="ghost"
 										type="button"
-										className="p-2 h-fit"
+										className="cursor-pointer p-2 h-fit"
 										onClick={() => {
 											setOpenMobile(false);
 											router.push("/");

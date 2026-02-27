@@ -198,7 +198,7 @@ const PureProjectItem = ({
 				>
 					<DropdownMenuTrigger asChild>
 						<SidebarMenuAction
-							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
+							className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
 							showOnHover={!isActive}
 						>
 							<MoreHorizontal className="w-4 h-4" />

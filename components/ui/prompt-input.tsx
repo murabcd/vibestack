@@ -959,7 +959,10 @@ export const PromptInputActionMenuTrigger = ({
 	<Tooltip>
 		<TooltipTrigger asChild>
 			<DropdownMenuTrigger asChild>
-				<PromptInputButton className={className} {...props}>
+				<PromptInputButton
+					className={cn("cursor-pointer", className)}
+					{...props}
+				>
 					{children ?? <PlusIcon className="size-4" />}
 				</PromptInputButton>
 			</DropdownMenuTrigger>
