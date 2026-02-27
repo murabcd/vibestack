@@ -9,6 +9,10 @@ import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import { connectors, insertConnectorSchema } from "@/lib/db/schema";
 import { logger } from "@/lib/logging/logger";
+import {
+	validateLocalMcpCommand,
+	validateRemoteMcpUrl,
+} from "@/lib/security/mcp";
 import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
 import { getSessionFromCookie } from "@/lib/session/server";
 
@@ -63,6 +67,28 @@ export async function createConnector(
 		};
 
 		const validatedData = insertConnectorSchema.parse(connectorData);
+		if (validatedData.type === "local") {
+			const commandValidation = validateLocalMcpCommand(
+				validatedData.command ?? "",
+			);
+			if (!commandValidation.valid) {
+				return {
+					success: false,
+					message: commandValidation.reason,
+					errors: { command: commandValidation.reason },
+				};
+			}
+		}
+		if (validatedData.type === "remote" && validatedData.baseUrl) {
+			const urlValidation = validateRemoteMcpUrl(validatedData.baseUrl);
+			if (!urlValidation.valid) {
+				return {
+					success: false,
+					message: urlValidation.reason,
+					errors: { baseUrl: urlValidation.reason },
+				};
+			}
+		}
 
 		if (!validatedData.id) {
 			return {
@@ -229,6 +255,28 @@ export async function updateConnector(
 		};
 
 		const validatedData = insertConnectorSchema.parse(connectorData);
+		if (validatedData.type === "local") {
+			const commandValidation = validateLocalMcpCommand(
+				validatedData.command ?? "",
+			);
+			if (!commandValidation.valid) {
+				return {
+					success: false,
+					message: commandValidation.reason,
+					errors: { command: commandValidation.reason },
+				};
+			}
+		}
+		if (validatedData.type === "remote" && validatedData.baseUrl) {
+			const urlValidation = validateRemoteMcpUrl(validatedData.baseUrl);
+			if (!urlValidation.valid) {
+				return {
+					success: false,
+					message: urlValidation.reason,
+					errors: { baseUrl: urlValidation.reason },
+				};
+			}
+		}
 
 		await db
 			.update(connectors)

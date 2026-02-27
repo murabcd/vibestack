@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../../_auth";
 
 const ControlBodySchema = z.object({
 	action: z.enum(["start_dev_server", "stop_dev_server", "restart_dev_server"]),
@@ -46,6 +47,15 @@ export async function POST(
 
 	try {
 		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
+		const authz = await authorizeSandboxOwner(request, sandboxId);
+		if (!authz.ok) {
+			wide.end(
+				authz.response.status,
+				"error",
+				new Error("Sandbox access denied"),
+			);
+			return authz.response;
+		}
 		const parsed = ControlBodySchema.safeParse(body);
 
 		if (!parsed.success) {

@@ -48,6 +48,25 @@ export async function getProjectById(
 	}
 }
 
+export async function getProjectBySandboxId(
+	sandboxId: string,
+): Promise<Project | null> {
+	try {
+		const [result] = await db
+			.select()
+			.from(projects)
+			.where(eq(projects.sandboxId, sandboxId));
+		return result || null;
+	} catch (error) {
+		logger.error({
+			event: "db.projects.get_by_sandbox_failed",
+			sandbox_id: sandboxId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		throw new Error("Failed to get project by sandbox id");
+	}
+}
+
 export async function createProject({
 	projectId,
 	title,

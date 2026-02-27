@@ -1,6 +1,7 @@
 import { OAuth2Client, type OAuth2Tokens } from "arctic";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { sanitizeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { createSession, saveSession } from "@/lib/session/create";
 
@@ -23,7 +24,9 @@ export async function GET(req: NextRequest): Promise<Response> {
 
 	const store = await cookies();
 	const storedState = store.get("vercel_oauth_state")?.value;
-	const redirectTo = store.get("vercel_oauth_redirect_to")?.value ?? "/";
+	const redirectTo = sanitizeRedirectPath(
+		store.get("vercel_oauth_redirect_to")?.value,
+	);
 	const codeVerifier = store.get("vercel_oauth_code_verifier")?.value;
 
 	if (!storedState || storedState !== state || !codeVerifier) {

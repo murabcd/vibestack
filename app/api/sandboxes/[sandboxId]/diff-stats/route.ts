@@ -2,6 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../../_auth";
 
 interface FileDiffStat {
 	additions: number;
@@ -50,6 +51,15 @@ export async function GET(
 	const wide = createApiWideEvent(request, "sandboxes.diff_stats");
 	try {
 		const { sandboxId } = await params;
+		const authz = await authorizeSandboxOwner(request, sandboxId);
+		if (!authz.ok) {
+			wide.end(
+				authz.response.status,
+				"error",
+				new Error("Sandbox access denied"),
+			);
+			return authz.response;
+		}
 		wide.add({ sandbox_id: sandboxId });
 
 		const config = getSandboxConfig();

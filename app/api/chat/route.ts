@@ -34,6 +34,10 @@ import {
 import { connectors } from "@/lib/db/schema";
 import { logger } from "@/lib/logging/logger";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
+import {
+	validateLocalMcpCommand,
+	validateRemoteMcpUrl,
+} from "@/lib/security/mcp";
 import { getSessionFromReq } from "@/lib/session/server";
 import prompt from "./prompt.md";
 
@@ -243,6 +247,18 @@ export async function POST(req: NextRequest) {
 							mcpServers.map(async (server) => {
 								try {
 									if (server.type === "local" && server.command) {
+										const commandValidation = validateLocalMcpCommand(
+											server.command,
+										);
+										if (!commandValidation.valid) {
+											wide.add({
+												mcp_server_rejected: true,
+												mcp_server_name: server.name,
+												mcp_server_reason: commandValidation.reason,
+											});
+											return null;
+										}
+
 										// Local STDIO server
 										const commandParts = server.command.split(/\s+/);
 										const [command, ...args] = commandParts;
@@ -264,6 +280,16 @@ export async function POST(req: NextRequest) {
 									}
 
 									if (server.type === "remote" && server.baseUrl) {
+										const urlValidation = validateRemoteMcpUrl(server.baseUrl);
+										if (!urlValidation.valid) {
+											wide.add({
+												mcp_server_rejected: true,
+												mcp_server_name: server.name,
+												mcp_server_reason: urlValidation.reason,
+											});
+											return null;
+										}
+
 										// Remote HTTP/SSE server
 										const headers: Record<string, string> = {};
 										if (server.oauthClientSecret) {

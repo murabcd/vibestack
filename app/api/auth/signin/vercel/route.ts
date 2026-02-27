@@ -6,6 +6,7 @@ import {
 } from "arctic";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { sanitizeRedirectPath } from "@/lib/auth/safe-redirect";
 
 export async function POST(req: NextRequest): Promise<Response> {
 	const client = new OAuth2Client(
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 	);
 
 	const store = await cookies();
-	const redirectTo = req.nextUrl.searchParams.get("next") ?? "/";
+	const redirectTo = sanitizeRedirectPath(req.nextUrl.searchParams.get("next"));
 
 	for (const [key, value] of [
 		[`vercel_oauth_redirect_to`, redirectTo],

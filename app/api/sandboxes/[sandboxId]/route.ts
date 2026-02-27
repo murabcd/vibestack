@@ -3,6 +3,7 @@ import { APIError } from "@vercel/sandbox/dist/api-client/api-error";
 import { type NextRequest, NextResponse } from "next/server";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../_auth";
 
 /**
  * We must change the SDK to add data to the instance and then
@@ -15,6 +16,15 @@ export async function GET(
 	const wide = createApiWideEvent(request, "sandboxes.status");
 	const { sandboxId } = await params;
 	wide.add({ sandbox_id: sandboxId });
+	const authz = await authorizeSandboxOwner(request, sandboxId);
+	if (!authz.ok) {
+		wide.end(
+			authz.response.status,
+			"error",
+			new Error("Sandbox access denied"),
+		);
+		return authz.response;
+	}
 	try {
 		const config = getSandboxConfig();
 		const sandbox = await Sandbox.get({

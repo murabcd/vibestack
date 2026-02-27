@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../../../../_auth";
 
 interface Params {
 	sandboxId: string;
@@ -12,6 +13,10 @@ export async function GET(
 	{ params }: { params: Promise<Params> },
 ) {
 	const logParams = await params;
+	const authz = await authorizeSandboxOwner(_request, logParams.sandboxId);
+	if (!authz.ok) {
+		return authz.response;
+	}
 	const encoder = new TextEncoder();
 	const config = getSandboxConfig();
 	const sandbox = await Sandbox.get({

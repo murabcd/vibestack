@@ -1,6 +1,7 @@
 import { generateState } from "arctic";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { sanitizeRedirectPath } from "@/lib/auth/safe-redirect";
 import { getSessionFromReq } from "@/lib/session/server";
 
 export async function GET(req: NextRequest): Promise<Response> {
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
 	const state = generateState();
 	const store = await cookies();
-	let redirectTo = req.nextUrl.searchParams.get("next") ?? "/";
+	let redirectTo = sanitizeRedirectPath(req.nextUrl.searchParams.get("next"));
 
 	// If user is already authenticated with Vercel, treat this as a "Connect GitHub" flow
 	// Otherwise, treat it as a "Sign in with GitHub" flow

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../../_auth";
 
 const FileParamsSchema = z.object({
 	sandboxId: z.string(),
@@ -20,6 +21,15 @@ export async function GET(
 ) {
 	const wide = createApiWideEvent(request, "sandboxes.files.read");
 	const { sandboxId } = await params;
+	const authz = await authorizeSandboxOwner(request, sandboxId);
+	if (!authz.ok) {
+		wide.end(
+			authz.response.status,
+			"error",
+			new Error("Sandbox access denied"),
+		);
+		return authz.response;
+	}
 	const fileParams = FileParamsSchema.safeParse({
 		path: request.nextUrl.searchParams.get("path"),
 		sandboxId,
@@ -71,6 +81,15 @@ export async function POST(
 	const wide = createApiWideEvent(request, "sandboxes.files.write");
 	try {
 		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
+		const authz = await authorizeSandboxOwner(request, sandboxId);
+		if (!authz.ok) {
+			wide.end(
+				authz.response.status,
+				"error",
+				new Error("Sandbox access denied"),
+			);
+			return authz.response;
+		}
 		const fileData = SaveFileSchema.safeParse(body);
 
 		if (fileData.success === false) {

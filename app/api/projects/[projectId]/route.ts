@@ -36,17 +36,24 @@ export async function GET(
 			project_owner_id: project.userId,
 			is_owner: project.userId === session?.user?.id,
 		});
-		if (
-			project.visibility !== "public" &&
-			project.userId !== session?.user?.id
-		) {
+		const isOwner = project.userId === session?.user?.id;
+		if (project.visibility !== "public" && !isOwner) {
 			wide.add({ denial_reason: "access_denied_private_project" });
 			wide.end(404, "error", new Error("Project not found"));
 			return NextResponse.json({ error: "Project not found" }, { status: 404 });
 		}
 
 		wide.end(200, "success");
-		return NextResponse.json({ project });
+		if (isOwner) {
+			return NextResponse.json({ project });
+		}
+		const publicProject = {
+			...project,
+			sandboxId: null,
+			sandboxUrl: null,
+			previewUrl: null,
+		};
+		return NextResponse.json({ project: publicProject });
 	} catch (error) {
 		wide.end(500, "error", error);
 		return NextResponse.json(

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
+import { authorizeSandboxOwner } from "../../_auth";
 
 const LspRequestSchema = z.object({
 	method: z.literal("textDocument/definition"),
@@ -106,6 +107,15 @@ export async function POST(
 	const wide = createApiWideEvent(request, "sandboxes.lsp.definition");
 	try {
 		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
+		const authz = await authorizeSandboxOwner(request, sandboxId);
+		if (!authz.ok) {
+			wide.end(
+				authz.response.status,
+				"error",
+				new Error("Sandbox access denied"),
+			);
+			return authz.response;
+		}
 		const parsed = LspRequestSchema.safeParse(body);
 		if (parsed.success === false) {
 			wide.end(400, "error", new Error("Invalid LSP request body"));
