@@ -9,9 +9,6 @@
 
 <div align="center">
 
-> **⚠️ WARNING: This project is currently in early development**  
-> **Features and APIs may change. Use at your own risk.**
-
 </div>
 
 <p align="center">
@@ -44,7 +41,7 @@
 - [Next.js 16](https://nextjs.org) App Router
   - Advanced routing for seamless navigation and performance
   - React Server Components (RSCs) for server-side rendering and performance improvements
-- [AI SDK v5](https://sdk.vercel.ai/docs)
+- [AI SDK v6](https://sdk.vercel.ai/docs)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
 - [Vercel Sandbox](https://vercel.com/sandbox)
@@ -59,11 +56,11 @@
 
 ## Model providers
 
-This app ships with [Anthropic](https://anthropic.com) provider as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com/), [Ollama](https://ollama.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
+This app ships with [OpenAI](https://openai.com/) provider as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [Anthropic](https://anthropic.com), [Ollama](https://ollama.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
 
 ## MCP connectors
 
-Integration with Model Context Protocol (MCP) connectors via [AI SDK v5](https://sdk.vercel.ai/docs) for accessing external services and APIs. Use available preset connectors or configure your own custom MCP servers:
+Integration with Model Context Protocol (MCP) connectors via [AI SDK v6](https://sdk.vercel.ai/docs) for accessing external services and APIs. Use available preset connectors or configure your own custom MCP servers:
 
 - [Context7](https://context7.com)
   - Access comprehensive library documentation and code snippets

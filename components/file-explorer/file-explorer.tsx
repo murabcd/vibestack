@@ -3,7 +3,7 @@
 import {
 	ChevronDownIcon,
 	ChevronRightIcon,
-	FileDiff,
+	Diff,
 	FileIcon,
 	FolderIcon,
 	FolderOpenIcon,
@@ -402,7 +402,7 @@ export const FileExplorer = memo(function FileExplorer({
 										)}
 										aria-label="Show changed files"
 									>
-										<FileDiff className="size-3.5" />
+										<Diff className="size-3.5" />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>Show changed files</TooltipContent>
@@ -587,7 +587,7 @@ const FileTreeNode = memo(function FileTreeNode({
 			>
 				{node.type === "folder" ? (
 					<>
-						<div className="flex items-center gap-1 flex-shrink-0">
+						<div className="flex items-center gap-1 shrink-0">
 							{node.expanded ? (
 								<ChevronDownIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
 							) : (
@@ -605,7 +605,7 @@ const FileTreeNode = memo(function FileTreeNode({
 					</>
 				) : (
 					<>
-						<div className="flex items-center gap-1 flex-shrink-0">
+						<div className="flex items-center gap-1 shrink-0">
 							<div className="w-3.5 h-3.5 md:w-4 md:h-4" />
 							<FileIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-muted-foreground" />
 						</div>
