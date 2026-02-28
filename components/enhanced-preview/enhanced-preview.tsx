@@ -98,17 +98,17 @@ export function EnhancedPreview({ className }: Props) {
 			<PanelHeader className="h-10 min-h-10 text-xs px-2 flex items-center gap-2 overflow-x-auto">
 				<TooltipProvider delayDuration={120}>
 					<Tabs value={activeTab} onValueChange={setActiveTab}>
-						<TabsList className="h-8 bg-transparent border border-border/80 rounded-xl p-0.5">
+						<TabsList className="h-8 bg-transparent border-0 rounded-none p-0 gap-1">
 							<TabsTrigger
 								value="preview"
-								className="flex items-center gap-1 cursor-pointer text-xs px-3 py-1 h-7 rounded-lg text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border/80"
+								className="flex items-center gap-1 cursor-pointer text-xs px-3 py-1 h-7 rounded-md text-muted-foreground border border-transparent data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border-border/80"
 							>
 								<EyeIcon className="size-3" />
 								<span>Preview</span>
 							</TabsTrigger>
 							<TabsTrigger
 								value="code"
-								className="flex items-center gap-1 cursor-pointer text-xs px-3 py-1 h-7 rounded-lg text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border data-[state=active]:border-border/80"
+								className="flex items-center gap-1 cursor-pointer text-xs px-3 py-1 h-7 rounded-md text-muted-foreground border border-transparent data-[state=active]:text-foreground data-[state=active]:bg-accent/40 data-[state=active]:border-border/80"
 							>
 								<CodeIcon className="size-3" />
 								<span>Code</span>
@@ -116,7 +116,7 @@ export function EnhancedPreview({ className }: Props) {
 						</TabsList>
 					</Tabs>
 
-					<div className="ml-auto inline-flex items-center gap-1 border border-border/80 rounded-xl p-0.5">
+					<div className="ml-auto inline-flex items-center gap-1">
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
@@ -124,7 +124,7 @@ export function EnhancedPreview({ className }: Props) {
 									size="sm"
 									onClick={() => setConsoleExpanded(!consoleExpanded)}
 									className={cn(
-										"cursor-pointer h-7 px-2 text-xs rounded-lg shrink-0",
+										"cursor-pointer h-7 px-2 text-xs rounded-md shrink-0",
 										consoleExpanded
 											? "bg-accent/40 text-foreground border border-border/80"
 											: "text-muted-foreground hover:text-foreground",
@@ -143,7 +143,7 @@ export function EnhancedPreview({ className }: Props) {
 									variant="ghost"
 									size="sm"
 									onClick={() => controlDevServer("start_dev_server")}
-									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-lg"
+									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-md"
 									disabled={!sandboxId || isControllingDevServer}
 								>
 									<Play className="size-3.5" />
@@ -157,7 +157,7 @@ export function EnhancedPreview({ className }: Props) {
 									variant="ghost"
 									size="sm"
 									onClick={() => controlDevServer("stop_dev_server")}
-									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-lg"
+									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-md"
 									disabled={!sandboxId || isControllingDevServer}
 								>
 									<Square className="size-3.5" />
@@ -171,7 +171,7 @@ export function EnhancedPreview({ className }: Props) {
 									variant="ghost"
 									size="sm"
 									onClick={() => controlDevServer("restart_dev_server")}
-									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-lg"
+									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-md"
 									disabled={!sandboxId || isControllingDevServer}
 								>
 									<RotateCcw className="size-3.5" />
@@ -187,7 +187,7 @@ export function EnhancedPreview({ className }: Props) {
 									onClick={() => {
 										if (url) window.open(url, "_blank", "noreferrer");
 									}}
-									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-lg"
+									className="cursor-pointer h-7 w-7 p-0 text-xs shrink-0 rounded-md"
 									disabled={!url}
 								>
 									<ExternalLink className="size-3.5" />

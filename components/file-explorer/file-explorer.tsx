@@ -368,7 +368,7 @@ export const FileExplorer = memo(function FileExplorer({
 			<Panel className={cn(className, "border-0 flex flex-col min-h-0")}>
 				<PanelHeader className="h-10 min-h-10 text-xs px-2 py-0.5">
 					<TooltipProvider delayDuration={120}>
-						<div className="inline-flex items-center gap-1 border border-border/80 rounded-xl p-0.5">
+						<div className="inline-flex items-center gap-1">
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
@@ -376,7 +376,7 @@ export const FileExplorer = memo(function FileExplorer({
 										size="sm"
 										onClick={showFiles}
 										className={cn(
-											"h-7 w-7 p-0 rounded-lg",
+											"h-7 w-7 p-0 rounded-md border border-transparent",
 											viewMode === "files"
 												? "bg-accent/40 text-foreground border border-border/80"
 												: "text-muted-foreground hover:text-foreground",
@@ -395,7 +395,7 @@ export const FileExplorer = memo(function FileExplorer({
 										size="sm"
 										onClick={showChanges}
 										className={cn(
-											"h-7 w-7 p-0 rounded-lg",
+											"h-7 w-7 p-0 rounded-md border border-transparent",
 											viewMode === "changes"
 												? "bg-accent/40 text-foreground border border-border/80"
 												: "text-muted-foreground hover:text-foreground",

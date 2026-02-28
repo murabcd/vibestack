@@ -75,14 +75,14 @@ export function Preview({ className, disabled, url }: Props) {
 			<PanelHeader className="h-10 min-h-10 text-xs px-2 py-0.5">
 				<div className="flex w-full items-center gap-2">
 					<TooltipProvider delayDuration={120}>
-						<div className="inline-flex items-center gap-1 border border-border/80 rounded-xl p-0.5">
+						<div className="inline-flex items-center gap-1">
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
 										asChild
 										variant="ghost"
 										size="sm"
-										className="h-7 w-7 p-0 rounded-lg"
+										className="h-7 w-7 p-0 rounded-md border border-transparent"
 									>
 										<a href={currentUrl} target="_blank" rel="noreferrer">
 											<CompassIcon className="size-3.5" />
@@ -98,9 +98,12 @@ export function Preview({ className, disabled, url }: Props) {
 										type="button"
 										variant="ghost"
 										size="sm"
-										className={cn("h-7 w-7 p-0 rounded-lg", {
-											"animate-spin": isLoading,
-										})}
+										className={cn(
+											"h-7 w-7 p-0 rounded-md border border-transparent",
+											{
+												"animate-spin": isLoading,
+											},
+										)}
 									>
 										<RefreshCwIcon className="size-3.5" />
 									</Button>
@@ -114,7 +117,7 @@ export function Preview({ className, disabled, url }: Props) {
 						{url && (
 							<input
 								type="text"
-								className="text-xs h-7 border border-border/80 px-3 bg-background rounded-lg focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring w-full max-w-[640px] min-w-[220px]"
+								className="text-xs h-7 border border-border/80 px-3 bg-background rounded-md focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring w-full max-w-[640px] min-w-[220px]"
 								onChange={(event) => setInputValue(event.target.value)}
 								onClick={(event) => event.currentTarget.select()}
 								onKeyDown={(event) => {

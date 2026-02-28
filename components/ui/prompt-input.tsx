@@ -1025,7 +1025,7 @@ export const PromptInputSubmit = ({
 			<TooltipTrigger asChild>
 				<InputGroupButton
 					aria-label="Submit"
-					className={cn("cursor-pointer", className)}
+					className={cn("cursor-pointer rounded-full", className)}
 					size={size}
 					type="submit"
 					variant={variant}
