@@ -8,6 +8,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -63,6 +64,7 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 			<DropdownMenuContent className="w-55" align="end">
 				<div className="p-2 space-y-4">
 					<div className="space-y-2">
+						<Label htmlFor={id}>Maximum duration</Label>
 						<Select
 							value={sandboxDuration?.toString()}
 							onValueChange={handleDurationChange}

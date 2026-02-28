@@ -1,7 +1,13 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
+import { ClaudeIcon, CodexIcon } from "@/components/icons/icons";
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
 	Select,
 	SelectContent,
@@ -23,11 +29,39 @@ interface Props {
 	onModelChange: (modelId: string) => void;
 }
 
+const MODEL_DETAILS: Record<string, string> = {
+	"openai/gpt-5.2":
+		"The best model for coding and agentic tasks, with strong reasoning and tool use.",
+	"openai/gpt-5-mini":
+		"A faster, cost-efficient model for well-defined and everyday coding tasks.",
+	"openai/gpt-5-nano":
+		"Fastest, most cost-efficient model for high-throughput tasks and simple, repetitive workloads.",
+	"anthropic/claude-opus-4.6":
+		"Most capable Claude model, built for complex coding and agent workflows.",
+	"anthropic/claude-sonnet-4.5":
+		"Best model for agents, coding, and computer use, with high detail for long tasks.",
+	"anthropic/claude-haiku-4-5":
+		"Fastest and most cost-efficient Claude model for coding and agent tasks.",
+};
+
+function ProviderLogo({ modelId }: { modelId: string }) {
+	if (modelId.startsWith("openai/")) {
+		return <CodexIcon className="size-3.5 text-muted-foreground" />;
+	}
+	if (modelId.startsWith("anthropic/")) {
+		return <ClaudeIcon className="size-3.5" />;
+	}
+	return null;
+}
+
 export const ModelSelector = memo(function ModelSelector({
 	modelId,
 	onModelChange,
 }: Props) {
 	const { models, isLoading, error } = useAvailableModels();
+	const [isSelectOpen, setIsSelectOpen] = useState(false);
+	const [isHoverArmed, setIsHoverArmed] = useState(false);
+	const [hoveredModelId, setHoveredModelId] = useState<string | null>(null);
 	type ModelOption = NonNullable<typeof models>[number];
 
 	const { openaiModels, anthropicModels, otherModels } = useMemo(() => {
@@ -94,15 +128,60 @@ export const ModelSelector = memo(function ModelSelector({
 		};
 	}, [models]);
 
+	const renderModelOption = (model: ModelOption) => {
+		const description =
+			MODEL_DETAILS[model.id] ?? "General-purpose language model.";
+
+		return (
+			<HoverCard
+				key={model.id}
+				open={isSelectOpen && isHoverArmed && hoveredModelId === model.id}
+				onOpenChange={(open) => {
+					if (open && isHoverArmed) {
+						setHoveredModelId(model.id);
+						return;
+					}
+					setHoveredModelId((prev) => (prev === model.id ? null : prev));
+				}}
+				openDelay={180}
+				closeDelay={0}
+			>
+				<HoverCardTrigger asChild>
+					<SelectItem value={model.id}>
+						<span className="inline-flex items-center gap-2">
+							<ProviderLogo modelId={model.id} />
+							{model.label}
+						</span>
+					</SelectItem>
+				</HoverCardTrigger>
+				<HoverCardContent
+					side="right"
+					align="start"
+					sideOffset={10}
+					className="pointer-events-none w-56"
+				>
+					<p className="text-muted-foreground text-xs">{description}</p>
+				</HoverCardContent>
+			</HoverCard>
+		);
+	};
+
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<Select
 					value={modelId}
 					onValueChange={onModelChange}
+					onOpenChange={(open) => {
+						setIsSelectOpen(open);
+						setIsHoverArmed(false);
+						if (!open) {
+							setHoveredModelId(null);
+						}
+					}}
 					disabled={isLoading || !!error || !models?.length}
 				>
-					<SelectTrigger className="bg-background cursor-pointer h-8!">
+					<SelectTrigger className="cursor-pointer h-8! border-0 bg-transparent shadow-none hover:bg-muted/50 dark:bg-transparent focus-visible:border-transparent focus-visible:ring-0">
 						{isLoading ? (
 							<div className="flex items-center gap-2">
 								<Loader2Icon className="size-4 animate-spin" />
@@ -117,37 +196,31 @@ export const ModelSelector = memo(function ModelSelector({
 						)}
 					</SelectTrigger>
 
-					<SelectContent>
+					<SelectContent
+						onPointerMove={() => {
+							if (!isHoverArmed) {
+								setIsHoverArmed(true);
+							}
+						}}
+					>
 						{openaiModels.length > 0 && (
 							<SelectGroup>
 								<SelectLabel>OpenAI</SelectLabel>
-								{openaiModels.map((model) => (
-									<SelectItem key={model.id} value={model.id}>
-										{model.label}
-									</SelectItem>
-								))}
+								{openaiModels.map(renderModelOption)}
 							</SelectGroup>
 						)}
 
 						{anthropicModels.length > 0 && (
 							<SelectGroup>
 								<SelectLabel>Anthropic</SelectLabel>
-								{anthropicModels.map((model) => (
-									<SelectItem key={model.id} value={model.id}>
-										{model.label}
-									</SelectItem>
-								))}
+								{anthropicModels.map(renderModelOption)}
 							</SelectGroup>
 						)}
 
 						{otherModels.length > 0 && (
 							<SelectGroup>
 								<SelectLabel>Other</SelectLabel>
-								{otherModels.map((model) => (
-									<SelectItem key={model.id} value={model.id}>
-										{model.label}
-									</SelectItem>
-								))}
+								{otherModels.map(renderModelOption)}
 							</SelectGroup>
 						)}
 					</SelectContent>

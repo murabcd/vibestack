@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	createConnector,
 	deleteConnector,
@@ -394,15 +395,14 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 									variant="ghost"
 									size="sm"
 									onClick={goBack}
-									className="mr-2 -ml-2"
+									className="mr-2 -ml-2 cursor-pointer"
 								>
 									<ArrowLeft className="h-4 w-4" />
 								</Button>
 							)}
-							{view === "list" && "MCP Servers"}
-							{view === "presets" && "Add MCP Server"}
-							{view === "form" &&
-								(isEditing ? "Edit MCP Server" : "Add MCP Server")}
+							{view === "list" && "MCP servers"}
+							{view === "presets" && "Add MCP"}
+							{view === "form" && (isEditing ? "Edit MCP" : "Add MCP")}
 						</DialogTitle>
 						<DialogDescription>
 							{view === "list" && "Manage your Model Context Protocol servers."}
@@ -420,7 +420,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										Loading connectors...
 									</div>
 								) : connectors.length === 0 ? (
-									<div className="text-center text-muted-foreground py-8">
+									<div className="text-sm text-center text-muted-foreground py-8">
 										No MCP servers configured yet.
 									</div>
 								) : (
@@ -452,7 +452,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 														type="button"
 														variant="ghost"
 														size="icon"
-														className="h-8 w-8"
+														className="h-8 w-8 cursor-pointer"
 														onClick={() => {
 															setEditingConnector(connector);
 															setView("form");
@@ -468,6 +468,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 																: "outline"
 														}
 														size="sm"
+														className="cursor-pointer"
 														disabled={loadingConnectors.has(connector.id)}
 														onClick={() =>
 															handleToggleConnectorStatus(
@@ -486,9 +487,14 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 									})
 								)}
 								<div className="flex justify-end pt-4">
-									<Button type="button" variant="default" onClick={startAdding}>
+									<Button
+										type="button"
+										variant="default"
+										className="cursor-pointer"
+										onClick={startAdding}
+									>
 										<Plus className="h-4 w-4 mr-2" />
-										Add MCP Server
+										Add MCP
 									</Button>
 								</div>
 							</div>
@@ -517,10 +523,10 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 								</div>
 								<Button
 									variant="outline"
-									className="w-full"
+									className="w-full cursor-pointer"
 									onClick={addCustomServer}
 								>
-									Add Custom MCP Server
+									Add custom MCP server
 								</Button>
 							</div>
 						) : (
@@ -602,6 +608,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 														type="button"
 														variant="ghost"
 														size="sm"
+														className="cursor-pointer"
 														onClick={() => setSelectedPreset(null)}
 													>
 														<X className="h-4 w-4" />
@@ -615,7 +622,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										<Input
 											id={nameInputId}
 											name="name"
-											placeholder="Example MCP Server"
+											placeholder="Example MCP server"
 											defaultValue={
 												editingConnector?.name || selectedPreset?.name || ""
 											}
@@ -630,27 +637,35 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 
 									{!selectedPreset && !isEditing && (
 										<div className="space-y-2">
-											<Label>Server Type</Label>
-											<div className="flex gap-2">
-												<Button
-													type="button"
-													variant={
-														serverType === "remote" ? "default" : "outline"
-													}
-													onClick={() => setServerType("remote")}
+											<Label>Server type</Label>
+											<RadioGroup
+												value={serverType}
+												onValueChange={(value) =>
+													setServerType(value as "local" | "remote")
+												}
+												className="flex gap-4"
+											>
+												<Label
+													htmlFor={`${formId}-server-type-remote`}
+													className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer"
 												>
-													Remote (HTTP/SSE)
-												</Button>
-												<Button
-													type="button"
-													variant={
-														serverType === "local" ? "default" : "outline"
-													}
-													onClick={() => setServerType("local")}
+													<RadioGroupItem
+														value="remote"
+														id={`${formId}-server-type-remote`}
+													/>
+													<span>Remote (HTTP/SSE)</span>
+												</Label>
+												<Label
+													htmlFor={`${formId}-server-type-local`}
+													className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer"
 												>
-													Local (STDIO)
-												</Button>
-											</div>
+													<RadioGroupItem
+														value="local"
+														id={`${formId}-server-type-local`}
+													/>
+													<span>Local (STDIO)</span>
+												</Label>
+											</RadioGroup>
 										</div>
 									)}
 
@@ -719,7 +734,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 									<div className="space-y-2">
 										<div className="flex items-center justify-between">
 											<Label>
-												Environment Variables
+												Environment variables
 												{selectedPreset?.envKeys &&
 												selectedPreset.envKeys.length > 0
 													? ""
@@ -729,10 +744,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 												type="button"
 												size="sm"
 												variant="outline"
+												className="cursor-pointer"
 												onClick={addEnvVar}
 											>
 												<Plus className="h-4 w-4 mr-1" />
-												Add Variable
+												Add variable
 											</Button>
 										</div>
 										{envVars.length > 0 && (
@@ -768,7 +784,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 																type="button"
 																variant="ghost"
 																size="icon"
-																className="absolute right-0 top-0 h-full hover:bg-transparent"
+																className="absolute right-0 top-0 h-full cursor-pointer hover:bg-transparent"
 																onClick={() => toggleEnvVarVisibility(index)}
 															>
 																{visibleEnvVars.has(index) ? (
@@ -783,6 +799,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 																type="button"
 																variant="ghost"
 																size="icon"
+																className="cursor-pointer"
 																onClick={() => removeEnvVar(index)}
 															>
 																<X className="h-4 w-4" />
@@ -800,9 +817,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 												<Button
 													type="button"
 													variant="ghost"
-													className="w-full justify-between"
+													className="w-full justify-between cursor-pointer"
 												>
-													Advanced Settings
+													Advanced settings
 													<ChevronDown className="h-4 w-4" />
 												</Button>
 											</CollapsibleTrigger>
@@ -842,6 +859,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 											<Button
 												type="button"
 												variant="destructive"
+												className="cursor-pointer"
 												onClick={(e) => {
 													e.preventDefault();
 													setShowDeleteDialog(true);
@@ -857,19 +875,24 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 											<Button
 												type="button"
 												variant="outline"
+												className="cursor-pointer"
 												onClick={goBack}
 												disabled={pending || isDeleting}
 											>
 												Back
 											</Button>
-											<Button type="submit" disabled={pending || isDeleting}>
+											<Button
+												type="submit"
+												className="cursor-pointer"
+												disabled={pending || isDeleting}
+											>
 												{pending
 													? isEditing
 														? "Saving..."
 														: "Creating..."
 													: isEditing
-														? "Save Changes"
-														: "Add MCP Server"}
+														? "Save changes"
+														: "Add MCP"}
 											</Button>
 										</div>
 									</div>
@@ -883,18 +906,20 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete MCP Server</AlertDialogTitle>
+						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 						<AlertDialogDescription>
 							Are you sure you want to delete &quot;{editingConnector?.name}
 							&quot;? This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel className="cursor-pointer" disabled={isDeleting}>
+							Cancel
+						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleDelete}
 							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							className="cursor-pointer bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
 							{isDeleting ? "Deleting..." : "Delete"}
 						</AlertDialogAction>

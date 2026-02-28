@@ -30,7 +30,7 @@ export function Settings({ modelId }: SettingsProps) {
 				</TooltipTrigger>
 				<TooltipContent align="end">Model settings</TooltipContent>
 			</Tooltip>
-			<PopoverContent className="p-0 w-96">
+			<PopoverContent className="p-0 min-w-80">
 				<div className="p-4 space-y-6">
 					<AutoFixErrors />
 					<ReasoningEffort modelId={modelId} />
