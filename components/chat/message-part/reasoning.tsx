@@ -1,4 +1,7 @@
 import type { ReasoningUIPart } from "ai";
+import { BrainIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Task, TaskContent, TaskTrigger } from "@/components/ai-elements/task";
 import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
 import { useReasoningContext } from "../message";
 import { MessageSpinner } from "../message-spinner";
@@ -12,39 +15,55 @@ export function Reasoning({
 }) {
 	const context = useReasoningContext();
 	const isExpanded = context?.expandedReasoningIndex === partIndex;
+	const startedAtRef = useRef<number>(Date.now());
+	const [elapsedSeconds, setElapsedSeconds] = useState(1);
+	const durationSeconds = useMemo(() => {
+		if (part.state !== "done") return null;
+		return Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
+	}, [part.state]);
+
+	useEffect(() => {
+		if (part.state !== "streaming") return;
+
+		const timer = window.setInterval(() => {
+			setElapsedSeconds(
+				Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)),
+			);
+		}, 1000);
+
+		return () => window.clearInterval(timer);
+	}, [part.state]);
 
 	if (part.state === "done" && !part.text) {
 		return null;
 	}
 
-	const text = part.text || "_Thinking_";
+	const text = part.text || "";
 	const isStreaming = part.state === "streaming";
-	const firstLine = text.split("\n")[0].replace(/\*\*/g, "");
-	const hasMoreContent = text.includes("\n") || text.length > 80;
-
-	const handleClick = () => {
-		if (hasMoreContent && context) {
-			const newIndex = isExpanded ? null : partIndex;
-			context.setExpandedReasoningIndex(newIndex);
-		}
-	};
+	const thoughtTitle = isStreaming
+		? `Thought for ${elapsedSeconds}s`
+		: `Thought for ${durationSeconds ?? 1}s`;
 
 	return (
-		<button
-			type="button"
-			className="text-sm border border-border bg-background rounded-md cursor-pointer hover:bg-accent/30 transition-colors w-full text-left"
-			onClick={handleClick}
+		<Task
+			defaultOpen={isExpanded}
+			open={isExpanded}
+			onOpenChange={(open) => {
+				if (!context) return;
+				context.setExpandedReasoningIndex(open ? partIndex : null);
+			}}
 		>
-			<div className="px-3 py-2">
-				<div className="text-secondary-foreground leading-normal text-sm">
-					{isExpanded || !hasMoreContent ? (
-						<MarkdownRenderer content={text} isAnimating={isStreaming} />
-					) : (
-						<div className="overflow-hidden">{firstLine}</div>
-					)}
-					{isStreaming && isExpanded && <MessageSpinner />}
+			<TaskTrigger
+				title={thoughtTitle}
+				icon={<BrainIcon className="size-4" />}
+				status={isStreaming ? "loading" : "done"}
+			/>
+			<TaskContent lazy={false}>
+				<div className="text-secondary-foreground leading-normal text-sm px-3 pb-3">
+					<MarkdownRenderer content={text} isAnimating={isStreaming} />
+					{isStreaming && <MessageSpinner />}
 				</div>
-			</div>
-		</button>
+			</TaskContent>
+		</Task>
 	);
 }

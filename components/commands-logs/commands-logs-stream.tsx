@@ -10,6 +10,9 @@ type StreamingCommandLogs = Record<
 	Awaited<ReturnType<typeof getCommandLogs>>
 >;
 
+const MAX_CLIENT_LOG_CHARS = 2000;
+const MAX_PENDING_LINE_CHARS = 200000;
+
 export function CommandLogsStream() {
 	const { sandboxId, commands, addLog, upsertCommand } = useSandboxStore();
 	const ref = useRef<StreamingCommandLogs>({});
@@ -71,16 +74,23 @@ async function* getCommandLogs(sandboxId: string, cmdId: string) {
 		if (done) break;
 
 		line += decoder.decode(value, { stream: true });
+		if (line.length > MAX_PENDING_LINE_CHARS) {
+			line = line.slice(-MAX_PENDING_LINE_CHARS);
+		}
 		const lines = line.split("\n");
 		for (let i = 0; i < lines.length - 1; i++) {
 			if (lines[i]) {
-				const logEntry = JSON.parse(lines[i]);
-				const parsed = logSchema.parse(logEntry);
-				yield {
-					data: stripAnsi(parsed.data),
-					stream: parsed.stream,
-					timestamp: parsed.timestamp,
-				};
+				try {
+					const logEntry = JSON.parse(lines[i]);
+					const parsed = logSchema.parse(logEntry);
+					yield {
+						data: clampLogData(stripAnsi(parsed.data)),
+						stream: parsed.stream,
+						timestamp: parsed.timestamp,
+					};
+				} catch {
+					// Skip malformed log entries instead of breaking the full stream.
+				}
 			}
 		}
 		line = lines[lines.length - 1];
@@ -98,4 +108,11 @@ async function getCommand(sandboxId: string, cmdId: string) {
 	const response = await fetch(`/api/sandboxes/${sandboxId}/cmds/${cmdId}`);
 	const json = await response.json();
 	return cmdSchema.parse(json);
+}
+
+function clampLogData(data: string): string {
+	if (data.length <= MAX_CLIENT_LOG_CHARS) {
+		return data;
+	}
+	return `${data.slice(0, MAX_CLIENT_LOG_CHARS)}...[truncated ${data.length - MAX_CLIENT_LOG_CHARS} chars]`;
 }

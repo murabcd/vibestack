@@ -188,37 +188,71 @@ export function useDataStateMapper() {
 
 	return (data: DataUIPart<DataPart>) => {
 		switch (data.type) {
-			case "data-create-sandbox":
-				if (data.data.sandboxId) {
-					setSandboxId(data.data.sandboxId);
+			case "data-task-coding-v1": {
+				const lastPart = data.data.parts[data.data.parts.length - 1];
+				if (!lastPart || typeof lastPart !== "object") break;
+				const partType =
+					typeof (lastPart as { type?: unknown }).type === "string"
+						? (lastPart as { type: string }).type
+						: "";
+
+				if (partType === "create-sandbox-complete") {
+					const sandboxId = (lastPart as { sandboxId?: unknown }).sandboxId;
+					if (typeof sandboxId === "string") {
+						setSandboxId(sandboxId);
+					}
 				}
-				break;
-			case "data-generating-files":
-				if (data.data.status === "uploaded") {
-					setCursor(errors.length);
-					addPaths(data.data.paths);
-					addGeneratedFiles(data.data.paths);
-				}
-				break;
-			case "data-run-command":
+
 				if (
-					data.data.commandId &&
-					(data.data.status === "executing" || data.data.status === "running")
+					partType === "generated-files-uploaded" ||
+					partType === "generated-files-complete"
 				) {
-					upsertCommand({
-						background: data.data.status === "running",
-						sandboxId: data.data.sandboxId,
-						cmdId: data.data.commandId,
-						command: data.data.command,
-						args: data.data.args,
-					});
+					const paths = (lastPart as { paths?: unknown }).paths;
+					if (Array.isArray(paths)) {
+						const normalized = paths.filter(
+							(path): path is string => typeof path === "string",
+						);
+						if (normalized.length > 0) {
+							setCursor(errors.length);
+							addPaths(normalized);
+							addGeneratedFiles(normalized);
+						}
+					}
+				}
+
+				if (
+					partType === "run-command-executing" ||
+					partType === "run-command-background"
+				) {
+					const commandId = (lastPart as { commandId?: unknown }).commandId;
+					const sandboxId = (lastPart as { sandboxId?: unknown }).sandboxId;
+					const command = (lastPart as { command?: unknown }).command;
+					const args = (lastPart as { args?: unknown }).args;
+					if (
+						typeof commandId === "string" &&
+						typeof sandboxId === "string" &&
+						typeof command === "string"
+					) {
+						upsertCommand({
+							background: partType === "run-command-background",
+							sandboxId,
+							cmdId: commandId,
+							command,
+							args: Array.isArray(args)
+								? args.filter((arg): arg is string => typeof arg === "string")
+								: [],
+						});
+					}
+				}
+
+				if (partType === "get-sandbox-url-complete") {
+					const url = (lastPart as { url?: unknown }).url;
+					if (typeof url === "string") {
+						setUrl(url, crypto.randomUUID());
+					}
 				}
 				break;
-			case "data-get-sandbox-url":
-				if (data.data.url) {
-					setUrl(data.data.url, crypto.randomUUID());
-				}
-				break;
+			}
 			default:
 				break;
 		}

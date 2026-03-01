@@ -29,7 +29,7 @@ export const createSandbox = ({ writer, context }: Params) =>
 					"Maximum time in milliseconds the Vercel Sandbox will remain active before automatically shutting down. Minimum 600000ms (10 minutes), maximum 2700000ms (45 minutes). Defaults to 1800000ms (30 minutes). The sandbox will terminate all running processes when this timeout is reached.",
 				),
 			ports: z
-				.array(z.number())
+				.array(z.number().int().min(1).max(65535))
 				.max(2)
 				.optional()
 				.describe(
@@ -37,15 +37,68 @@ export const createSandbox = ({ writer, context }: Params) =>
 				),
 		}),
 		execute: async ({ timeout, ports }, { toolCallId }) => {
+			if (context?.canUseTool && !context.canUseTool("createSandbox")) {
+				const message =
+					"Create sandbox is temporarily paused due to repeated failures in this run.";
+				writer.write({
+					id: toolCallId,
+					type: "data-task-coding-v1",
+					data: {
+						taskNameActive: "Create sandbox",
+						taskNameComplete: "Create sandbox",
+						status: "error",
+						parts: [
+							{
+								type: "create-sandbox-failed",
+								error: { message },
+							},
+						],
+					},
+				});
+				return message;
+			}
+
+			const canCreateSandbox =
+				context?.registerSingletonToolUse?.("createSandbox") ?? true;
+			if (!canCreateSandbox) {
+				const existingSandboxId = context?.getActiveSandboxId?.() ?? null;
+				writer.write({
+					id: toolCallId,
+					type: "data-task-coding-v1",
+					data: {
+						taskNameActive: "Create sandbox",
+						taskNameComplete: "Create sandbox",
+						status: "done",
+						parts: existingSandboxId
+							? [
+									{
+										type: "create-sandbox-complete",
+										sandboxId: existingSandboxId,
+									},
+								]
+							: [{ type: "create-sandbox-skipped" }],
+					},
+				});
+				return existingSandboxId
+					? `Reusing existing sandbox with ID: ${existingSandboxId}.`
+					: "Sandbox creation already attempted in this run; skipping duplicate request.";
+			}
+
 			writer.write({
 				id: toolCallId,
-				type: "data-create-sandbox",
-				data: { status: "loading" },
+				type: "data-task-coding-v1",
+				data: {
+					taskNameActive: "Create sandbox",
+					taskNameComplete: "Create sandbox",
+					status: "loading",
+					parts: [{ type: "create-sandbox-started" }],
+				},
 			});
 
 			// Validate required environment variables
 			const envValidation = validateSandboxEnvironmentVariables();
 			if (!envValidation.valid) {
+				context?.recordToolOutcome?.("createSandbox", "failure");
 				throw new Error(
 					`Missing required environment variables: ${envValidation.errors.join(", ")}`,
 				);
@@ -79,9 +132,18 @@ export const createSandbox = ({ writer, context }: Params) =>
 
 				writer.write({
 					id: toolCallId,
-					type: "data-create-sandbox",
-					data: { sandboxId: sandbox.sandboxId, status: "done" },
+					type: "data-task-coding-v1",
+					data: {
+						taskNameActive: "Create sandbox",
+						taskNameComplete: "Create sandbox",
+						status: "done",
+						parts: [
+							{ type: "create-sandbox-complete", sandboxId: sandbox.sandboxId },
+						],
+					},
 				});
+				context?.setActiveSandboxId?.(sandbox.sandboxId);
+				context?.recordToolOutcome?.("createSandbox", "success");
 
 				// Update project with sandbox metadata
 				if (context?.projectId) {
@@ -115,12 +177,20 @@ export const createSandbox = ({ writer, context }: Params) =>
 
 				writer.write({
 					id: toolCallId,
-					type: "data-create-sandbox",
+					type: "data-task-coding-v1",
 					data: {
-						error: { message: richError.error.message },
+						taskNameActive: "Create sandbox",
+						taskNameComplete: "Create sandbox",
 						status: "error",
+						parts: [
+							{
+								type: "create-sandbox-failed",
+								error: { message: richError.error.message },
+							},
+						],
 					},
 				});
+				context?.recordToolOutcome?.("createSandbox", "failure");
 
 				logger.error({
 					event: "sandbox.create.failed",

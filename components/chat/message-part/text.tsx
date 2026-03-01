@@ -18,6 +18,8 @@ export function Text({
 	const { chat } = useSharedChatContext();
 	const { sendMessage } = useChat({ chat });
 	const { modelId, reasoningEffort } = useSettings();
+	const visibleText =
+		messageRole === "assistant" ? stripFencedCodeBlocks(part.text) : part.text;
 
 	const handleCopyMessage = async (content: string) => {
 		try {
@@ -62,7 +64,7 @@ export function Text({
 					})}
 				>
 					<MarkdownRenderer
-						content={part.text}
+						content={visibleText}
 						isAnimating={
 							messageRole === "assistant" && part.state === "streaming"
 						}
@@ -93,4 +95,11 @@ export function Text({
 			</div>
 		</div>
 	);
+}
+
+function stripFencedCodeBlocks(input: string): string {
+	return input
+		.replace(/```[\s\S]*?```/g, "")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
 }

@@ -15,9 +15,9 @@ interface Params {
 export function tools({ modelId, writer, context }: Params) {
 	return {
 		createSandbox: createSandbox({ writer, context }),
-		generateFiles: generateFiles({ writer, modelId }),
+		generateFiles: generateFiles({ writer, modelId, context }),
 		getSandboxURL: getSandboxURL({ writer, context }),
-		runCommand: runCommand({ writer }),
+		runCommand: runCommand({ writer, context }),
 	};
 }
 

@@ -23,7 +23,12 @@ export function Settings({ modelId }: SettingsProps) {
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<PopoverTrigger asChild>
-						<Button className="cursor-pointer" variant="ghost" size="sm">
+						<Button
+							type="button"
+							className="cursor-pointer"
+							variant="ghost"
+							size="sm"
+						>
 							<SlidersVerticalIcon className="size-4" />
 						</Button>
 					</PopoverTrigger>

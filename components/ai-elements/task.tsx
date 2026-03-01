@@ -1,7 +1,14 @@
 "use client";
 
 import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import {
+	type ComponentProps,
+	createContext,
+	type ReactNode,
+	useContext,
+	useState,
+} from "react";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Spinner } from "@/components/chat/message-part/spinner";
 import {
 	Collapsible,
@@ -38,18 +45,41 @@ export const TaskItem = ({ children, className, ...props }: TaskItemProps) => (
 
 export type TaskProps = ComponentProps<typeof Collapsible>;
 
+const TaskOpenContext = createContext<boolean>(false);
+
 export const Task = ({
 	defaultOpen = false,
 	className,
+	open,
+	onOpenChange,
 	...props
-}: TaskProps) => (
-	<Collapsible className={cn(className)} defaultOpen={defaultOpen} {...props} />
-);
+}: TaskProps) => {
+	const [internalOpen, setInternalOpen] = useState(defaultOpen);
+	const isControlled = typeof open === "boolean";
+	const resolvedOpen = isControlled ? open : internalOpen;
+
+	return (
+		<TaskOpenContext.Provider value={resolvedOpen}>
+			<Collapsible
+				className={cn(className)}
+				open={resolvedOpen}
+				onOpenChange={(nextOpen) => {
+					if (!isControlled) {
+						setInternalOpen(nextOpen);
+					}
+					onOpenChange?.(nextOpen);
+				}}
+				{...props}
+			/>
+		</TaskOpenContext.Provider>
+	);
+};
 
 export type TaskTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
 	title: string;
 	icon?: ReactNode;
 	status?: "loading" | "done" | "error";
+	hideChevron?: boolean;
 };
 
 export const TaskTrigger = ({
@@ -58,6 +88,7 @@ export const TaskTrigger = ({
 	title,
 	icon,
 	status,
+	hideChevron = false,
 	...props
 }: TaskTriggerProps) => {
 	const renderStatusIcon = () => {
@@ -80,9 +111,19 @@ export const TaskTrigger = ({
 			{children ?? (
 				<div className="flex w-full cursor-pointer items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground">
 					{icon ?? <SearchIcon className="size-4" />}
-					<p className="flex-1">{title}</p>
+					<div className="flex-1">
+						{status === "loading" ? (
+							<Shimmer className="text-sm text-muted-foreground">
+								{title}
+							</Shimmer>
+						) : (
+							<p>{title}</p>
+						)}
+					</div>
 					{renderStatusIcon()}
-					<ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+					{hideChevron ? null : (
+						<ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+					)}
 				</div>
 			)}
 		</CollapsibleTrigger>
@@ -94,17 +135,26 @@ export type TaskContentProps = ComponentProps<typeof CollapsibleContent>;
 export const TaskContent = ({
 	children,
 	className,
+	lazy = true,
 	...props
-}: TaskContentProps) => (
-	<CollapsibleContent
-		className={cn(
-			"data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-			className,
-		)}
-		{...props}
-	>
-		<div className="mt-4 space-y-2.5 border-muted border-l-2 pl-4">
-			{children}
-		</div>
-	</CollapsibleContent>
-);
+}: TaskContentProps & { lazy?: boolean }) => {
+	const isOpen = useContext(TaskOpenContext);
+
+	if (lazy && !isOpen) {
+		return null;
+	}
+
+	return (
+		<CollapsibleContent
+			className={cn(
+				"data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+				className,
+			)}
+			{...props}
+		>
+			<div className="mt-4 space-y-2.5 border-muted border-l-2 pl-4">
+				{children}
+			</div>
+		</CollapsibleContent>
+	);
+};

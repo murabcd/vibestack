@@ -24,31 +24,89 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 				),
 			port: z
 				.number()
+				.int()
+				.min(1)
+				.max(65535)
 				.describe(
 					"The port number where a service is running inside the Vercel Sandbox (e.g., 3000 for Next.js dev server, 8000 for Python apps, 5000 for Flask). The port must have been exposed when the sandbox was created or when running commands.",
 				),
 		}),
 		execute: async ({ sandboxId, port }, { toolCallId }) => {
+			if (context?.canUseTool && !context.canUseTool("getSandboxURL")) {
+				const message =
+					"Get preview URL is temporarily paused due to repeated failures in this run.";
+				writer.write({
+					id: toolCallId,
+					type: "data-task-coding-v1",
+					data: {
+						taskNameActive: "Getting preview URL",
+						taskNameComplete: "Preview ready",
+						status: "error",
+						parts: [
+							{
+								type: "get-sandbox-url-failed",
+								error: { message },
+							},
+						],
+					},
+				});
+				return { url: "" };
+			}
+
 			writer.write({
 				id: toolCallId,
-				type: "data-get-sandbox-url",
-				data: { status: "loading" },
+				type: "data-task-coding-v1",
+				data: {
+					taskNameActive: "Getting preview URL",
+					taskNameComplete: "Preview ready",
+					status: "loading",
+					parts: [{ type: "get-sandbox-url-started", sandboxId, port }],
+				},
 			});
 
-			const { teamId, projectId, token } = getSandboxCredentials();
-			const sandbox = await Sandbox.get({
-				sandboxId,
-				teamId,
-				projectId,
-				token,
-			});
-			const url = sandbox.domain(port);
+			let url = "";
+			try {
+				const { teamId, projectId, token } = getSandboxCredentials();
+				const sandbox = await Sandbox.get({
+					sandboxId,
+					teamId,
+					projectId,
+					token,
+				});
+				url = sandbox.domain(port);
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : "Failed to get preview URL";
+				writer.write({
+					id: toolCallId,
+					type: "data-task-coding-v1",
+					data: {
+						taskNameActive: "Getting preview URL",
+						taskNameComplete: "Preview ready",
+						status: "error",
+						parts: [
+							{
+								type: "get-sandbox-url-failed",
+								error: { message },
+							},
+						],
+					},
+				});
+				context?.recordToolOutcome?.("getSandboxURL", "failure");
+				return { url: "" };
+			}
 
 			writer.write({
 				id: toolCallId,
-				type: "data-get-sandbox-url",
-				data: { url, status: "done" },
+				type: "data-task-coding-v1",
+				data: {
+					taskNameActive: "Getting preview URL",
+					taskNameComplete: "Preview ready",
+					status: "done",
+					parts: [{ type: "get-sandbox-url-complete", url, sandboxId, port }],
+				},
 			});
+			context?.recordToolOutcome?.("getSandboxURL", "success");
 
 			// Update project with sandbox URLs
 			if (context?.projectId) {

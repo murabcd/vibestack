@@ -18,6 +18,7 @@ export function McpButton() {
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
+						type="button"
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowDialog(true)}

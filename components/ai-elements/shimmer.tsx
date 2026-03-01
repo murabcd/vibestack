@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { type MotionProps, motion } from "framer-motion";
 import {
+	type ComponentType,
 	type CSSProperties,
 	type ElementType,
 	type JSX,
@@ -9,6 +10,22 @@ import {
 	useMemo,
 } from "react";
 import { cn } from "@/lib/utils";
+
+type MotionHTMLProps = MotionProps & Record<string, unknown>;
+
+const motionComponentCache = new Map<
+	keyof JSX.IntrinsicElements,
+	ComponentType<MotionHTMLProps>
+>();
+
+const getMotionComponent = (element: keyof JSX.IntrinsicElements) => {
+	let component = motionComponentCache.get(element);
+	if (!component) {
+		component = motion.create(element);
+		motionComponentCache.set(element, component);
+	}
+	return component;
+};
 
 export type TextShimmerProps = {
 	children: string;
@@ -25,7 +42,7 @@ const ShimmerComponent = ({
 	duration = 2,
 	spread = 2,
 }: TextShimmerProps) => {
-	const MotionComponent = motion.create(
+	const MotionComponent = getMotionComponent(
 		Component as keyof JSX.IntrinsicElements,
 	);
 
@@ -36,25 +53,26 @@ const ShimmerComponent = ({
 
 	return (
 		<MotionComponent
+			initial={{ backgroundPosition: "100% center" }}
 			animate={{ backgroundPosition: "0% center" }}
+			transition={{
+				duration,
+				ease: "linear",
+				repeat: Number.POSITIVE_INFINITY,
+			}}
 			className={cn(
-				"relative inline-block bg-size-[250%_100%,auto] bg-clip-text text-transparent",
+				"relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent",
 				"[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]",
 				className,
 			)}
-			initial={{ backgroundPosition: "100% center" }}
 			style={
 				{
 					"--spread": `${dynamicSpread}px`,
 					backgroundImage:
 						"var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))",
+					WebkitTextFillColor: "transparent",
 				} as CSSProperties
 			}
-			transition={{
-				repeat: Number.POSITIVE_INFINITY,
-				duration,
-				ease: "linear",
-			}}
 		>
 			{children}
 		</MotionComponent>

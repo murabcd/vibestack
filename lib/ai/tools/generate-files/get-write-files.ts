@@ -10,6 +10,19 @@ interface Params {
 	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
 }
 
+const MAX_STREAMED_PATHS = 30;
+
+function compactPaths(paths: string[]): string[] {
+	if (paths.length <= MAX_STREAMED_PATHS) {
+		return paths;
+	}
+	const remaining = paths.length - MAX_STREAMED_PATHS;
+	return [
+		...paths.slice(0, MAX_STREAMED_PATHS),
+		`...and ${remaining} more paths`,
+	];
+}
+
 export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
 	return async function writeFiles(params: {
 		written: string[];
@@ -17,11 +30,6 @@ export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
 		paths: string[];
 	}) {
 		const paths = params.written.concat(params.files.map((file) => file.path));
-		writer.write({
-			id: toolCallId,
-			type: "data-generating-files",
-			data: { paths, status: "uploading" },
-		});
 
 		try {
 			await sandbox.writeFiles(
@@ -39,11 +47,18 @@ export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
 
 			writer.write({
 				id: toolCallId,
-				type: "data-generating-files",
+				type: "data-task-coding-v1",
 				data: {
-					error: richError.error,
 					status: "error",
-					paths: params.paths,
+					taskNameActive: "Generating files",
+					taskNameComplete: "Files generated",
+					parts: [
+						{
+							type: "generating-files-failed",
+							error: richError.error,
+							paths: params.paths,
+						},
+					],
 				},
 			});
 
@@ -52,8 +67,15 @@ export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
 
 		writer.write({
 			id: toolCallId,
-			type: "data-generating-files",
-			data: { paths, status: "uploaded" },
+			type: "data-task-coding-v1",
+			data: {
+				taskNameActive: "Generating files",
+				taskNameComplete: "Files generated",
+				status: "loading",
+				parts: [
+					{ type: "generated-files-uploaded", paths: compactPaths(paths) },
+				],
+			},
 		});
 	};
 }

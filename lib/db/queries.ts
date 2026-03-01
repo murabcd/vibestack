@@ -1,11 +1,11 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, notInArray } from "drizzle-orm";
 import type { ChatUIMessage } from "@/components/chat/types";
 import type { AppUsage } from "@/lib/ai/usage";
 import { logger } from "@/lib/logging/logger";
 import { db } from "./index";
-import { messages, type Project, projects } from "./schema";
+import { messages, type Project, projectRuns, projects } from "./schema";
 
 export async function getProjectsList(userId?: string): Promise<Project[]> {
 	try {
@@ -249,5 +249,148 @@ export async function replaceProjectMessages({
 			error: error instanceof Error ? error.message : String(error),
 		});
 		throw new Error("Failed to replace project messages");
+	}
+}
+
+export async function createProjectRun({
+	runId,
+	projectId,
+	userId,
+	status = "queued",
+}: {
+	runId: string;
+	projectId: string;
+	userId: string;
+	status?: "queued" | "processing" | "completed" | "error";
+}) {
+	try {
+		const [result] = await db
+			.insert(projectRuns)
+			.values({
+				runId,
+				projectId,
+				userId,
+				status,
+				summary: null,
+				error: null,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.returning();
+		void pruneProjectRuns(projectId, userId);
+		return result ?? null;
+	} catch (error) {
+		const dbError = error as {
+			message?: string;
+			cause?: { message?: string; code?: string; detail?: string } | undefined;
+		};
+		logger.error({
+			event: "db.project_runs.create_failed",
+			run_id: runId,
+			project_id: projectId,
+			user_id: userId,
+			error: error instanceof Error ? error.message : String(error),
+			error_cause: dbError?.cause?.message,
+			error_code: dbError?.cause?.code,
+			error_detail: dbError?.cause?.detail,
+		});
+		throw new Error("Failed to create project run");
+	}
+}
+
+async function pruneProjectRuns(projectId: string, userId: string) {
+	try {
+		const keepLatest = 30;
+		const rows = await db
+			.select({ runId: projectRuns.runId })
+			.from(projectRuns)
+			.where(
+				and(
+					eq(projectRuns.projectId, projectId),
+					eq(projectRuns.userId, userId),
+				),
+			)
+			.orderBy(desc(projectRuns.createdAt));
+
+		if (rows.length <= keepLatest) {
+			return;
+		}
+
+		const keepIds = rows.slice(0, keepLatest).map((row) => row.runId);
+		await db
+			.delete(projectRuns)
+			.where(
+				and(
+					eq(projectRuns.projectId, projectId),
+					eq(projectRuns.userId, userId),
+					notInArray(projectRuns.runId, keepIds),
+				),
+			);
+	} catch (error) {
+		logger.error({
+			event: "db.project_runs.prune_failed",
+			project_id: projectId,
+			user_id: userId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+}
+
+export async function updateProjectRun(
+	runId: string,
+	updates: {
+		status?: "queued" | "processing" | "completed" | "error";
+		summary?: string | null;
+		error?: string | null;
+	},
+) {
+	try {
+		const [result] = await db
+			.update(projectRuns)
+			.set({
+				...updates,
+				updatedAt: new Date(),
+			})
+			.where(eq(projectRuns.runId, runId))
+			.returning();
+		return result ?? null;
+	} catch (error) {
+		logger.error({
+			event: "db.project_runs.update_failed",
+			run_id: runId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		throw new Error("Failed to update project run");
+	}
+}
+
+export async function getLatestProjectRun({
+	projectId,
+	userId,
+}: {
+	projectId: string;
+	userId: string;
+}) {
+	try {
+		const [result] = await db
+			.select()
+			.from(projectRuns)
+			.where(
+				and(
+					eq(projectRuns.projectId, projectId),
+					eq(projectRuns.userId, userId),
+				),
+			)
+			.orderBy(desc(projectRuns.createdAt))
+			.limit(1);
+		return result ?? null;
+	} catch (error) {
+		logger.error({
+			event: "db.project_runs.get_latest_failed",
+			project_id: projectId,
+			user_id: userId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return null;
 	}
 }

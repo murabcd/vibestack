@@ -9,20 +9,86 @@ import {
 	HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
+import {
+	getModelContextWindow,
+	getModelPricing,
+} from "@/lib/ai/model-metadata";
 import type { AppUsage } from "@/lib/ai/usage";
 import { cn } from "@/lib/utils";
 
 type ModelId = string;
 
 const PERCENT_MAX = 100;
+const USD_FORMATTER = new Intl.NumberFormat("en-US", {
+	style: "currency",
+	currency: "USD",
+	minimumFractionDigits: 2,
+	maximumFractionDigits: 4,
+});
 
 // Extract max tokens from TokenLens usage data or fallback to default
-const getMaxTokens = (usage?: AppUsage): number => {
+const getMaxTokens = (usage?: AppUsage, modelId?: string): number => {
 	if (usage?.context?.totalMax) return usage.context.totalMax;
 	if (usage?.context?.combinedMax) return usage.context.combinedMax;
 	if (usage?.context?.inputMax) return usage.context.inputMax;
+	const modelContext = getModelContextWindow(modelId);
+	if (modelContext) return modelContext;
 	return 200000; // Fallback to default
 };
+
+const estimateCostUSD = (
+	tokens: number | undefined,
+	ratePerMillion: number | undefined,
+): number | undefined => {
+	if (
+		typeof tokens !== "number" ||
+		!Number.isFinite(tokens) ||
+		tokens < 0 ||
+		typeof ratePerMillion !== "number" ||
+		!Number.isFinite(ratePerMillion) ||
+		ratePerMillion < 0
+	) {
+		return undefined;
+	}
+	return (tokens / 1_000_000) * ratePerMillion;
+};
+
+const getCostView = (usage: AppUsage | undefined, modelId?: string) => {
+	const pricing = getModelPricing(modelId ?? usage?.modelId);
+	const inputUSD =
+		usage?.costUSD?.inputUSD ??
+		estimateCostUSD(usage?.inputTokens, pricing?.inputPerMillion);
+	const outputUSD =
+		usage?.costUSD?.outputUSD ??
+		estimateCostUSD(usage?.outputTokens, pricing?.outputPerMillion);
+	const reasoningUSD =
+		usage?.costUSD?.reasoningUSD ??
+		estimateCostUSD(usage?.reasoningTokens, pricing?.outputPerMillion);
+	let estimatedTotal = 0;
+	if (typeof inputUSD === "number") {
+		estimatedTotal += inputUSD;
+	}
+	if (typeof outputUSD === "number") {
+		estimatedTotal += outputUSD;
+	}
+	const totalUSD = usage?.costUSD?.totalUSD ?? estimatedTotal;
+
+	return {
+		inputUSD,
+		outputUSD,
+		reasoningUSD,
+		totalUSD: totalUSD > 0 ? totalUSD : undefined,
+	};
+};
+
+const formatUsd = (value?: number): string | undefined => {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return undefined;
+	}
+	return USD_FORMATTER.format(value);
+};
+
+const formatUsdOrNA = (value?: number): string => formatUsd(value) ?? "N/A";
 
 type ContextSchema = {
 	usedTokens: number;
@@ -53,7 +119,7 @@ export const Context = ({
 	...props
 }: ContextProps) => {
 	// Use dynamic max tokens from TokenLens data if available
-	const dynamicMaxTokens = getMaxTokens(usage);
+	const dynamicMaxTokens = getMaxTokens(usage, modelId);
 	const effectiveMaxTokens = maxTokens || dynamicMaxTokens;
 
 	return (
@@ -71,8 +137,8 @@ export const Context = ({
 };
 
 const ContextIcon = () => {
-	const { usedTokens, maxTokens, usage } = useContextValue();
-	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	const { usedTokens, maxTokens, usage, modelId } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage, modelId);
 	return (
 		<Icons.contextUsage
 			usedTokens={usedTokens}
@@ -84,8 +150,8 @@ const ContextIcon = () => {
 export type ContextTriggerProps = ComponentProps<typeof Button>;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
-	const { usedTokens, maxTokens, usage } = useContextValue();
-	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	const { usedTokens, maxTokens, usage, modelId } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage, modelId);
 	const usedPercent = Math.min(1, usedTokens / effectiveMaxTokens); // Cap at 100%
 	const renderedPercent = new Intl.NumberFormat("en-US", {
 		style: "percent",
@@ -125,8 +191,8 @@ export const ContextContentHeader = ({
 	className,
 	...props
 }: ContextContentHeader) => {
-	const { usedTokens, maxTokens, usage } = useContextValue();
-	const effectiveMaxTokens = maxTokens || getMaxTokens(usage);
+	const { usedTokens, maxTokens, usage, modelId } = useContextValue();
+	const effectiveMaxTokens = maxTokens || getMaxTokens(usage, modelId);
 	const usedPercent = Math.min(1, usedTokens / effectiveMaxTokens); // Cap at 100%
 	const displayPct = new Intl.NumberFormat("en-US", {
 		style: "percent",
@@ -177,14 +243,9 @@ export const ContextContentFooter = ({
 	className,
 	...props
 }: ContextContentFooter) => {
-	const { usage } = useContextValue();
-	const costUSD = usage?.costUSD?.totalUSD;
-	const totalCost = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4,
-	}).format(costUSD ?? 0);
+	const { usage, modelId } = useContextValue();
+	const costUSD = getCostView(usage, modelId).totalUSD;
+	const totalCost = formatUsdOrNA(costUSD);
 
 	return (
 		<div
@@ -211,7 +272,7 @@ export const ContextInputUsage = ({
 	children,
 	...props
 }: ContextInputUsageProps) => {
-	const { usage } = useContextValue();
+	const { usage, modelId } = useContextValue();
 	const inputTokens = usage?.inputTokens ?? 0;
 
 	if (children) {
@@ -219,13 +280,8 @@ export const ContextInputUsage = ({
 	}
 
 	// Always show Input section, even with 0 tokens
-	const inputCost = usage?.costUSD?.inputUSD;
-	const inputCostText = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4,
-	}).format(inputCost ?? 0);
+	const inputCost = getCostView(usage, modelId).inputUSD;
+	const inputCostText = formatUsdOrNA(inputCost);
 
 	return (
 		<div
@@ -245,7 +301,7 @@ export const ContextOutputUsage = ({
 	children,
 	...props
 }: ContextOutputUsageProps) => {
-	const { usage } = useContextValue();
+	const { usage, modelId } = useContextValue();
 	const outputTokens = usage?.outputTokens ?? 0;
 
 	if (children) {
@@ -253,13 +309,8 @@ export const ContextOutputUsage = ({
 	}
 
 	// Always show Output section, even with 0 tokens
-	const outputCost = usage?.costUSD?.outputUSD;
-	const outputCostText = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4,
-	}).format(outputCost ?? 0);
+	const outputCost = getCostView(usage, modelId).outputUSD;
+	const outputCostText = formatUsdOrNA(outputCost);
 
 	return (
 		<div
@@ -279,7 +330,7 @@ export const ContextReasoningUsage = ({
 	children,
 	...props
 }: ContextReasoningUsageProps) => {
-	const { usage } = useContextValue();
+	const { usage, modelId } = useContextValue();
 	const reasoningTokens = usage?.reasoningTokens ?? 0;
 
 	if (children) {
@@ -290,13 +341,8 @@ export const ContextReasoningUsage = ({
 		return null;
 	}
 
-	const reasoningCost = usage?.costUSD?.reasoningUSD;
-	const reasoningCostText = new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4,
-	}).format(reasoningCost ?? 0);
+	const reasoningCost = getCostView(usage, modelId).reasoningUSD;
+	const reasoningCostText = formatUsdOrNA(reasoningCost);
 
 	return (
 		<div

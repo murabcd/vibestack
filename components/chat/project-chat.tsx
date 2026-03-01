@@ -2,21 +2,13 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import {
-	type RefObject,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useSandboxStore } from "@/app/state";
 import {
 	Conversation,
 	ConversationContent,
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Message } from "@/components/chat/message";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { useConnectors } from "@/components/connectors-provider";
@@ -58,33 +50,27 @@ function ProjectChatInner({
 		initialModelId,
 	);
 	const { connectors } = useConnectors();
-
-	// Initialize usage state from initialLastContext
-	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
 	const { models } = useAvailableModels();
 	const connectedServerIds = useMemo(
 		() => connectors.filter((c) => c.status === "connected").map((c) => c.id),
 		[connectors],
 	);
-
-	// Get the current model label
 	const currentModel = models.find((model) => model.id === modelId);
 	const modelLabel = currentModel?.label || modelId;
+	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
 
 	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
 		{
 			chat,
 		},
 	);
+
 	const { setChatStatus } = useSandboxStore();
-	// Local ref - always create it (hooks must be called unconditionally)
 	const localSentRef = useRef(false);
-	// Use shared ref if provided (to prevent duplicate sends from mobile + desktop renders)
-	// Otherwise use local ref
 	const hasSentPendingMessage = sentMessageRef ?? localSentRef;
 	const hasInitializedMessages = useRef(false);
 
-	const waitForProject = useCallback(async () => {
+	const waitForProject = async () => {
 		const maxAttempts = 20;
 		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			const response = await fetch(`/api/projects/${projectId}`, {
@@ -99,24 +85,39 @@ function ProjectChatInner({
 			await new Promise((resolve) => setTimeout(resolve, 150));
 		}
 		return false;
-	}, [projectId]);
+	};
 
-	// Reset shared chat state whenever the project changes to avoid leaking the
-	// previous conversation into the new project.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: projectId is intentionally included to reset messages when project changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: projectId reset is intentional
 	useEffect(() => {
 		setMessages([]);
 		hasInitializedMessages.current = false;
 
-		// Only reset the local ref here. Shared ref lifecycle is controlled by parent.
 		if (!sentMessageRef) {
 			localSentRef.current = false;
 		}
-	}, [projectId, setMessages, sentMessageRef]);
+	}, [projectId, sentMessageRef, setMessages]);
 
-	// Send pending message if it exists (first message from home page)
-	// Only runs once due to shared ref guard across both mobile and desktop components
-	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a ref and doesn't need to be in deps
+	const handleMessageSubmit = (message: PromptInputMessage) => {
+		sendMessage(
+			{
+				...message,
+				text: message.text || "",
+			},
+			{
+				body: {
+					modelId,
+					reasoningEffort,
+					projectId,
+					sandboxDuration,
+					mcpServerIds:
+						connectedServerIds.length > 0 ? connectedServerIds : undefined,
+					background: false,
+				},
+			},
+		);
+	};
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a stable ref
 	useEffect(() => {
 		const sendPendingMessage = async () => {
 			if (!pendingMessage || hasSentPendingMessage.current) {
@@ -132,41 +133,22 @@ function ProjectChatInner({
 			}
 
 			sessionStorage.removeItem(`pending-message-${projectId}`);
-
-			sendMessage(
-				{
-					...pendingMessage,
-					text: pendingMessage.text || "",
-				},
-				{
-					body: {
-						modelId,
-						reasoningEffort,
-						projectId,
-						sandboxDuration,
-						mcpServerIds:
-							connectedServerIds.length > 0 ? connectedServerIds : undefined,
-					},
-				},
-			);
+			handleMessageSubmit({
+				...pendingMessage,
+				text: pendingMessage.text || "",
+			});
 		};
 
 		void sendPendingMessage();
-		// Note: hasSentPendingMessage is a ref and doesn't need to be in deps
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		pendingMessage,
 		projectId,
 		modelId,
 		reasoningEffort,
-		sendMessage,
-		connectedServerIds,
-		waitForProject,
 		sandboxDuration,
+		connectedServerIds,
 	]);
 
-	// Initialize messages from database if available and no pending message
-	// Only runs once due to ref guard
 	useEffect(() => {
 		if (
 			!pendingMessage &&
@@ -178,9 +160,7 @@ function ProjectChatInner({
 		}
 	}, [pendingMessage, initialMessages, setMessages]);
 
-	// Update usage when messages change (for new assistant messages with metadata)
 	useEffect(() => {
-		// Walk backward once to find the latest assistant message with usage metadata.
 		for (let i = messages.length - 1; i >= 0; i--) {
 			const message = messages[i];
 			if (message.role === "assistant" && message.metadata?.usage) {
@@ -190,73 +170,114 @@ function ProjectChatInner({
 		}
 	}, [messages]);
 
-	// Initialize Zustand sandbox store from loaded messages (for page refresh)
-	// This extracts sandbox data from message content and populates the store
 	useEffect(() => {
-		if (initialMessages.length > 0) {
-			const { setSandboxId, setUrl, addPaths } = useSandboxStore.getState();
+		const { reset, setSandboxId, setUrl, addPaths } =
+			useSandboxStore.getState();
+		reset();
 
-			// Parse all messages to extract sandbox data
-			for (const message of initialMessages) {
-				if (message.role === "assistant" && message.parts) {
-					for (const part of message.parts) {
-						// Extract sandbox ID from create-sandbox tool
-						if (
-							part.type === "tool-createSandbox" &&
-							part.state === "output-available"
-						) {
-							const sandboxIdMatch = part.output?.match(/sbx_[a-zA-Z0-9]+/);
-							if (sandboxIdMatch) {
-								setSandboxId(sandboxIdMatch[0]);
+		if (initialMessages.length === 0) {
+			return;
+		}
+
+		let hydratedSandboxId: string | undefined;
+		let hydratedUrl: string | undefined;
+
+		for (const message of initialMessages) {
+			if (message.role !== "assistant" || !message.parts) continue;
+
+			for (const part of message.parts) {
+				if (part.type === "data-task-coding-v1") {
+					const lastPart = part.data.parts[part.data.parts.length - 1];
+					if (lastPart && typeof lastPart === "object") {
+						const taskPartType =
+							typeof (lastPart as { type?: unknown }).type === "string"
+								? (lastPart as { type: string }).type
+								: "";
+
+						if (taskPartType === "create-sandbox-complete") {
+							const sandboxId = (lastPart as { sandboxId?: unknown }).sandboxId;
+							if (typeof sandboxId === "string") {
+								hydratedSandboxId = sandboxId;
 							}
 						}
 
-						// Extract URL from get-sandbox-url tool
-						if (
-							part.type === "tool-getSandboxURL" &&
-							part.state === "output-available" &&
-							part.output?.url
-						) {
-							setUrl(part.output.url, crypto.randomUUID());
+						if (taskPartType === "get-sandbox-url-complete") {
+							const url = (lastPart as { url?: unknown }).url;
+							if (typeof url === "string") {
+								hydratedUrl = url;
+							}
 						}
 
-						// Extract file paths from generate-files tool
 						if (
-							part.type === "tool-generateFiles" &&
-							part.state === "output-available" &&
-							part.input?.paths
+							(taskPartType === "generated-files-uploaded" ||
+								taskPartType === "generated-files-complete") &&
+							Array.isArray((lastPart as { paths?: unknown }).paths)
 						) {
-							addPaths(part.input.paths);
+							addPaths(
+								((lastPart as { paths?: unknown }).paths as unknown[]).filter(
+									(path): path is string => typeof path === "string",
+								),
+							);
 						}
 					}
 				}
+
+				if (
+					part.type === "tool-createSandbox" &&
+					part.state === "output-available"
+				) {
+					const output = (part as { output?: unknown }).output;
+
+					if (typeof output === "string") {
+						const sandboxIdMatch = output.match(/sbx_[a-zA-Z0-9_-]+/);
+						if (sandboxIdMatch) {
+							hydratedSandboxId = sandboxIdMatch[0];
+						}
+					}
+
+					if (
+						output &&
+						typeof output === "object" &&
+						"sandboxId" in output &&
+						typeof output.sandboxId === "string"
+					) {
+						hydratedSandboxId = output.sandboxId;
+					}
+				}
+
+				if (
+					part.type === "tool-getSandboxURL" &&
+					part.state === "output-available"
+				) {
+					const output = (part as { output?: unknown }).output;
+
+					if (
+						output &&
+						typeof output === "object" &&
+						"url" in output &&
+						typeof output.url === "string"
+					) {
+						hydratedUrl = output.url;
+					}
+				}
+
+				if (
+					part.type === "tool-generateFiles" &&
+					part.state === "output-available" &&
+					part.input?.paths
+				) {
+					addPaths(part.input.paths);
+				}
+			}
+		}
+
+		if (hydratedSandboxId) {
+			setSandboxId(hydratedSandboxId);
+			if (hydratedUrl) {
+				setUrl(hydratedUrl, crypto.randomUUID());
 			}
 		}
 	}, [initialMessages]);
-
-	const handleMessageSubmit = (message: PromptInputMessage) => {
-		console.log(
-			"[ProjectChat] Submitting message with MCP servers:",
-			connectedServerIds,
-		);
-
-		sendMessage(
-			{
-				...message,
-				text: message.text || "",
-			},
-			{
-				body: {
-					modelId,
-					reasoningEffort,
-					projectId, // Pass projectId to save messages to the correct project
-					sandboxDuration,
-					mcpServerIds:
-						connectedServerIds.length > 0 ? connectedServerIds : undefined,
-				},
-			},
-		);
-	};
 
 	useEffect(() => {
 		setChatStatus(status);
@@ -285,14 +306,6 @@ function ProjectChatInner({
 					{messages.map((message) => (
 						<Message key={message.id} message={message} />
 					))}
-					{/* Show "Thinking" shimmer when processing */}
-					{status === "submitted" && (
-						<div className="mr-20">
-							<Shimmer duration={1.5} className="text-sm text-muted-foreground">
-								Thinking…
-							</Shimmer>
-						</div>
-					)}
 				</ConversationContent>
 				<ConversationScrollButton />
 			</Conversation>
@@ -312,8 +325,6 @@ function ProjectChatInner({
 
 export function ProjectChat(props: Props) {
 	const [storedInput] = useLocalStorageValue("prompt-input");
-
-	// Don't use stored input if we have a pending message (first message)
 	const initialInput = props.pendingMessage ? "" : storedInput || "";
 
 	return (

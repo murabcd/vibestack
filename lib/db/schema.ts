@@ -129,6 +129,39 @@ export const messages = pgTable(
 	}),
 );
 
+export const projectRuns = pgTable(
+	"project_runs",
+	{
+		id: uuid("id").primaryKey().notNull().defaultRandom(),
+		runId: text("run_id").notNull().unique(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.projectId, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		status: varchar("status", {
+			enum: ["queued", "processing", "completed", "error"],
+		})
+			.notNull()
+			.default("queued"),
+		summary: text("summary"),
+		error: text("error"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(table) => ({
+		projectIdCreatedAtIdx: index("project_runs_project_id_created_at_idx").on(
+			table.projectId,
+			table.createdAt,
+		),
+		userIdCreatedAtIdx: index("project_runs_user_id_created_at_idx").on(
+			table.userId,
+			table.createdAt,
+		),
+	}),
+);
+
 // Connectors table - MCP server connectors
 export const connectors = pgTable("connectors", {
 	id: text("id").primaryKey().notNull(),
