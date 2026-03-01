@@ -6,6 +6,7 @@ import { logger } from "@/lib/logging/logger";
 import type { DataPart } from "../messages/data-parts";
 import description from "./get-sandbox-url.md";
 import { getSandboxCredentials } from "./sandbox-env";
+import { createCodingTaskEmitter } from "./task-state-machine";
 import type { ToolContext } from "./types";
 
 interface Params {
@@ -32,37 +33,26 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 				),
 		}),
 		execute: async ({ sandboxId, port }, { toolCallId }) => {
+			const task = createCodingTaskEmitter({
+				writer,
+				toolCallId,
+				taskNameActive: "Getting preview URL",
+				taskNameComplete: "Preview ready",
+			});
+
 			if (context?.canUseTool && !context.canUseTool("getSandboxURL")) {
 				const message =
 					"Get preview URL is temporarily paused due to repeated failures in this run.";
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Getting preview URL",
-						taskNameComplete: "Preview ready",
-						status: "error",
-						parts: [
-							{
-								type: "get-sandbox-url-failed",
-								error: { message },
-							},
-						],
+				task.error([
+					{
+						type: "get-sandbox-url-failed",
+						error: { message },
 					},
-				});
+				]);
 				return { url: "" };
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Getting preview URL",
-					taskNameComplete: "Preview ready",
-					status: "loading",
-					parts: [{ type: "get-sandbox-url-started", sandboxId, port }],
-				},
-			});
+			task.loading([{ type: "get-sandbox-url-started", sandboxId, port }]);
 
 			let url = "";
 			try {
@@ -77,35 +67,17 @@ export const getSandboxURL = ({ writer, context }: Params) =>
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Failed to get preview URL";
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Getting preview URL",
-						taskNameComplete: "Preview ready",
-						status: "error",
-						parts: [
-							{
-								type: "get-sandbox-url-failed",
-								error: { message },
-							},
-						],
+				task.error([
+					{
+						type: "get-sandbox-url-failed",
+						error: { message },
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("getSandboxURL", "failure");
 				return { url: "" };
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Getting preview URL",
-					taskNameComplete: "Preview ready",
-					status: "done",
-					parts: [{ type: "get-sandbox-url-complete", url, sandboxId, port }],
-				},
-			});
+			task.done([{ type: "get-sandbox-url-complete", url, sandboxId, port }]);
 			context?.recordToolOutcome?.("getSandboxURL", "success");
 
 			// Update project with sandbox URLs

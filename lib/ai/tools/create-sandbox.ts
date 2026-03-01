@@ -9,6 +9,7 @@ import type { DataPart } from "../messages/data-parts";
 import description from "./create-sandbox.md";
 import { getRichError } from "./get-rich-error";
 import { getSandboxCredentials } from "./sandbox-env";
+import { createCodingTaskEmitter } from "./task-state-machine";
 import type { ToolContext } from "./types";
 
 interface Params {
@@ -37,24 +38,22 @@ export const createSandbox = ({ writer, context }: Params) =>
 				),
 		}),
 		execute: async ({ timeout, ports }, { toolCallId }) => {
+			const task = createCodingTaskEmitter({
+				writer,
+				toolCallId,
+				taskNameActive: "Create sandbox",
+				taskNameComplete: "Create sandbox",
+			});
+
 			if (context?.canUseTool && !context.canUseTool("createSandbox")) {
 				const message =
 					"Create sandbox is temporarily paused due to repeated failures in this run.";
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Create sandbox",
-						taskNameComplete: "Create sandbox",
-						status: "error",
-						parts: [
-							{
-								type: "create-sandbox-failed",
-								error: { message },
-							},
-						],
+				task.error([
+					{
+						type: "create-sandbox-failed",
+						error: { message },
 					},
-				});
+				]);
 				return message;
 			}
 
@@ -62,38 +61,22 @@ export const createSandbox = ({ writer, context }: Params) =>
 				context?.registerSingletonToolUse?.("createSandbox") ?? true;
 			if (!canCreateSandbox) {
 				const existingSandboxId = context?.getActiveSandboxId?.() ?? null;
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Create sandbox",
-						taskNameComplete: "Create sandbox",
-						status: "done",
-						parts: existingSandboxId
-							? [
-									{
-										type: "create-sandbox-complete",
-										sandboxId: existingSandboxId,
-									},
-								]
-							: [{ type: "create-sandbox-skipped" }],
-					},
-				});
+				task.done(
+					existingSandboxId
+						? [
+								{
+									type: "create-sandbox-complete",
+									sandboxId: existingSandboxId,
+								},
+							]
+						: [{ type: "create-sandbox-skipped" }],
+				);
 				return existingSandboxId
 					? `Reusing existing sandbox with ID: ${existingSandboxId}.`
 					: "Sandbox creation already attempted in this run; skipping duplicate request.";
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Create sandbox",
-					taskNameComplete: "Create sandbox",
-					status: "loading",
-					parts: [{ type: "create-sandbox-started" }],
-				},
-			});
+			task.loading([{ type: "create-sandbox-started" }]);
 
 			// Validate required environment variables
 			const envValidation = validateSandboxEnvironmentVariables();
@@ -130,18 +113,9 @@ export const createSandbox = ({ writer, context }: Params) =>
 					ports,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Create sandbox",
-						taskNameComplete: "Create sandbox",
-						status: "done",
-						parts: [
-							{ type: "create-sandbox-complete", sandboxId: sandbox.sandboxId },
-						],
-					},
-				});
+				task.done([
+					{ type: "create-sandbox-complete", sandboxId: sandbox.sandboxId },
+				]);
 				context?.setActiveSandboxId?.(sandbox.sandboxId);
 				context?.recordToolOutcome?.("createSandbox", "success");
 
@@ -175,21 +149,12 @@ export const createSandbox = ({ writer, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Create sandbox",
-						taskNameComplete: "Create sandbox",
-						status: "error",
-						parts: [
-							{
-								type: "create-sandbox-failed",
-								error: { message: richError.error.message },
-							},
-						],
+				task.error([
+					{
+						type: "create-sandbox-failed",
+						error: { message: richError.error.message },
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("createSandbox", "failure");
 
 				logger.error({

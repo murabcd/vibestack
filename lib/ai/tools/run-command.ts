@@ -6,6 +6,10 @@ import { logger } from "@/lib/logging/logger";
 import type { DataPart } from "../messages/data-parts";
 import { getRichError } from "./get-rich-error";
 import description from "./run-command.md";
+import {
+	isInstallCommand,
+	normalizePackageJsonForInstall,
+} from "./run-command-install-preflight";
 import { getSandboxCredentials } from "./sandbox-env";
 import type { ToolContext } from "./types";
 
@@ -186,6 +190,15 @@ export const runCommand = ({ writer, context }: Params) =>
 			}
 
 			let cmd: Command | null = null;
+
+			if (isInstallCommand(command, args)) {
+				await hardenPackageJsonForInstall({
+					sandbox,
+					sandboxId,
+					toolCallId,
+					writer,
+				});
+			}
 
 			try {
 				cmd = await sandbox.runCommand({
@@ -420,4 +433,75 @@ function getCommandValidationError(command: string): string | null {
 		return "Command contains unsupported shell control characters.";
 	}
 	return null;
+}
+
+async function hardenPackageJsonForInstall(args: {
+	sandbox: Sandbox;
+	sandboxId: string;
+	toolCallId: string;
+	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
+}): Promise<void> {
+	const current = await readSandboxTextFile(args.sandbox, "package.json");
+	if (!current) return;
+
+	const normalized = normalizePackageJsonForInstall(current);
+	if (!normalized.changed) return;
+
+	try {
+		await args.sandbox.writeFiles([
+			{
+				path: "package.json",
+				content: Buffer.from(normalized.text, "utf8"),
+			},
+		]);
+		logger.info({
+			event: "tool.run_command.package_json_hardened",
+			sandbox_id: args.sandboxId,
+			changes: normalized.changes,
+		});
+		args.writer.write({
+			id: args.toolCallId,
+			type: "data-task-coding-v1",
+			data: {
+				taskNameActive: "Running command",
+				taskNameComplete: "Command completed",
+				status: "loading",
+				parts: [
+					{
+						type: "run-command-preflight",
+						sandboxId: args.sandboxId,
+						changes: normalized.changes,
+					},
+				],
+			},
+		});
+	} catch (error) {
+		logger.error({
+			event: "tool.run_command.package_json_hardening_failed",
+			sandbox_id: args.sandboxId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+}
+
+async function readSandboxTextFile(
+	sandbox: Sandbox,
+	path: string,
+): Promise<string | null> {
+	try {
+		const stream = await sandbox.readFile({ path });
+		if (!stream) return null;
+		const decoder = new TextDecoder();
+		let text = "";
+		for await (const chunk of stream) {
+			if (typeof chunk === "string") {
+				text += chunk;
+			} else {
+				text += decoder.decode(chunk, { stream: true });
+			}
+		}
+		return text;
+	} catch {
+		return null;
+	}
 }

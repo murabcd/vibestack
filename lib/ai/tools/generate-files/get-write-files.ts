@@ -1,13 +1,11 @@
 import type { Sandbox } from "@vercel/sandbox";
-import type { UIMessage, UIMessageStreamWriter } from "ai";
-import type { DataPart } from "../../messages/data-parts";
 import { getRichError } from "../get-rich-error";
+import type { CodingTaskEmitter } from "../task-state-machine";
 import type { File } from "./get-contents";
 
 interface Params {
 	sandbox: Sandbox;
-	toolCallId: string;
-	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
+	task: CodingTaskEmitter;
 }
 
 const MAX_STREAMED_PATHS = 30;
@@ -23,7 +21,7 @@ function compactPaths(paths: string[]): string[] {
 	];
 }
 
-export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
+export function getWriteFiles({ sandbox, task }: Params) {
 	return async function writeFiles(params: {
 		written: string[];
 		files: File[];
@@ -45,37 +43,19 @@ export function getWriteFiles({ sandbox, toolCallId, writer }: Params) {
 				error,
 			});
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					status: "error",
-					taskNameActive: "Generating files",
-					taskNameComplete: "Files generated",
-					parts: [
-						{
-							type: "generating-files-failed",
-							error: richError.error,
-							paths: params.paths,
-						},
-					],
+			task.error([
+				{
+					type: "generating-files-failed",
+					error: richError.error,
+					paths: params.paths,
 				},
-			});
+			]);
 
 			return richError.message;
 		}
 
-		writer.write({
-			id: toolCallId,
-			type: "data-task-coding-v1",
-			data: {
-				taskNameActive: "Generating files",
-				taskNameComplete: "Files generated",
-				status: "loading",
-				parts: [
-					{ type: "generated-files-uploaded", paths: compactPaths(paths) },
-				],
-			},
-		});
+		task.loading([
+			{ type: "generated-files-uploaded", paths: compactPaths(paths) },
+		]);
 	};
 }

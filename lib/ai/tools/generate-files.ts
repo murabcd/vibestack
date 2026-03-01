@@ -9,6 +9,7 @@ import { getWriteFiles } from "./generate-files/get-write-files";
 import description from "./generate-files.md";
 import { getRichError } from "./get-rich-error";
 import { getSandboxCredentials } from "./sandbox-env";
+import { createCodingTaskEmitter } from "./task-state-machine";
 import type { ToolContext } from "./types";
 
 interface Params {
@@ -38,27 +39,25 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 			paths: z.array(z.string().min(1).max(260)).min(1).max(120),
 		}),
 		execute: async ({ sandboxId, paths }, { toolCallId, messages }) => {
+			const task = createCodingTaskEmitter({
+				writer,
+				toolCallId,
+				taskNameActive: "Generating files",
+				taskNameComplete: "Files generated",
+			});
+
 			const blockedPaths = paths.filter((path) =>
 				isProtectedMutationPath(path),
 			);
 			if (blockedPaths.length > 0) {
 				const message = `Protected paths cannot be modified: ${blockedPaths.join(", ")}`;
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Generating files",
-						taskNameComplete: "Files generated",
-						status: "error",
-						parts: [
-							{
-								type: "generating-files-failed",
-								error: { message },
-								paths: blockedPaths,
-							},
-						],
+				task.error([
+					{
+						type: "generating-files-failed",
+						error: { message },
+						paths: blockedPaths,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("generateFiles", "failure");
 				return message;
 			}
@@ -66,21 +65,12 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 			if (context?.canUseTool && !context.canUseTool("generateFiles")) {
 				const message =
 					"Generate files is temporarily paused due to repeated failures in this run.";
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Generating files",
-						taskNameComplete: "Files generated",
-						status: "error",
-						parts: [
-							{
-								type: "generating-files-failed",
-								error: { message },
-							},
-						],
+				task.error([
+					{
+						type: "generating-files-failed",
+						error: { message },
 					},
-				});
+				]);
 				return message;
 			}
 
@@ -90,37 +80,19 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 					paths,
 				})
 			) {
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Generating files",
-						taskNameComplete: "Files generated",
-						status: "error",
-						parts: [
-							{
-								type: "generating-files-failed",
-								error: {
-									message:
-										"Skipped duplicate file-generation request to avoid repeated work.",
-								},
-							},
-						],
+				task.error([
+					{
+						type: "generating-files-failed",
+						error: {
+							message:
+								"Skipped duplicate file-generation request to avoid repeated work.",
+						},
 					},
-				});
+				]);
 				return "Skipped duplicate file generation request. Adjust file list or continue to next step.";
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Generating files",
-					taskNameComplete: "Files generated",
-					status: "loading",
-					parts: [{ type: "generating-files-started" }],
-				},
-			});
+			task.loading([{ type: "generating-files-started" }]);
 
 			let sandbox: Sandbox | null = null;
 
@@ -139,24 +111,15 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Generating files",
-						taskNameComplete: "Files generated",
-						status: "error",
-						parts: [
-							{ type: "generating-files-failed", error: richError.error },
-						],
-					},
-				});
+				task.error([
+					{ type: "generating-files-failed", error: richError.error },
+				]);
 				context?.recordToolOutcome?.("generateFiles", "failure");
 
 				return richError.message;
 			}
 
-			const writeFiles = getWriteFiles({ sandbox, toolCallId, writer });
+			const writeFiles = getWriteFiles({ sandbox, task });
 			const iterator = getContents({ messages, modelId, paths });
 			const uploaded: File[] = [];
 
@@ -171,21 +134,12 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 							uploaded.push(...chunk.files);
 						}
 					} else {
-						writer.write({
-							id: toolCallId,
-							type: "data-task-coding-v1",
-							data: {
-								taskNameActive: "Generating files",
-								taskNameComplete: "Files generated",
-								status: "loading",
-								parts: [
-									{
-										type: "generating-files-progress",
-										paths: compactPaths(chunk.paths),
-									},
-								],
+						task.loading([
+							{
+								type: "generating-files-progress",
+								paths: compactPaths(chunk.paths),
 							},
-						});
+						]);
 					}
 				}
 			} catch (error) {
@@ -195,42 +149,24 @@ export const generateFiles = ({ writer, modelId, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Generating files",
-						taskNameComplete: "Files generated",
-						status: "error",
-						parts: [
-							{
-								type: "generating-files-failed",
-								error: richError.error,
-								paths,
-							},
-						],
+				task.error([
+					{
+						type: "generating-files-failed",
+						error: richError.error,
+						paths,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("generateFiles", "failure");
 
 				return richError.message;
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Generating files",
-					taskNameComplete: "Files generated",
-					status: "done",
-					parts: [
-						{
-							type: "generated-files-complete",
-							paths: compactPaths(uploaded.map((file) => file.path)),
-						},
-					],
+			task.done([
+				{
+					type: "generated-files-complete",
+					paths: compactPaths(uploaded.map((file) => file.path)),
 				},
-			});
+			]);
 			context?.recordToolOutcome?.("generateFiles", "success");
 
 			const uploadedPaths = uploaded.map((file) => file.path);

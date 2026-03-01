@@ -1,5 +1,6 @@
 import type { ChatUIMessage } from "@/components/chat/types";
 import { isProtectedMutationPath } from "@/lib/ai/safety/protected-paths";
+import { ChatContextManager } from "./chat-context-manager";
 
 export interface CompactionStats {
 	compactedMessagesCount: number;
@@ -15,7 +16,7 @@ const MAX_TEXT_PART_CHARS = 4000;
 const MAX_TOOL_OUTPUT_CHARS = 1200;
 const MAX_CONTEXT_CHARS = 120000;
 const MIN_MESSAGES_AFTER_COLLAPSE = 12;
-const MAX_RELEVANT_PATHS = 24;
+const contextManager = new ChatContextManager();
 
 export interface ContextPreparationStats {
 	collapsedMessagesByBudget: number;
@@ -100,21 +101,19 @@ export function prepareMessagesForAgent(messages: ChatUIMessage[]): {
 	stats: ContextPreparationStats;
 	relevantPaths: string[];
 } {
-	const budgetCollapsed = collapseMessagesByBudget(messages, MAX_CONTEXT_CHARS);
-	const relevantPaths = collectRelevantPaths(budgetCollapsed.messages);
-	const withRelevantFiles = injectRelevantFilesMessage(
-		budgetCollapsed.messages,
-		relevantPaths,
-	);
+	const prepared = contextManager.prepareContext(messages, {
+		maxContextChars: MAX_CONTEXT_CHARS,
+		minMessagesAfterCollapse: MIN_MESSAGES_AFTER_COLLAPSE,
+	});
 
 	return {
-		messages: withRelevantFiles.messages,
+		messages: prepared.messages,
 		stats: {
-			collapsedMessagesByBudget: budgetCollapsed.collapsedCount,
-			injectedRelevantFilesMessage: withRelevantFiles.injected,
-			relevantFilesCount: relevantPaths.length,
+			collapsedMessagesByBudget: prepared.collapsedMessagesByBudget,
+			injectedRelevantFilesMessage: prepared.injectedRelevantFilesMessage,
+			relevantFilesCount: prepared.relevantPaths.length,
 		},
-		relevantPaths,
+		relevantPaths: prepared.relevantPaths,
 	};
 }
 
@@ -150,7 +149,10 @@ export function injectRelevantFileContentMessage(
 
 	const withContext = [...filtered];
 	withContext.splice(lastUserIndex, 0, contextMessage);
-	return { messages: withContext, injected: true };
+	return {
+		messages: withContext,
+		injected: true,
+	};
 }
 
 export function sanitizeMessagesForModel(messages: ChatUIMessage[]): {
@@ -306,170 +308,6 @@ function compactUnknownValue(value: unknown): {
 	} catch {
 		return { value, truncatedChars: 0 };
 	}
-}
-
-function collapseMessagesByBudget(
-	messages: ChatUIMessage[],
-	maxChars: number,
-): { messages: ChatUIMessage[]; collapsedCount: number } {
-	let working = [...messages];
-	let collapsedCount = 0;
-
-	while (
-		working.length > MIN_MESSAGES_AFTER_COLLAPSE &&
-		estimateMessagesChars(working) > maxChars
-	) {
-		working = working.slice(1);
-		collapsedCount += 1;
-	}
-
-	return { messages: working, collapsedCount };
-}
-
-function estimateMessagesChars(messages: ChatUIMessage[]): number {
-	return messages.reduce(
-		(total, message) => total + estimateMessageChars(message),
-		0,
-	);
-}
-
-function estimateMessageChars(message: ChatUIMessage): number {
-	let total = 0;
-	for (const part of message.parts) {
-		if (part.type === "text") {
-			total += part.text?.length ?? 0;
-			continue;
-		}
-		if (part.type === "reasoning") {
-			total += part.text?.length ?? 0;
-			continue;
-		}
-		if (part.type === "file") {
-			total += 300;
-			continue;
-		}
-		try {
-			total += JSON.stringify(part).length;
-		} catch {
-			total += 80;
-		}
-	}
-	return total;
-}
-
-function collectRelevantPaths(messages: ChatUIMessage[]): string[] {
-	const paths: string[] = [];
-	const seen = new Set<string>();
-
-	for (let i = messages.length - 1; i >= 0; i -= 1) {
-		const message = messages[i];
-		for (const part of message.parts) {
-			if (part.type === "data-task-coding-v1") {
-				for (const taskPart of part.data.parts) {
-					collectPathsFromUnknown(taskPart, paths, seen);
-					if (paths.length >= MAX_RELEVANT_PATHS) break;
-				}
-			} else {
-				collectPathsFromUnknown(part, paths, seen);
-			}
-			if (paths.length >= MAX_RELEVANT_PATHS) break;
-		}
-		if (paths.length >= MAX_RELEVANT_PATHS) break;
-	}
-
-	return paths;
-}
-
-function collectPathsFromUnknown(
-	value: unknown,
-	paths: string[],
-	seen: Set<string>,
-): void {
-	if (paths.length >= MAX_RELEVANT_PATHS) return;
-
-	if (typeof value === "string") {
-		const trimmed = value.trim();
-		if (
-			trimmed.includes("/") &&
-			!trimmed.startsWith("http") &&
-			!trimmed.startsWith("...and ")
-		) {
-			pushPath(trimmed, paths, seen);
-		}
-		return;
-	}
-
-	if (Array.isArray(value)) {
-		for (const item of value) {
-			collectPathsFromUnknown(item, paths, seen);
-			if (paths.length >= MAX_RELEVANT_PATHS) break;
-		}
-		return;
-	}
-
-	if (value && typeof value === "object") {
-		const record = value as Record<string, unknown>;
-		for (const key of ["path", "filePath", "filename"]) {
-			const candidate = record[key];
-			if (typeof candidate === "string") {
-				pushPath(candidate, paths, seen);
-			}
-		}
-
-		const listCandidate = record.paths;
-		if (Array.isArray(listCandidate)) {
-			for (const item of listCandidate) {
-				if (typeof item === "string") {
-					pushPath(item, paths, seen);
-				}
-			}
-		}
-	}
-}
-
-function pushPath(path: string, paths: string[], seen: Set<string>): void {
-	if (paths.length >= MAX_RELEVANT_PATHS) return;
-	const cleaned = path.trim();
-	if (
-		!cleaned ||
-		cleaned.startsWith("...and ") ||
-		cleaned.startsWith("Error:") ||
-		!cleaned.includes("/")
-	) {
-		return;
-	}
-	if (seen.has(cleaned)) return;
-	seen.add(cleaned);
-	paths.push(cleaned);
-}
-
-function injectRelevantFilesMessage(
-	messages: ChatUIMessage[],
-	relevantPaths: string[],
-): { messages: ChatUIMessage[]; injected: boolean } {
-	if (relevantPaths.length === 0) {
-		return { messages, injected: false };
-	}
-
-	const lastUserIndex = findLastUserMessageIndex(messages);
-	if (lastUserIndex === -1) {
-		return { messages, injected: false };
-	}
-
-	const text =
-		"Relevant files recently touched:\n" +
-		relevantPaths.map((path) => `- ${path}`).join("\n") +
-		"\nUse these files first when iterating or fixing errors.";
-
-	const contextMessage: ChatUIMessage = {
-		id: `context-relevant-files-${Date.now()}`,
-		role: "user",
-		parts: [{ type: "text", text }],
-	};
-
-	const withContext = [...messages];
-	withContext.splice(lastUserIndex, 0, contextMessage);
-	return { messages: withContext, injected: true };
 }
 
 function findLastUserMessageIndex(messages: ChatUIMessage[]): number {

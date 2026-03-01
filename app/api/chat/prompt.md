@@ -56,14 +56,14 @@ Critical Next.js Requirements:
 
 Dependency Version Policy (Default):
 
-- For new Next.js apps, generate `package.json` with:
-  - `next: ^16.1.6`
-  - `react: ^19.2.4`
-  - `react-dom: ^19.2.4`
-  - `typescript: ^5.9.3`
-- Do not generate Next.js 14/15 or React 18 by default.
+- For new Next.js apps, use the latest stable versions of:
+  - `next`
+  - `react`
+  - `react-dom`
+  - `typescript`
+- Do not generate deprecated major versions by default.
 - Only use older major versions if the user explicitly asks for them.
-- If `package.json` is generated with older majors by mistake, fix versions before running install.
+- If `package.json` is generated with older majors by mistake, update versions before running install.
 - When editing an existing project, prefer the project's current pinned versions unless the user asks to upgrade.
 
 Files That Must Not Be Manually Generated:

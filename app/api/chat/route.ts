@@ -946,21 +946,29 @@ export async function POST(req: NextRequest) {
 }
 
 function hasRepeatedToolFailures(messages: ChatUIMessage[]): boolean {
+	const recentStatuses: Array<"loading" | "done" | "error"> = [];
+	const maxAssistantMessagesToScan = 3;
+	let scannedAssistantMessages = 0;
+
 	for (let i = messages.length - 1; i >= 0; i -= 1) {
 		const message = messages[i];
 		if (message.role !== "assistant") continue;
-
-		let consecutiveErrorTasks = 0;
+		scannedAssistantMessages += 1;
 		for (let j = message.parts.length - 1; j >= 0; j -= 1) {
 			const part = message.parts[j];
 			if (part.type !== "data-task-coding-v1") continue;
-			if (part.data.status !== "error") break;
-			consecutiveErrorTasks += 1;
-			if (consecutiveErrorTasks >= MAX_CONSECUTIVE_TOOL_ERRORS) {
-				return true;
-			}
+			recentStatuses.push(part.data.status);
 		}
-		break;
+		if (scannedAssistantMessages >= maxAssistantMessagesToScan) break;
+	}
+
+	let consecutiveErrors = 0;
+	for (const status of recentStatuses) {
+		if (status !== "error") break;
+		consecutiveErrors += 1;
+		if (consecutiveErrors >= MAX_CONSECUTIVE_TOOL_ERRORS) {
+			return true;
+		}
 	}
 
 	return false;
