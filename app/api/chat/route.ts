@@ -37,6 +37,7 @@ import {
 	updateProjectRun,
 } from "@/lib/db/queries";
 import { connectors } from "@/lib/db/schema";
+import { env } from "@/lib/env";
 import { logger } from "@/lib/logging/logger";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import {
@@ -227,6 +228,30 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json(
 			{ error: `Model ${modelId} not found.` },
 			{ status: 400 },
+		);
+	}
+
+	const provider = modelId.split("/")[0]?.toLowerCase();
+	if (
+		(provider === "openai" && !env.OPENAI_API_KEY) ||
+		(provider === "anthropic" && !env.ANTHROPIC_API_KEY)
+	) {
+		const missingKey =
+			provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+		endWide(503, "error", new Error(`${missingKey} is not configured`), {
+			error_type: "provider_api_key_missing",
+			ai_provider: provider,
+			missing_env_key: missingKey,
+		});
+		return NextResponse.json(
+			{
+				error:
+					"AI provider is not configured on the server. Please add the required API key.",
+				code: "provider_api_key_missing",
+				provider,
+				missingKey,
+			},
+			{ status: 503 },
 		);
 	}
 

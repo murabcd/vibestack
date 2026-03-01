@@ -17,6 +17,50 @@ interface ChatContextValue {
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
+function parseErrorPayload(error: Error): {
+	code?: string;
+	error?: string;
+	provider?: string;
+} | null {
+	try {
+		return JSON.parse(error.message) as {
+			code?: string;
+			error?: string;
+			provider?: string;
+		};
+	} catch {
+		return null;
+	}
+}
+
+function getChatErrorToast(error: Error): string {
+	const payload = parseErrorPayload(error);
+	const message = [error.message, payload?.error]
+		.filter(Boolean)
+		.join(" ")
+		.toLowerCase();
+
+	if (
+		payload?.code === "provider_api_key_missing" ||
+		message.includes("provider_api_key_missing") ||
+		message.includes("api key") ||
+		message.includes("loadapikey")
+	) {
+		return "AI is not configured in this environment yet. Please add the provider API key.";
+	}
+
+	if (
+		message.includes("authentication required") ||
+		message.includes("unauthorized") ||
+		message.includes("forbidden") ||
+		message.includes("sign in")
+	) {
+		return "You need to sign in to continue with this project";
+	}
+
+	return "Failed to send message. Please try again.";
+}
+
 export function ChatProvider({ children }: { children: ReactNode }) {
 	const mapDataToState = useDataStateMapper();
 	const mapDataToStateRef = useRef(mapDataToState);
@@ -28,7 +72,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 				onToolCall: () => mutate("/api/auth/info"),
 				onData: (data: DataUIPart<DataPart>) => mapDataToStateRef.current(data),
 				onError: (error) => {
-					toast.error("You need to sign in to continue with this project");
+					toast.error(getChatErrorToast(error));
 					logger.error({
 						event: "chat.client.send.failed",
 						error: {
