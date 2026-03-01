@@ -5,6 +5,7 @@ import { CompassIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BarLoader } from "react-spinners";
 import { Panel, PanelHeader } from "@/components/panels/panels";
+import { PreviewLoading } from "@/components/preview/preview-loading";
 import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
@@ -144,6 +145,11 @@ export function Preview({ className, disabled, url }: Props) {
 								Start or restart the dev server from the toolbar.
 							</p>
 						</div>
+					</div>
+				)}
+				{!currentUrl && !disabled && (
+					<div className="absolute inset-0 bg-background flex items-center justify-center p-4">
+						<PreviewLoading />
 					</div>
 				)}
 				{currentUrl && !disabled && (
