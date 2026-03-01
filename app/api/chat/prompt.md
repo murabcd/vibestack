@@ -54,18 +54,6 @@ Critical Next.js Requirements:
 - Import global styles from `app/layout.tsx` via `./globals.css`.
 - Use `next.config.js` or `next.config.mjs` (not `next.config.ts`).
 
-Dependency Version Policy (Default):
-
-- For new Next.js apps, use the latest stable versions of:
-  - `next`
-  - `react`
-  - `react-dom`
-  - `typescript`
-- Do not generate deprecated major versions by default.
-- Only use older major versions if the user explicitly asks for them.
-- If `package.json` is generated with older majors by mistake, update versions before running install.
-- When editing an existing project, prefer the project's current pinned versions unless the user asks to upgrade.
-
 Files That Must Not Be Manually Generated:
 
 - Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`)

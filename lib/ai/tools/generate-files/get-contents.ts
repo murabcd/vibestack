@@ -41,7 +41,7 @@ export async function* getContents(
 		...getModelOptions(params.modelId, { reasoningEffort: "minimal" }),
 		maxOutputTokens: 64000,
 		system:
-			"You are a file content generator. You must generate files based on the conversation history and the provided paths. For new Next.js apps, use latest stable next/react/react-dom/typescript versions by default unless the user explicitly asks for older majors. NEVER generate lock files (pnpm-lock.yaml, package-lock.json, yarn.lock) - these are automatically created by package managers.",
+			"You are a file content generator. You must generate files based on the conversation history and the provided paths. NEVER generate lock files (pnpm-lock.yaml, package-lock.json, yarn.lock) - these are automatically created by package managers.",
 		messages: [
 			...params.messages,
 			{
