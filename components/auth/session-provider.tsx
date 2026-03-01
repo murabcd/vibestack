@@ -14,9 +14,15 @@ const SessionContext = createContext<SessionContextValue | undefined>(
 	undefined,
 );
 
-export function SessionProvider({ children }: { children: React.ReactNode }) {
+export function SessionProvider({
+	children,
+	initialSession,
+}: {
+	children: React.ReactNode;
+	initialSession: Session | null;
+}) {
 	const { data, isPending } = authClient.useSession();
-	const session: Session | null = data
+	const liveSession: Session | null = data
 		? {
 				created: new Date(data.session.createdAt).getTime(),
 				authProvider: "github",
@@ -30,6 +36,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 				},
 			}
 		: null;
+	const session = isPending ? (liveSession ?? initialSession) : liveSession;
 
 	const signOut = async () => {
 		await authClient.signOut();

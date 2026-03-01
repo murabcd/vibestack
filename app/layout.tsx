@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatProvider } from "@/lib/chat-context";
+import { getSessionFromCookie } from "@/lib/session/server";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -67,6 +68,7 @@ export default async function RootLayout({
 	const defaultSidebarOpen = sidebarStateCookie === "true";
 	const headersList = await headers();
 	const userAgent = headersList.get("user-agent") ?? "";
+	const initialSession = await getSessionFromCookie();
 	const defaultIsMobile =
 		/Android|BlackBerry|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile/i.test(
 			userAgent,
@@ -93,7 +95,7 @@ export default async function RootLayout({
 					disableTransitionOnChange
 				>
 					<SWRProvider>
-						<SessionProvider>
+						<SessionProvider initialSession={initialSession ?? null}>
 							<ConnectorsProvider>
 								<SidebarProvider
 									defaultOpen={defaultSidebarOpen}

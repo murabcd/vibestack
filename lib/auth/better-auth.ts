@@ -25,6 +25,12 @@ export const auth = betterAuth({
 			accountId: "externalUserId",
 		},
 	},
+	session: {
+		cookieCache: {
+			enabled: true,
+			maxAge: 60 * 5,
+		},
+	},
 	user: {
 		fields: {
 			image: "avatarUrl",
