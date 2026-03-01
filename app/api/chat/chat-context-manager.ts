@@ -123,15 +123,22 @@ export class ChatContextManager {
 			return { messages, injected: false };
 		}
 
-		const lastUserIndex = findLastUserMessageIndex(messages);
-		if (lastUserIndex === -1) {
-			return { messages, injected: false };
-		}
-
 		const text =
 			"Relevant files recently touched:\n" +
 			relevantPaths.map((path) => `- ${path}`).join("\n") +
 			"\nUse these files first when iterating or fixing errors.";
+		const latestContextText = findLatestRelevantPathsContextText(messages);
+		if (latestContextText === text) {
+			return { messages, injected: false };
+		}
+
+		const filtered = messages.filter(
+			(message) => !message.id.startsWith("context-relevant-files-"),
+		);
+		const filteredLastUserIndex = findLastUserMessageIndex(filtered);
+		if (filteredLastUserIndex === -1) {
+			return { messages: filtered, injected: false };
+		}
 
 		const contextMessage: ChatUIMessage = {
 			id: `context-relevant-files-${Date.now()}`,
@@ -139,8 +146,8 @@ export class ChatContextManager {
 			parts: [{ type: "text", text }],
 		};
 
-		const withContext = [...messages];
-		withContext.splice(lastUserIndex, 0, contextMessage);
+		const withContext = [...filtered];
+		withContext.splice(filteredLastUserIndex, 0, contextMessage);
 		return { messages: withContext, injected: true };
 	}
 }
@@ -210,4 +217,21 @@ function findLastUserMessageIndex(messages: ChatUIMessage[]): number {
 		}
 	}
 	return -1;
+}
+
+function findLatestRelevantPathsContextText(
+	messages: ChatUIMessage[],
+): string | null {
+	for (let i = messages.length - 1; i >= 0; i -= 1) {
+		const message = messages[i];
+		if (
+			message.role !== "user" ||
+			!message.id.startsWith("context-relevant-files-")
+		) {
+			continue;
+		}
+		const textPart = message.parts.find((part) => part.type === "text");
+		return textPart?.text ?? null;
+	}
+	return null;
 }

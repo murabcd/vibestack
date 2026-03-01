@@ -3,6 +3,7 @@ import {
 	compactMessagesForModel,
 	injectRelevantFileContentMessage,
 	prepareMessagesForAgent,
+	reconcileIncompleteTaskMessages,
 	sanitizeMessagesForModel,
 } from "../../app/api/chat/stream-utils";
 import type { ChatUIMessage } from "../../components/chat/types";
@@ -135,5 +136,57 @@ describe("chat stream utils", () => {
 		expect(firstParts.some((part) => part.type === "reasoning")).toBe(false);
 		expect(firstParts.some((part) => part.type === "text")).toBe(true);
 		expect(stats.droppedReasoningParts).toBe(1);
+	});
+
+	it("reconciles incomplete task parts from interrupted streams", () => {
+		const messages: ChatUIMessage[] = [
+			textMessage("u1", "user", "build app"),
+			{
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "data-task-thinking-v1",
+						data: {
+							taskNameActive: "Thought for 3s",
+							taskNameComplete: "Thought for 3s",
+							status: "loading",
+							parts: [{ type: "thinking-step", stepNumber: 1 }],
+						},
+					},
+					{
+						type: "data-task-coding-v1",
+						data: {
+							taskNameActive: "Generating files",
+							taskNameComplete: "Files generated",
+							status: "loading",
+							parts: [{ type: "generating-files-started" }],
+						},
+					},
+				],
+			} as unknown as ChatUIMessage,
+		];
+
+		const reconciled = reconcileIncompleteTaskMessages(messages);
+		expect(reconciled.stats.reconciledThinkingTasks).toBe(1);
+		expect(reconciled.stats.reconciledCodingTasks).toBe(1);
+
+		const assistant = reconciled.messages[1];
+		const thinkingPart = assistant.parts.find(
+			(part) => part.type === "data-task-thinking-v1",
+		);
+		const codingPart = assistant.parts.find(
+			(part) => part.type === "data-task-coding-v1",
+		);
+		expect(thinkingPart?.type).toBe("data-task-thinking-v1");
+		expect(
+			thinkingPart?.type === "data-task-thinking-v1"
+				? thinkingPart.data.status
+				: "",
+		).toBe("done");
+		expect(codingPart?.type).toBe("data-task-coding-v1");
+		expect(
+			codingPart?.type === "data-task-coding-v1" ? codingPart.data.status : "",
+		).toBe("error");
 	});
 });

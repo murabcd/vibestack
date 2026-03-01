@@ -34,6 +34,11 @@ export interface SanitizationStats {
 	blockedProtectedMutations: number;
 }
 
+export interface ReconcileTaskStats {
+	reconciledCodingTasks: number;
+	reconciledThinkingTasks: number;
+}
+
 export async function readResponsePreview(
 	response: Response,
 	maxChars: number,
@@ -187,6 +192,72 @@ export function sanitizeMessagesForModel(messages: ChatUIMessage[]): {
 	return {
 		messages: sanitized,
 		stats: { sanitizedAssistantParts, blockedProtectedMutations },
+	};
+}
+
+export function reconcileIncompleteTaskMessages(messages: ChatUIMessage[]): {
+	messages: ChatUIMessage[];
+	stats: ReconcileTaskStats;
+} {
+	let reconciledCodingTasks = 0;
+	let reconciledThinkingTasks = 0;
+
+	const nextMessages = messages.map((message) => {
+		if (message.role !== "assistant") return message;
+		return {
+			...message,
+			parts: message.parts.map((part) => {
+				if (
+					part.type === "data-task-coding-v1" &&
+					part.data.status === "loading"
+				) {
+					reconciledCodingTasks += 1;
+					return {
+						...part,
+						data: {
+							...part.data,
+							status: "error" as const,
+							parts: [
+								...part.data.parts,
+								{
+									type: "task-interrupted",
+									message:
+										"Previous streaming session ended before this task completed.",
+								},
+							],
+						},
+					};
+				}
+				if (
+					part.type === "data-task-thinking-v1" &&
+					part.data.status === "loading"
+				) {
+					reconciledThinkingTasks += 1;
+					return {
+						...part,
+						data: {
+							...part.data,
+							status: "done" as const,
+							parts: [
+								{
+									type: "thinking-complete",
+									interrupted: true,
+								},
+							],
+						},
+					};
+				}
+				return part;
+			}),
+		};
+	});
+
+	return {
+		messages: nextMessages,
+		stats: {
+			reconciledCodingTasks,
+			reconciledThinkingTasks,
+		},
 	};
 }
 

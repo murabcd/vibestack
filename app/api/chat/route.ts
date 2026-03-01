@@ -52,6 +52,7 @@ import {
 	prepareMessagesForAgent,
 	type RelevantFileContent,
 	readResponsePreview,
+	reconcileIncompleteTaskMessages,
 	sanitizeMessagesForModel,
 	truncateString,
 } from "./stream-utils";
@@ -143,6 +144,20 @@ export async function POST(req: NextRequest) {
 			{ error: "Invalid chat message format." },
 			{ status: 400 },
 		);
+	}
+
+	const reconciledIncoming = reconcileIncompleteTaskMessages(validatedMessages);
+	validatedMessages = reconciledIncoming.messages;
+	if (
+		reconciledIncoming.stats.reconciledCodingTasks > 0 ||
+		reconciledIncoming.stats.reconciledThinkingTasks > 0
+	) {
+		wide.add({
+			reconciled_incoming_coding_tasks:
+				reconciledIncoming.stats.reconciledCodingTasks,
+			reconciled_incoming_thinking_tasks:
+				reconciledIncoming.stats.reconciledThinkingTasks,
+		});
 	}
 
 	wide.add({
@@ -873,7 +888,9 @@ export async function POST(req: NextRequest) {
 							if (projectId) {
 								try {
 									const persistedMessages = compactMessagesForPersistence(
-										allMessages as ChatUIMessage[],
+										reconcileIncompleteTaskMessages(
+											allMessages as ChatUIMessage[],
+										).messages,
 									);
 									wide.add({
 										persisted_message_count: persistedMessages.length,

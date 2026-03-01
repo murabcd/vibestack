@@ -11,6 +11,10 @@ import {
 	normalizePackageJsonForInstall,
 } from "./run-command-install-preflight";
 import { getSandboxCredentials } from "./sandbox-env";
+import {
+	type CodingTaskEmitter,
+	createCodingTaskEmitter,
+} from "./task-state-machine";
 import type { ToolContext } from "./types";
 
 interface Params {
@@ -56,50 +60,39 @@ export const runCommand = ({ writer, context }: Params) =>
 			{ sandboxId, command, sudo, wait, args = [] },
 			{ toolCallId },
 		) => {
+			const task = createCodingTaskEmitter({
+				writer,
+				toolCallId,
+				taskNameActive: "Running command",
+				taskNameComplete: "Command completed",
+			});
+
 			if (context?.canUseTool && !context.canUseTool("runCommand")) {
 				const message =
 					"Run command is temporarily paused due to repeated failures in this run.";
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								command,
-								args,
-								error: { message },
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						command,
+						args,
+						error: { message },
 					},
-				});
+				]);
 				return message;
 			}
 
 			const commandValidationError = getCommandValidationError(command);
 			if (commandValidationError) {
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								command,
-								args,
-								error: { message: commandValidationError },
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						command,
+						args,
+						error: { message: commandValidationError },
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "failure");
 				return `Error: ${commandValidationError}`;
 			}
@@ -113,41 +106,22 @@ export const runCommand = ({ writer, context }: Params) =>
 					args,
 				})
 			) {
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								command,
-								args,
-								error: {
-									message:
-										"Skipped duplicate command invocation to avoid loops.",
-								},
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						command,
+						args,
+						error: {
+							message: "Skipped duplicate command invocation to avoid loops.",
+						},
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "failure");
 				return "Skipped duplicate command invocation. Update command or proceed to the next step.";
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Running command",
-					taskNameComplete: "Command completed",
-					status: "loading",
-					parts: [{ type: "run-command-started", sandboxId, command, args }],
-				},
-			});
+			task.loading([{ type: "run-command-started", sandboxId, command, args }]);
 
 			let sandbox: Sandbox | null = null;
 
@@ -166,24 +140,15 @@ export const runCommand = ({ writer, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								command,
-								args,
-								error: richError.error,
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						command,
+						args,
+						error: richError.error,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "failure");
 
 				return richError.message;
@@ -195,8 +160,7 @@ export const runCommand = ({ writer, context }: Params) =>
 				await hardenPackageJsonForInstall({
 					sandbox,
 					sandboxId,
-					toolCallId,
-					writer,
+					task,
 				});
 			}
 
@@ -214,67 +178,40 @@ export const runCommand = ({ writer, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								command,
-								args,
-								error: richError.error,
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						command,
+						args,
+						error: richError.error,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "failure");
 
 				return richError.message;
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Running command",
-					taskNameComplete: "Command completed",
-					status: "loading",
-					parts: [
-						{
-							type: "run-command-executing",
-							sandboxId,
-							commandId: cmd.cmdId,
-							command,
-							args,
-						},
-					],
+			task.loading([
+				{
+					type: "run-command-executing",
+					sandboxId,
+					commandId: cmd.cmdId,
+					command,
+					args,
 				},
-			});
+			]);
 
 			if (!wait) {
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "done",
-						parts: [
-							{
-								type: "run-command-background",
-								sandboxId,
-								commandId: cmd.cmdId,
-								command,
-								args,
-							},
-						],
+				task.done([
+					{
+						type: "run-command-background",
+						sandboxId,
+						commandId: cmd.cmdId,
+						command,
+						args,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "success");
 
 				return `The command \`${command} ${args.join(
@@ -284,24 +221,15 @@ export const runCommand = ({ writer, context }: Params) =>
 				}.`;
 			}
 
-			writer.write({
-				id: toolCallId,
-				type: "data-task-coding-v1",
-				data: {
-					taskNameActive: "Running command",
-					taskNameComplete: "Command completed",
-					status: "loading",
-					parts: [
-						{
-							type: "run-command-waiting",
-							sandboxId,
-							commandId: cmd.cmdId,
-							command,
-							args,
-						},
-					],
+			task.loading([
+				{
+					type: "run-command-waiting",
+					sandboxId,
+					commandId: cmd.cmdId,
+					command,
+					args,
 				},
-			});
+			]);
 
 			const done = await cmd.wait();
 			try {
@@ -328,28 +256,29 @@ export const runCommand = ({ writer, context }: Params) =>
 					});
 				}
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: done.exitCode > 0 ? "error" : "done",
-						parts: [
-							{
-								type:
-									done.exitCode > 0
-										? "run-command-failed"
-										: "run-command-finished",
-								sandboxId,
-								commandId: cmd.cmdId,
-								command,
-								args,
-								exitCode: done.exitCode,
-							},
-						],
-					},
-				});
+				if (done.exitCode > 0) {
+					task.error([
+						{
+							type: "run-command-failed",
+							sandboxId,
+							commandId: cmd.cmdId,
+							command,
+							args,
+							exitCode: done.exitCode,
+						},
+					]);
+				} else {
+					task.done([
+						{
+							type: "run-command-finished",
+							sandboxId,
+							commandId: cmd.cmdId,
+							command,
+							args,
+							exitCode: done.exitCode,
+						},
+					]);
+				}
 				context?.recordToolOutcome?.(
 					"runCommand",
 					done.exitCode > 0 ? "failure" : "success",
@@ -371,25 +300,16 @@ export const runCommand = ({ writer, context }: Params) =>
 					error,
 				});
 
-				writer.write({
-					id: toolCallId,
-					type: "data-task-coding-v1",
-					data: {
-						taskNameActive: "Running command",
-						taskNameComplete: "Command completed",
-						status: "error",
-						parts: [
-							{
-								type: "run-command-failed",
-								sandboxId,
-								commandId: cmd.cmdId,
-								command,
-								args,
-								error: richError.error,
-							},
-						],
+				task.error([
+					{
+						type: "run-command-failed",
+						sandboxId,
+						commandId: cmd.cmdId,
+						command,
+						args,
+						error: richError.error,
 					},
-				});
+				]);
 				context?.recordToolOutcome?.("runCommand", "failure");
 
 				return richError.message;
@@ -438,8 +358,7 @@ function getCommandValidationError(command: string): string | null {
 async function hardenPackageJsonForInstall(args: {
 	sandbox: Sandbox;
 	sandboxId: string;
-	toolCallId: string;
-	writer: UIMessageStreamWriter<UIMessage<never, DataPart>>;
+	task: CodingTaskEmitter;
 }): Promise<void> {
 	const current = await readSandboxTextFile(args.sandbox, "package.json");
 	if (!current) return;
@@ -459,22 +378,13 @@ async function hardenPackageJsonForInstall(args: {
 			sandbox_id: args.sandboxId,
 			changes: normalized.changes,
 		});
-		args.writer.write({
-			id: args.toolCallId,
-			type: "data-task-coding-v1",
-			data: {
-				taskNameActive: "Running command",
-				taskNameComplete: "Command completed",
-				status: "loading",
-				parts: [
-					{
-						type: "run-command-preflight",
-						sandboxId: args.sandboxId,
-						changes: normalized.changes,
-					},
-				],
+		args.task.loading([
+			{
+				type: "run-command-preflight",
+				sandboxId: args.sandboxId,
+				changes: normalized.changes,
 			},
-		});
+		]);
 	} catch (error) {
 		logger.error({
 			event: "tool.run_command.package_json_hardening_failed",
