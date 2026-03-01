@@ -7,7 +7,6 @@ import { getHorizontal } from "@/components/layout/sizing";
 import type { AppUsage } from "@/lib/ai/usage";
 import { MAX_SANDBOX_DURATION } from "@/lib/constants";
 import { getMessagesByProjectId, getProjectById } from "@/lib/db/queries";
-import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
 import { getSessionFromCookie } from "@/lib/session/server";
 import { convertToUIMessages } from "@/lib/utils";
 import { ProjectPageClient } from "./_components/project-page";
@@ -49,9 +48,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 	if (!project) {
 		notFound();
 	}
-	const session = await getSessionFromCookie(
-		cookieStore.get(SESSION_COOKIE_NAME)?.value,
-	);
+	const session = await getSessionFromCookie();
 	if (project.visibility !== "public" && project.userId !== session?.user?.id) {
 		notFound();
 	}

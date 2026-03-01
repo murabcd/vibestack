@@ -10,36 +10,22 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { getEnabledAuthProviders } from "@/lib/auth/providers";
+import { authClient } from "@/lib/auth/client";
 
 export function SignIn() {
 	const [showDialog, setShowDialog] = useState(false);
-	const [loadingVercel, setLoadingVercel] = useState(false);
 	const [loadingGitHub, setLoadingGitHub] = useState(false);
 
-	// Check which auth providers are enabled
-	const { github: hasGitHub, vercel: hasVercel } = getEnabledAuthProviders();
-
-	const handleVercelSignIn = async () => {
-		setLoadingVercel(true);
-		try {
-			const response = await fetch("/api/auth/signin/vercel", {
-				method: "POST",
-			});
-			const data = await response.json();
-			if (data.url) {
-				window.location.href = data.url;
-			}
-		} catch (error) {
-			console.error("Vercel sign-in error:", error);
-		} finally {
-			setLoadingVercel(false);
-		}
-	};
-
-	const handleGitHubSignIn = () => {
+	const handleGitHubSignIn = async () => {
 		setLoadingGitHub(true);
-		window.location.href = "/api/auth/signin/github";
+		try {
+			await authClient.signIn.social({
+				provider: "github",
+				callbackURL: window.location.href,
+			});
+		} finally {
+			setLoadingGitHub(false);
+		}
 	};
 
 	return (
@@ -58,58 +44,30 @@ export function SignIn() {
 					<DialogHeader>
 						<DialogTitle>Sign in</DialogTitle>
 						<DialogDescription>
-							{hasGitHub && hasVercel
-								? "Choose how you want to sign in to continue."
-								: hasVercel
-									? "Sign in with Vercel to continue."
-									: "Sign in with GitHub to continue."}
+							Sign in with GitHub to continue.
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="flex flex-col gap-3 py-4">
-						{hasVercel && (
-							<Button
-								onClick={handleVercelSignIn}
-								disabled={loadingVercel || loadingGitHub}
-								variant="outline"
-								size="lg"
-								className="w-full"
-							>
-								{loadingVercel ? (
-									<>
-										<Icons.loadingSpinner />
-										Loading...
-									</>
-								) : (
-									<>
-										<Icons.vercel />
-										Sign in with Vercel
-									</>
-								)}
-							</Button>
-						)}
-
-						{hasGitHub && (
-							<Button
-								onClick={handleGitHubSignIn}
-								disabled={loadingVercel || loadingGitHub}
-								variant="outline"
-								size="lg"
-								className="w-full cursor-pointer"
-							>
-								{loadingGitHub ? (
-									<>
-										<Icons.loadingSpinner />
-										Loading...
-									</>
-								) : (
-									<>
-										<Icons.gitHubLogo />
-										Sign in with GitHub
-									</>
-								)}
-							</Button>
-						)}
+						<Button
+							onClick={handleGitHubSignIn}
+							disabled={loadingGitHub}
+							variant="outline"
+							size="lg"
+							className="w-full cursor-pointer"
+						>
+							{loadingGitHub ? (
+								<>
+									<Icons.loadingSpinner />
+									Loading...
+								</>
+							) : (
+								<>
+									<Icons.gitHubLogo />
+									Sign in with GitHub
+								</>
+							)}
+						</Button>
 					</div>
 				</DialogContent>
 			</Dialog>

@@ -1,11 +1,8 @@
-import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
+import { auth } from "@/lib/auth/better-auth";
 
-export async function POST(): Promise<Response> {
-	const store = await cookies();
-
-	// Clear session cookie
-	store.delete(SESSION_COOKIE_NAME);
-
-	return Response.json({ success: true });
+export async function POST(request: Request): Promise<Response> {
+	return auth.api.signOut({
+		headers: new Headers(request.headers),
+		asResponse: true,
+	});
 }

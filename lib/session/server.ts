@@ -1,26 +1,45 @@
+import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
-import { decryptJWE } from "@/lib/jwe/decrypt";
-import { SESSION_COOKIE_NAME } from "./constants";
+import { auth } from "@/lib/auth/better-auth";
 import type { Session } from "./types";
 
-export async function getSessionFromCookie(
-	cookieValue?: string,
-): Promise<Session | undefined> {
-	if (cookieValue) {
-		const decrypted = await decryptJWE<Session>(cookieValue);
-		if (decrypted) {
-			return {
-				created: decrypted.created,
-				authProvider: decrypted.authProvider,
-				user: decrypted.user,
-			};
-		}
+function toSession(
+	data: Awaited<ReturnType<typeof auth.api.getSession>>,
+): Session | undefined {
+	if (!data) {
+		return;
 	}
+
+	return {
+		created: new Date(data.session.createdAt).getTime(),
+		authProvider: "github",
+		user: {
+			id: data.user.id,
+			username: data.user.name || data.user.email.split("@")[0] || data.user.id,
+			email: data.user.email,
+			name: data.user.name,
+			avatar: data.user.image ?? undefined,
+		},
+	};
+}
+
+export async function getSessionFromCookie(
+	_cookieValue?: string,
+): Promise<Session | undefined> {
+	const requestHeaders = new Headers(await headers());
+	const session = await auth.api.getSession({
+		headers: requestHeaders,
+	});
+
+	return toSession(session);
 }
 
 export async function getSessionFromReq(
 	req: NextRequest,
 ): Promise<Session | undefined> {
-	const cookieValue = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-	return getSessionFromCookie(cookieValue);
+	const session = await auth.api.getSession({
+		headers: req.headers,
+	});
+
+	return toSession(session);
 }

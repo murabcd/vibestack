@@ -15,23 +15,26 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { AppUsage } from "@/lib/ai/usage";
 
-// Users table - user profile and primary OAuth account
+// Users table - application users + Better Auth user model
 export const users = pgTable(
 	"users",
 	{
 		id: text("id").primaryKey(), // Internal user ID (we generate this)
-		// Primary OAuth account info (how they signed in)
+		// Legacy auth metadata kept for compatibility
 		provider: text("provider", {
 			enum: ["github", "vercel"],
-		}).notNull(), // Primary auth provider
-		externalId: text("external_id").notNull(), // External ID from OAuth provider
-		accessToken: text("access_token").notNull(), // Encrypted OAuth access token
+		})
+			.notNull()
+			.default("github"), // Primary auth provider
+		externalId: text("external_id").notNull().default(""), // External ID from OAuth provider
+		accessToken: text("access_token").notNull().default(""), // Encrypted OAuth access token
 		refreshToken: text("refresh_token"), // Encrypted OAuth refresh token
 		scope: text("scope"), // OAuth scope
 		// Profile info
-		username: text("username").notNull(),
+		username: text("username").notNull().default(""),
 		email: text("email"),
 		name: text("name"),
+		emailVerified: boolean("email_verified").notNull().default(false),
 		avatarUrl: text("avatar_url"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -48,9 +51,7 @@ export const users = pgTable(
 
 export type User = InferSelectModel<typeof users>;
 
-// Accounts table - Additional accounts linked to users
-// Currently only GitHub can be connected as an additional account
-// (e.g., Vercel users can connect their GitHub account)
+// Accounts table - Better Auth account model with legacy fields retained
 export const accounts = pgTable(
 	"accounts",
 	{
@@ -64,24 +65,63 @@ export const accounts = pgTable(
 			.notNull()
 			.default("github"), // Only GitHub for now
 		externalUserId: text("external_user_id").notNull(), // GitHub user ID
-		accessToken: text("access_token").notNull(), // Encrypted OAuth access token
+		accessToken: text("access_token"), // Encrypted OAuth access token
 		refreshToken: text("refresh_token"), // Encrypted OAuth refresh token
+		idToken: text("id_token"),
 		expiresAt: timestamp("expires_at"),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
 		scope: text("scope"),
-		username: text("username").notNull(), // GitHub username
+		password: text("password"),
+		username: text("username").notNull().default(""), // GitHub username
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").defaultNow().notNull(),
 	},
 	(table) => ({
-		// Unique constraint: a user can only have one account per provider
-		userIdProviderUnique: uniqueIndex("accounts_user_id_provider_idx").on(
-			table.userId,
-			table.provider,
-		),
+		userProviderUnique: uniqueIndex(
+			"accounts_provider_external_user_id_idx",
+		).on(table.provider, table.externalUserId),
 	}),
 );
 
 export type Account = InferSelectModel<typeof accounts>;
+
+export const sessions = pgTable(
+	"sessions",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		token: text("token").notNull(),
+		expiresAt: timestamp("expires_at").notNull(),
+		ipAddress: text("ip_address"),
+		userAgent: text("user_agent"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		tokenUnique: uniqueIndex("sessions_token_idx").on(table.token),
+		userIdIdx: index("sessions_user_id_idx").on(table.userId),
+	}),
+);
+
+export const verifications = pgTable(
+	"verifications",
+	{
+		id: text("id").primaryKey(),
+		identifier: text("identifier").notNull(),
+		value: text("value").notNull(),
+		expiresAt: timestamp("expires_at").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		identifierValueUnique: uniqueIndex("verifications_identifier_value_idx").on(
+			table.identifier,
+			table.value,
+		),
+	}),
+);
 
 export const projects = pgTable("projects", {
 	id: uuid("id").primaryKey().notNull().defaultRandom(),

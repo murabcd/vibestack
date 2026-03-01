@@ -19,10 +19,7 @@ export function User() {
 
 	const handleSignOut = async () => {
 		try {
-			await fetch("/api/auth/signout", {
-				method: "POST",
-			});
-			signOut();
+			await signOut();
 		} catch (error) {
 			console.error("Sign out error:", error);
 		}

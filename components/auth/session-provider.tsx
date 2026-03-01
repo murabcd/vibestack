@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import useSWR from "swr";
+import { authClient } from "@/lib/auth/client";
 import type { Session } from "@/lib/session/types";
 
 interface SessionContextValue {
 	session: Session | null;
 	isLoading: boolean;
-	signOut: () => void;
+	signOut: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(
@@ -15,24 +15,28 @@ const SessionContext = createContext<SessionContextValue | undefined>(
 );
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-	const { data, isLoading, mutate } = useSWR<{ session: Session | null }>(
-		"/api/auth/info",
-		{
-			revalidateOnFocus: false,
-			onError: (error) => {
-				console.error("Session check error:", error);
-			},
-		},
-	);
+	const { data, isPending } = authClient.useSession();
+	const session: Session | null = data
+		? {
+				created: new Date(data.session.createdAt).getTime(),
+				authProvider: "github",
+				user: {
+					id: data.user.id,
+					username:
+						data.user.name || data.user.email.split("@")[0] || data.user.id,
+					email: data.user.email,
+					name: data.user.name,
+					avatar: data.user.image ?? undefined,
+				},
+			}
+		: null;
 
-	const signOut = () => {
-		void mutate({ session: null }, { revalidate: false });
+	const signOut = async () => {
+		await authClient.signOut();
 	};
 
 	return (
-		<SessionContext.Provider
-			value={{ session: data?.session ?? null, isLoading, signOut }}
-		>
+		<SessionContext.Provider value={{ session, isLoading: isPending, signOut }}>
 			{children}
 		</SessionContext.Provider>
 	);

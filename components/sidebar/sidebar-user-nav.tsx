@@ -75,7 +75,7 @@ export function SidebarUserNav() {
 						<DropdownMenuItem
 							className="cursor-pointer w-full flex items-center"
 							onClick={() => {
-								signOut();
+								void signOut();
 							}}
 						>
 							<LogOut className="mr-2 size-4" />

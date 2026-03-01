@@ -3,8 +3,9 @@
 import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { ZodError } from "zod";
+import { auth } from "@/lib/auth/better-auth";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db/index";
 import { connectors, insertConnectorSchema } from "@/lib/db/schema";
@@ -13,8 +14,7 @@ import {
 	validateLocalMcpCommand,
 	validateRemoteMcpUrl,
 } from "@/lib/security/mcp";
-import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
-import { getSessionFromCookie } from "@/lib/session/server";
+import type { Session } from "@/lib/session/types";
 
 type FormState = {
 	success: boolean;
@@ -23,9 +23,28 @@ type FormState = {
 };
 
 async function getSession() {
-	const cookieStore = await cookies();
-	const cookieValue = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-	return getSessionFromCookie(cookieValue);
+	const requestHeaders = new Headers(await headers());
+	const session = await auth.api.getSession({ headers: requestHeaders });
+	if (!session) {
+		return null;
+	}
+
+	const mappedSession: Session = {
+		created: new Date(session.session.createdAt).getTime(),
+		authProvider: "github",
+		user: {
+			id: session.user.id,
+			username:
+				session.user.name ||
+				session.user.email.split("@")[0] ||
+				session.user.id,
+			email: session.user.email,
+			name: session.user.name,
+			avatar: session.user.image ?? undefined,
+		},
+	};
+
+	return mappedSession;
 }
 
 export async function createConnector(

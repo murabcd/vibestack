@@ -50,6 +50,9 @@
 - [Drizzle ORM](https://orm.drizzle.team)
   - Type-safe SQL ORM with TypeScript support
   - Database migrations and schema management
+- [Better Auth](https://github.com/murabcd/better-auth)
+  - Simple, modern authentication for full-stack TypeScript apps
+  - Used for secure, extensible authentication flows
 - [Shadcn/UI](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility

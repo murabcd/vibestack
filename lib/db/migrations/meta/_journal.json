@@ -71,6 +71,13 @@
 			"when": 1772315600000,
 			"tag": "0009_project_runs",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1772396662689,
+			"tag": "0010_optimal_molecule_man",
+			"breakpoints": true
 		}
 	]
 }

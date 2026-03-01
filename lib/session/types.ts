@@ -1,6 +1,6 @@
 export interface Session {
 	created: number;
-	authProvider: "github" | "vercel";
+	authProvider: "github";
 	user: {
 		id: string; // Internal user ID
 		username: string;
