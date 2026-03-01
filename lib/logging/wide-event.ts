@@ -39,7 +39,7 @@ export function createApiWideEvent(
 		request_id: requestId,
 		method: request.method,
 		path: getRequestPath(request),
-		service: process.env.SERVICE_NAME ?? "vibestack-web",
+		service: "vibestack-web",
 		env: process.env.NODE_ENV ?? "development",
 		region: process.env.VERCEL_REGION ?? "unknown",
 		commit_hash: process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown",

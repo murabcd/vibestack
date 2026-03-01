@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
+import { env } from "@/lib/env";
 
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 const getEncryptionKey = (): Buffer | null => {
-	const key = process.env.ENCRYPTION_KEY;
+	const key = env.ENCRYPTION_KEY;
 	if (!key) {
 		return null;
 	}

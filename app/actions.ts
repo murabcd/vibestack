@@ -4,9 +4,10 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { cookies } from "next/headers";
 import type { ChatUIMessage } from "@/components/chat/types";
+import { env } from "@/lib/env";
 
 const openai = createOpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
+	apiKey: env.OPENAI_API_KEY,
 });
 
 export async function generateTitleFromUserMessage({

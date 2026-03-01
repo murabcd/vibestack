@@ -1,13 +1,14 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { JSONValue, LanguageModel } from "ai";
+import { env } from "@/lib/env";
 import { Models } from "./constants";
 
 const anthropic = createAnthropic({
-	apiKey: process.env.ANTHROPIC_API_KEY,
+	apiKey: env.ANTHROPIC_API_KEY,
 });
 const openai = createOpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
+	apiKey: env.OPENAI_API_KEY,
 });
 
 const AVAILABLE_MODELS = [

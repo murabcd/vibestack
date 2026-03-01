@@ -1,3 +1,4 @@
+import "./lib/env";
 import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 

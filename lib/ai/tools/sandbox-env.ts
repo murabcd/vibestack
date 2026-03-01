@@ -1,3 +1,5 @@
+import { env } from "@/lib/env";
+
 interface SandboxCredentials {
 	projectId: string;
 	teamId: string;
@@ -5,9 +7,9 @@ interface SandboxCredentials {
 }
 
 export function getSandboxCredentials(): SandboxCredentials {
-	const teamId = process.env.SANDBOX_VERCEL_TEAM_ID;
-	const projectId = process.env.SANDBOX_VERCEL_PROJECT_ID;
-	const token = process.env.SANDBOX_VERCEL_TOKEN;
+	const teamId = env.SANDBOX_VERCEL_TEAM_ID;
+	const projectId = env.SANDBOX_VERCEL_PROJECT_ID;
+	const token = env.SANDBOX_VERCEL_TOKEN;
 
 	if (!teamId || !projectId || !token) {
 		throw new Error(

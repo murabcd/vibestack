@@ -3,6 +3,14 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { env } from "@/lib/env";
+
+const githubClientId = env.GITHUB_CLIENT_ID ?? env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+if (!githubClientId || !env.GITHUB_CLIENT_SECRET) {
+	throw new Error(
+		"GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required for Better Auth GitHub provider.",
+	);
+}
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -12,11 +20,8 @@ export const auth = betterAuth({
 	}),
 	socialProviders: {
 		github: {
-			clientId:
-				process.env.GITHUB_CLIENT_ID ??
-				process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ??
-				"",
-			clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+			clientId: githubClientId,
+			clientSecret: env.GITHUB_CLIENT_SECRET,
 		},
 	},
 	account: {
@@ -38,6 +43,6 @@ export const auth = betterAuth({
 	},
 	plugins: [nextCookies()],
 	advanced: {
-		useSecureCookies: process.env.NODE_ENV === "production",
+		useSecureCookies: env.NODE_ENV === "production",
 	},
 });
