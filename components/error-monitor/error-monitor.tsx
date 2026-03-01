@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { usePathname } from "next/navigation";
 import {
 	createContext,
 	useCallback,
@@ -28,6 +29,8 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 	const { fixErrors, modelId, reasoningEffort } = useSettings();
 	const { chat } = useSharedChatContext();
 	const { sendMessage, status: chatStatus, messages } = useChat({ chat });
+	const pathname = usePathname();
+	const activeProjectId = getProjectIdFromPathname(pathname);
 	const submitTimeout = useRef<NodeJS.Timeout | null>(null);
 	const inspectedErrors = useRef<number>(0);
 	const lastReportedErrors = useRef<string[]>([]);
@@ -73,6 +76,9 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 			}
 
 			startTransition(async () => {
+				if (!activeProjectId) {
+					return;
+				}
 				const summary = await getSummary(errors, prev);
 				if (summary.shouldBeFixed) {
 					newErrors.forEach((key) => {
@@ -91,13 +97,14 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 							body: {
 								modelId,
 								reasoningEffort,
+								projectId: activeProjectId,
 							},
 						},
 					);
 				}
 			});
 		},
-		[modelId, reasoningEffort, sendMessage],
+		[activeProjectId, modelId, reasoningEffort, sendMessage],
 	);
 
 	useEffect(() => {
@@ -135,6 +142,11 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 	]);
 
 	return <Context.Provider value={{ status }}>{children}</Context.Provider>;
+}
+
+function getProjectIdFromPathname(pathname: string): string | undefined {
+	const match = pathname.match(/^\/project\/([^/]+)/);
+	return match?.[1];
 }
 
 const Context = createContext<{

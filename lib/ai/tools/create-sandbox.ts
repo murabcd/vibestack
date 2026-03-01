@@ -88,6 +88,23 @@ export const createSandbox = ({ writer, context }: Params) =>
 			}
 
 			try {
+				const existingSandboxId = context?.getActiveSandboxId?.();
+				if (existingSandboxId) {
+					const existingSandbox =
+						await getSandboxIfAvailable(existingSandboxId);
+					if (existingSandbox) {
+						task.done([
+							{
+								type: "create-sandbox-complete",
+								sandboxId: existingSandbox.sandboxId,
+							},
+						]);
+						context?.setActiveSandboxId?.(existingSandbox.sandboxId);
+						context?.recordToolOutcome?.("createSandbox", "success");
+						return `Reusing existing sandbox with ID: ${existingSandbox.sandboxId}.`;
+					}
+				}
+
 				// Use sandbox duration from context (user's UI setting) or default to 30 minutes
 				let userTimeout = context?.sandboxDuration
 					? context.sandboxDuration * 60 * 1000 // Convert minutes to milliseconds
@@ -167,3 +184,19 @@ export const createSandbox = ({ writer, context }: Params) =>
 			}
 		},
 	});
+
+async function getSandboxIfAvailable(
+	sandboxId: string,
+): Promise<Sandbox | null> {
+	try {
+		const { teamId, projectId, token } = getSandboxCredentials();
+		return await Sandbox.get({
+			sandboxId,
+			teamId,
+			projectId,
+			token,
+		});
+	} catch {
+		return null;
+	}
+}

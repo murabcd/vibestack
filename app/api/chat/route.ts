@@ -494,7 +494,11 @@ export async function POST(req: NextRequest) {
 					}
 				}
 
-				let activeSandboxId: string | null = project?.sandboxId ?? null;
+				let activeSandboxId: string | null =
+					project?.sandboxId ?? extractSandboxIdFromMessages(validatedMessages);
+				if (!project?.sandboxId && activeSandboxId) {
+					wide.add({ active_sandbox_hydrated_from_messages: true });
+				}
 				const singletonToolUses = new Set<string>();
 				const recentToolSignatures: string[] = [];
 				const toolFailureState = new Map<
@@ -989,6 +993,52 @@ function hasRepeatedToolFailures(messages: ChatUIMessage[]): boolean {
 	}
 
 	return false;
+}
+
+function extractSandboxIdFromMessages(
+	messages: ChatUIMessage[],
+): string | null {
+	for (let i = messages.length - 1; i >= 0; i -= 1) {
+		const message = messages[i];
+		if (message.role !== "assistant") continue;
+		for (let j = message.parts.length - 1; j >= 0; j -= 1) {
+			const part = message.parts[j];
+			if (part.type === "data-task-coding-v1") {
+				const parts = part.data.parts;
+				const lastPart = parts[parts.length - 1];
+				if (
+					lastPart &&
+					typeof lastPart === "object" &&
+					"type" in lastPart &&
+					lastPart.type === "create-sandbox-complete" &&
+					"sandboxId" in lastPart &&
+					typeof lastPart.sandboxId === "string"
+				) {
+					return lastPart.sandboxId;
+				}
+			}
+
+			if (
+				part.type === "tool-createSandbox" &&
+				part.state === "output-available"
+			) {
+				const output = (part as { output?: unknown }).output;
+				if (
+					output &&
+					typeof output === "object" &&
+					"sandboxId" in output &&
+					typeof output.sandboxId === "string"
+				) {
+					return output.sandboxId;
+				}
+				if (typeof output === "string") {
+					const match = output.match(/sbx_[a-zA-Z0-9_-]+/);
+					if (match) return match[0];
+				}
+			}
+		}
+	}
+	return null;
 }
 
 async function readRecentFileContentsFromSandbox(
