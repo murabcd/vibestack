@@ -9,13 +9,6 @@ interface NormalizeResult {
 	changes: string[];
 }
 
-const MIN_MAJOR_BY_PACKAGE: Record<string, number> = {
-	next: 16,
-	react: 19,
-	"react-dom": 19,
-	typescript: 5,
-};
-
 export function isInstallCommand(command: string, args: string[]): boolean {
 	const normalized = command.trim();
 	if (!["pnpm", "npm", "yarn", "bun"].includes(normalized)) {
@@ -41,10 +34,7 @@ export function normalizePackageJsonForInstall(
 	const hasNext = typeof deps.next === "string";
 
 	if (hasNext) {
-		upgradeIfOutdated(deps, "next", changes);
-		upgradeIfOutdated(deps, "react", changes);
-		upgradeIfOutdated(deps, "react-dom", changes);
-		upgradeIfOutdated(devDeps, "typescript", changes);
+		ensureAutoprefixer(devDeps, deps, changes);
 	}
 
 	if (changes.length === 0) {
@@ -60,26 +50,21 @@ export function normalizePackageJsonForInstall(
 	};
 }
 
-function upgradeIfOutdated(
+function ensureAutoprefixer(
+	devDeps: Record<string, string>,
 	deps: Record<string, string>,
-	name: keyof typeof MIN_MAJOR_BY_PACKAGE,
 	changes: string[],
 ): void {
-	const current = deps[name];
-	if (typeof current !== "string") return;
-	if (current.trim() === "latest") return;
+	const hasPostcss = typeof devDeps.postcss === "string";
+	const hasTailwind =
+		typeof devDeps.tailwindcss === "string" ||
+		typeof deps.tailwindcss === "string";
+	const hasAutoprefixer =
+		typeof devDeps.autoprefixer === "string" ||
+		typeof deps.autoprefixer === "string";
 
-	const minMajor = MIN_MAJOR_BY_PACKAGE[name];
-	const major = extractMajor(current);
-	if (major === null || major >= minMajor) return;
-
-	deps[name] = "latest";
-	changes.push(`${name}: ${current} -> latest`);
-}
-
-function extractMajor(version: string): number | null {
-	const match = version.match(/(\d+)(?:\.\d+)?(?:\.\d+)?/);
-	if (!match) return null;
-	const value = Number.parseInt(match[1], 10);
-	return Number.isFinite(value) ? value : null;
+	if (hasPostcss && hasTailwind && !hasAutoprefixer) {
+		devDeps.autoprefixer = "latest";
+		changes.push("autoprefixer: added latest");
+	}
 }

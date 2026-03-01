@@ -1,10 +1,24 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
+import {
+	BrainIcon,
+	CheckIcon,
+	ChevronDownIcon,
+	FileCode2Icon,
+	FolderCogIcon,
+	LinkIcon,
+	SearchIcon,
+	SettingsIcon,
+	TerminalIcon,
+	WrenchIcon,
+	XIcon,
+} from "lucide-react";
 import {
 	type ComponentProps,
+	type ComponentType,
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useState,
 } from "react";
@@ -57,18 +71,22 @@ export const Task = ({
 	const [internalOpen, setInternalOpen] = useState(defaultOpen);
 	const isControlled = typeof open === "boolean";
 	const resolvedOpen = isControlled ? open : internalOpen;
+	const handleOpenChange = useCallback(
+		(nextOpen: boolean) => {
+			if (!isControlled) {
+				setInternalOpen(nextOpen);
+			}
+			onOpenChange?.(nextOpen);
+		},
+		[isControlled, onOpenChange],
+	);
 
 	return (
 		<TaskOpenContext.Provider value={resolvedOpen}>
 			<Collapsible
 				className={cn(className)}
 				open={resolvedOpen}
-				onOpenChange={(nextOpen) => {
-					if (!isControlled) {
-						setInternalOpen(nextOpen);
-					}
-					onOpenChange?.(nextOpen);
-				}}
+				onOpenChange={handleOpenChange}
 				{...props}
 			/>
 		</TaskOpenContext.Provider>
@@ -78,6 +96,14 @@ export const Task = ({
 export type TaskTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
 	title: string;
 	icon?: ReactNode;
+	iconName?:
+		| "thinking"
+		| "sandbox"
+		| "files"
+		| "command"
+		| "link"
+		| "settings"
+		| "wrench";
 	status?: "loading" | "done" | "error";
 	hideChevron?: boolean;
 };
@@ -87,6 +113,7 @@ export const TaskTrigger = ({
 	className,
 	title,
 	icon,
+	iconName,
 	status,
 	hideChevron = false,
 	...props
@@ -106,11 +133,18 @@ export const TaskTrigger = ({
 		return null;
 	};
 
+	const IconFromName = getTaskIconByName(iconName);
+
 	return (
 		<CollapsibleTrigger asChild className={cn("group", className)} {...props}>
 			{children ?? (
 				<div className="flex w-full cursor-pointer items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground">
-					{icon ?? <SearchIcon className="size-4" />}
+					{icon ??
+						(IconFromName ? (
+							<IconFromName className="size-4" />
+						) : (
+							<SearchIcon className="size-4" />
+						))}
 					<div className="flex-1">
 						{status === "loading" ? (
 							<Shimmer className="text-sm text-muted-foreground">
@@ -158,3 +192,17 @@ export const TaskContent = ({
 		</CollapsibleContent>
 	);
 };
+
+function getTaskIconByName(
+	name: TaskTriggerProps["iconName"],
+): ComponentType<{ className?: string }> | null {
+	if (!name) return null;
+	if (name === "thinking") return BrainIcon;
+	if (name === "sandbox") return FolderCogIcon;
+	if (name === "files") return FileCode2Icon;
+	if (name === "command") return TerminalIcon;
+	if (name === "link") return LinkIcon;
+	if (name === "settings") return SettingsIcon;
+	if (name === "wrench") return WrenchIcon;
+	return null;
+}

@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
 	Conversation,
 	ConversationContent,
@@ -31,20 +31,23 @@ function ChatInner({ className }: Props) {
 	const { setChatStatus } = useSandboxStore();
 	const { modelId, reasoningEffort } = useSettings();
 
-	const handleMessageSubmit = (message: PromptInputMessage) => {
-		sendMessage(
-			{
-				...message,
-				text: message.text || "",
-			},
-			{
-				body: {
-					modelId,
-					reasoningEffort,
+	const handleMessageSubmit = useCallback(
+		(message: PromptInputMessage) => {
+			sendMessage(
+				{
+					...message,
+					text: message.text || "",
 				},
-			},
-		);
-	};
+				{
+					body: {
+						modelId,
+						reasoningEffort,
+					},
+				},
+			);
+		},
+		[sendMessage, modelId, reasoningEffort],
+	);
 
 	useEffect(() => {
 		setChatStatus(status);
@@ -84,7 +87,11 @@ function ChatInner({ className }: Props) {
 			</Conversation>
 
 			<div className="p-4">
-				<PromptForm onSubmit={handleMessageSubmit} />
+				<PromptForm
+					onSubmit={handleMessageSubmit}
+					chatStatus={status}
+					hasChatContext={messages.length > 0}
+				/>
 			</div>
 		</Panel>
 	);

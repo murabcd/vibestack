@@ -499,6 +499,11 @@ export async function POST(req: NextRequest) {
 				if (!project?.sandboxId && activeSandboxId) {
 					wide.add({ active_sandbox_hydrated_from_messages: true });
 				}
+				const allowNewSandboxCreation = projectId
+					? !project?.sandboxId &&
+						isInitialProjectGenerationTurn(validatedMessages)
+					: true;
+				wide.add({ allow_new_sandbox_creation: allowNewSandboxCreation });
 				const singletonToolUses = new Set<string>();
 				const recentToolSignatures: string[] = [];
 				const toolFailureState = new Map<
@@ -557,6 +562,7 @@ export async function POST(req: NextRequest) {
 					projectId: projectId ?? undefined,
 					userId: project?.userId ?? undefined,
 					sandboxDuration,
+					allowNewSandboxCreation,
 					getActiveSandboxId: () => activeSandboxId,
 					setActiveSandboxId: (sandboxId: string) => {
 						activeSandboxId = sandboxId;
@@ -993,6 +999,24 @@ function hasRepeatedToolFailures(messages: ChatUIMessage[]): boolean {
 	}
 
 	return false;
+}
+
+function isInitialProjectGenerationTurn(messages: ChatUIMessage[]): boolean {
+	const assistantCount = messages.filter(
+		(message) => message.role === "assistant",
+	).length;
+	if (assistantCount > 0) return false;
+
+	const userMessages = messages.filter((message) => message.role === "user");
+	if (userMessages.length !== 1) return false;
+
+	const firstUserMessage = userMessages[0];
+	return firstUserMessage.parts.some(
+		(part) =>
+			part.type === "text" &&
+			typeof part.text === "string" &&
+			part.text.trim().length > 0,
+	);
 }
 
 function extractSandboxIdFromMessages(

@@ -14,7 +14,7 @@ describe("run-command install preflight", () => {
 		expect(isInstallCommand("pnpm", ["exec", "next", "dev"])).toBe(false);
 	});
 
-	it("upgrades outdated Next/React/TypeScript versions to latest for install", () => {
+	it("does not rewrite framework versions during install preflight", () => {
 		const input = JSON.stringify(
 			{
 				name: "demo",
@@ -32,22 +32,8 @@ describe("run-command install preflight", () => {
 		);
 
 		const result = normalizePackageJsonForInstall(input);
-		expect(result.changed).toBe(true);
-		expect(result.changes).toEqual([
-			"next: 14.2.5 -> latest",
-			"react: 18.3.1 -> latest",
-			"react-dom: 18.3.1 -> latest",
-			"typescript: 4.9.5 -> latest",
-		]);
-
-		const parsed = JSON.parse(result.text) as {
-			dependencies: Record<string, string>;
-			devDependencies: Record<string, string>;
-		};
-		expect(parsed.dependencies.next).toBe("latest");
-		expect(parsed.dependencies.react).toBe("latest");
-		expect(parsed.dependencies["react-dom"]).toBe("latest");
-		expect(parsed.devDependencies.typescript).toBe("latest");
+		expect(result.changed).toBe(false);
+		expect(result.changes).toEqual([]);
 	});
 
 	it("keeps modern versions unchanged", () => {
@@ -91,5 +77,34 @@ describe("run-command install preflight", () => {
 		const result = normalizePackageJsonForInstall(input);
 		expect(result.changed).toBe(false);
 		expect(result.changes).toEqual([]);
+	});
+
+	it("adds missing autoprefixer for Next + Tailwind + PostCSS setups", () => {
+		const input = JSON.stringify(
+			{
+				name: "next-app",
+				dependencies: {
+					next: "^16.1.6",
+					react: "^19.2.4",
+					"react-dom": "^19.2.4",
+				},
+				devDependencies: {
+					postcss: "^8.5.0",
+					tailwindcss: "^3.4.0",
+					typescript: "^5.9.0",
+				},
+			},
+			null,
+			2,
+		);
+
+		const result = normalizePackageJsonForInstall(input);
+		expect(result.changed).toBe(true);
+		expect(result.changes).toEqual(["autoprefixer: added latest"]);
+
+		const parsed = JSON.parse(result.text) as {
+			devDependencies: Record<string, string>;
+		};
+		expect(parsed.devDependencies.autoprefixer).toBe("latest");
 	});
 });

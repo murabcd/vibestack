@@ -1,13 +1,13 @@
 import { useChat } from "@ai-sdk/react";
 import type { TextUIPart } from "ai";
 import { Check, Copy, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
 import { useSettings } from "@/components/settings/use-settings";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { cn } from "@/lib/utils";
 
-export function Text({
+export const Text = memo(function Text({
 	part,
 	messageRole,
 }: {
@@ -94,6 +94,17 @@ export function Text({
 				</div>
 			</div>
 		</div>
+	);
+}, areEqualTextProps);
+
+function areEqualTextProps(
+	prev: { part: TextUIPart; messageRole: "user" | "assistant" },
+	next: { part: TextUIPart; messageRole: "user" | "assistant" },
+): boolean {
+	return (
+		prev.messageRole === next.messageRole &&
+		prev.part.text === next.part.text &&
+		prev.part.state === next.part.state
 	);
 }
 

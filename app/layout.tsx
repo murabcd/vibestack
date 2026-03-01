@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies, headers } from "next/headers";
+import Script from "next/script";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
@@ -73,6 +74,15 @@ export default async function RootLayout({
 
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<head>
+				{process.env.NODE_ENV === "development" ? (
+					<Script
+						src="//unpkg.com/react-scan/dist/auto.global.js"
+						crossOrigin="anonymous"
+						strategy="beforeInteractive"
+					/>
+				) : null}
+			</head>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>

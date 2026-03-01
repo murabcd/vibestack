@@ -1,13 +1,5 @@
-import {
-	BrainIcon,
-	FileCode2Icon,
-	FolderCogIcon,
-	LinkIcon,
-	SettingsIcon,
-	TerminalIcon,
-	WrenchIcon,
-} from "lucide-react";
 import type { ReactNode } from "react";
+import { memo } from "react";
 import {
 	Task,
 	TaskContent,
@@ -31,12 +23,24 @@ type TaskViewModel = {
 	title: string;
 	status: "loading" | "done" | "error";
 	icon: ReactNode;
+	iconName?:
+		| "thinking"
+		| "sandbox"
+		| "files"
+		| "command"
+		| "link"
+		| "settings"
+		| "wrench";
 	items: ReactNode[];
 	hideChevron?: boolean;
 	autoOpen?: boolean;
 };
 
-export function TaskPart({ part }: { part: TaskMessagePart }) {
+export const TaskPart = memo(function TaskPart({
+	part,
+}: {
+	part: TaskMessagePart;
+}) {
 	const task = toTaskViewModel(part);
 	if (!task) return null;
 	if (shouldHideTask(task.title)) return null;
@@ -48,6 +52,7 @@ export function TaskPart({ part }: { part: TaskMessagePart }) {
 			<TaskTrigger
 				title={task.title}
 				icon={task.icon}
+				iconName={task.iconName}
 				status={task.status}
 				hideChevron={task.hideChevron ?? meaningfulItems.length === 0}
 			/>
@@ -60,14 +65,15 @@ export function TaskPart({ part }: { part: TaskMessagePart }) {
 			) : null}
 		</Task>
 	);
-}
+});
 
 function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 	if (part.type === "data-report-errors") {
 		return {
 			title: "Diagnostics report",
 			status: "error",
-			icon: <SettingsIcon className="size-4" />,
+			icon: null,
+			iconName: "settings",
 			items: [<MarkdownRenderer key="summary" content={part.data.summary} />],
 		};
 	}
@@ -76,7 +82,8 @@ function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 		return {
 			title: getTaskTitle(part),
 			status: part.data.status,
-			icon: <BrainIcon className="size-4" />,
+			icon: null,
+			iconName: "thinking",
 			items: [],
 			hideChevron: true,
 			autoOpen: part.data.status === "loading",
@@ -108,7 +115,8 @@ function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 	return {
 		title: getTaskTitle(part),
 		status: part.data.status,
-		icon: getCodingTaskIcon(part),
+		icon: null,
+		iconName: getCodingTaskIconName(part),
 		items,
 	};
 }
@@ -157,12 +165,12 @@ function shouldHideTask(title: string): boolean {
 	);
 }
 
-function getCodingTaskIcon(
+function getCodingTaskIconName(
 	part: Extract<
 		ChatUIMessage["parts"][number],
 		{ type: "data-task-coding-v1" }
 	>,
-): ReactNode {
+): TaskViewModel["iconName"] {
 	const raw =
 		`${part.data.taskNameActive ?? ""} ${part.data.taskNameComplete ?? ""}`.toLowerCase();
 	const latestPart = part.data.parts[part.data.parts.length - 1] as
@@ -172,25 +180,25 @@ function getCodingTaskIcon(
 		typeof latestPart?.type === "string" ? latestPart.type.toLowerCase() : "";
 
 	if (raw.includes("sandbox") || latestType.includes("sandbox")) {
-		return <FolderCogIcon className="size-4" />;
+		return "sandbox";
 	}
 	if (raw.includes("file") || latestType.includes("file")) {
-		return <FileCode2Icon className="size-4" />;
+		return "files";
 	}
 	if (
 		raw.includes("command") ||
 		latestType.includes("run-command") ||
 		latestType.includes("command")
 	) {
-		return <TerminalIcon className="size-4" />;
+		return "command";
 	}
 	if (
 		raw.includes("preview") ||
 		raw.includes("url") ||
 		latestType.includes("url")
 	) {
-		return <LinkIcon className="size-4" />;
+		return "link";
 	}
 
-	return <WrenchIcon className="size-4" />;
+	return "wrench";
 }

@@ -2,7 +2,14 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type RefObject,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useSandboxStore } from "@/app/state";
 import {
 	Conversation,
@@ -97,25 +104,35 @@ function ProjectChatInner({
 		}
 	}, [projectId, sentMessageRef, setMessages]);
 
-	const handleMessageSubmit = (message: PromptInputMessage) => {
-		sendMessage(
-			{
-				...message,
-				text: message.text || "",
-			},
-			{
-				body: {
-					modelId,
-					reasoningEffort,
-					projectId,
-					sandboxDuration,
-					mcpServerIds:
-						connectedServerIds.length > 0 ? connectedServerIds : undefined,
-					background: false,
+	const handleMessageSubmit = useCallback(
+		(message: PromptInputMessage) => {
+			sendMessage(
+				{
+					...message,
+					text: message.text || "",
 				},
-			},
-		);
-	};
+				{
+					body: {
+						modelId,
+						reasoningEffort,
+						projectId,
+						sandboxDuration,
+						mcpServerIds:
+							connectedServerIds.length > 0 ? connectedServerIds : undefined,
+						background: false,
+					},
+				},
+			);
+		},
+		[
+			sendMessage,
+			modelId,
+			reasoningEffort,
+			projectId,
+			sandboxDuration,
+			connectedServerIds,
+		],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a stable ref
 	useEffect(() => {
@@ -316,6 +333,8 @@ function ProjectChatInner({
 					initialSandboxDuration={initialSandboxDuration}
 					initialModelId={initialModelId}
 					usage={usage}
+					chatStatus={status}
+					hasChatContext={messages.length > 0}
 					hideAuxiliaryToolsWhenChatActive
 				/>
 			</div>

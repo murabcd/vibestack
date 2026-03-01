@@ -105,6 +105,19 @@ export const createSandbox = ({ writer, context }: Params) =>
 					}
 				}
 
+				if (context?.allowNewSandboxCreation === false) {
+					const message =
+						"Sandbox creation is disabled for this turn. Reuse the existing project sandbox.";
+					task.error([
+						{
+							type: "create-sandbox-failed",
+							error: { message },
+						},
+					]);
+					context?.recordToolOutcome?.("createSandbox", "failure");
+					return message;
+				}
+
 				// Use sandbox duration from context (user's UI setting) or default to 30 minutes
 				let userTimeout = context?.sandboxDuration
 					? context.sandboxDuration * 60 * 1000 // Convert minutes to milliseconds

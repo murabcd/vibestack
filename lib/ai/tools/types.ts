@@ -4,6 +4,7 @@ export interface ToolContext {
 	projectId?: string;
 	userId?: string;
 	sandboxDuration?: number;
+	allowNewSandboxCreation?: boolean;
 	getActiveSandboxId?: () => string | null;
 	setActiveSandboxId?: (sandboxId: string) => void;
 	registerSingletonToolUse?: (toolName: string) => boolean;

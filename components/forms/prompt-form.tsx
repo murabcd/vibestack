@@ -1,7 +1,6 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { saveModelAsCookie } from "@/app/actions";
 import {
 	Context,
@@ -14,7 +13,6 @@ import {
 	ContextReasoningUsage,
 	ContextTrigger,
 } from "@/components/ai-elements/context";
-import type { ChatUIMessage } from "@/components/chat/types";
 import { McpButton } from "@/components/connectors/mcp-button";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
@@ -37,7 +35,6 @@ import {
 	usePromptInputController,
 } from "@/components/ui/prompt-input";
 import type { AppUsage } from "@/lib/ai/usage";
-import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 
 interface PromptFormProps {
@@ -48,9 +45,11 @@ interface PromptFormProps {
 	initialModelId?: string;
 	usage?: AppUsage; // Optional usage prop for context display
 	hideAuxiliaryToolsWhenChatActive?: boolean;
+	chatStatus?: "ready" | "submitted" | "streaming" | "error";
+	hasChatContext?: boolean;
 }
 
-export function PromptForm({
+export const PromptForm = memo(function PromptForm({
 	onSubmit,
 	className,
 	isLoading,
@@ -58,24 +57,30 @@ export function PromptForm({
 	initialModelId,
 	usage,
 	hideAuxiliaryToolsWhenChatActive = false,
+	chatStatus = "ready",
+	hasChatContext = false,
 }: PromptFormProps) {
-	const { chat } = useSharedChatContext();
 	const { modelId, setModelId } = useSettings(
 		initialSandboxDuration,
 		initialModelId,
 	);
-	const { messages, status } = useChat<ChatUIMessage>({ chat });
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
 
-	// Use isLoading prop if provided, otherwise use chat status
-	const currentStatus = isLoading ? "submitted" : status;
+	// Use isLoading prop if provided, otherwise use provided chat status
+	const currentStatus = isLoading ? "submitted" : chatStatus;
 
-	// Only show context if we have a chat context (not on home page)
-	const hasChatContext = chat && messages.length > 0;
 	const shouldHideAuxiliaryTools =
 		hideAuxiliaryToolsWhenChatActive && hasChatContext;
 	const usedContextTokens = usage?.inputTokens ?? usage?.totalTokens ?? 0;
+
+	const handleModelChange = useCallback(
+		(newModelId: string) => {
+			setModelId(newModelId);
+			saveModelAsCookie(newModelId);
+		},
+		[setModelId],
+	);
 
 	useEffect(() => {
 		const currentValue = controller.textInput.value;
@@ -160,10 +165,7 @@ export function PromptForm({
 						<Settings modelId={modelId} />
 						<ModelSelector
 							modelId={modelId}
-							onModelChange={(newModelId) => {
-								setModelId(newModelId);
-								saveModelAsCookie(newModelId);
-							}}
+							onModelChange={handleModelChange}
 						/>
 					</PromptInputTools>
 					<PromptInputSubmit
@@ -178,4 +180,4 @@ export function PromptForm({
 			</PromptInput>
 		</div>
 	);
-}
+});
