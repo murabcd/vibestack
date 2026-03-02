@@ -84,8 +84,11 @@ export function SidebarUserNav() {
 									event.preventDefault();
 								}}
 								onClick={() => {
-									setEnabled(!isEnabled);
-									selection();
+									const nextEnabled = !isEnabled;
+									setEnabled(nextEnabled);
+									if (nextEnabled) {
+										selection();
+									}
 								}}
 							>
 								<span className="flex items-center gap-2">
@@ -97,7 +100,9 @@ export function SidebarUserNav() {
 									aria-label="Toggle haptic feedback"
 									onCheckedChange={(checked) => {
 										setEnabled(checked);
-										selection();
+										if (checked) {
+											selection();
+										}
 									}}
 									onClick={(event) => {
 										event.stopPropagation();
