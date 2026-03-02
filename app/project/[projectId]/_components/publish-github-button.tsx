@@ -5,6 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "@/components/icons/icons";
 import { Button } from "@/components/ui/button";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -84,6 +92,7 @@ export function PublishGitHubButton({
 	const [isSyncing, setIsSyncing] = useState(false);
 	const [prTitle, setPrTitle] = useState("");
 	const [prBody, setPrBody] = useState("");
+	const [isMobile, setIsMobile] = useState(false);
 
 	useEffect(() => {
 		let mounted = true;
@@ -132,7 +141,21 @@ export function PublishGitHubButton({
 		}
 	}, [source, projectTitle]);
 
+	useEffect(() => {
+		const media = window.matchMedia("(max-width: 767px)");
+		const update = () => setIsMobile(media.matches);
+		update();
+		media.addEventListener("change", update);
+		return () => media.removeEventListener("change", update);
+	}, []);
+
 	const isImportedRepo = source?.imported && !!source.repository;
+	const headerTitle = isImportedRepo
+		? "Create pull request"
+		: "Publish to GitHub";
+	const headerDescription = isImportedRepo
+		? `Push your local changes and open a PR in ${source?.repository?.fullName}.`
+		: "Create a new repository and push this project.";
 
 	const publishToGitHub = async () => {
 		if (!repositoryName.trim()) {
@@ -284,196 +307,208 @@ export function PublishGitHubButton({
 		}
 	};
 
+	const panelBody = (
+		<div className="space-y-3">
+			{isCheckingSource ? (
+				<div className="text-xs text-muted-foreground">
+					Checking repository link...
+				</div>
+			) : null}
+
+			{isImportedRepo ? (
+				<div className="space-y-2">
+					<div className="rounded-md border p-2 text-xs text-muted-foreground">
+						<div className="flex items-center gap-1">
+							<Icons.gitHub className="size-3.5" />
+							<span>{source.repository?.fullName}</span>
+						</div>
+						<div className="pt-1">
+							Base branch: {source.baseBranch || "main"}
+						</div>
+						<div>
+							Working branch: {source.workingBranch || "(not synced yet)"}
+						</div>
+						<div>
+							{source.hasChanges
+								? "Detected local changes ready to push."
+								: "No local git changes detected."}
+						</div>
+					</div>
+					<div className="space-y-1">
+						<Label className="text-xs">PR title</Label>
+						<Input
+							value={prTitle}
+							onChange={(event) => setPrTitle(event.target.value)}
+							placeholder="Update project"
+							className="h-8 text-xs"
+							disabled={isSyncing || isCreatingPr}
+						/>
+					</div>
+					<div className="space-y-1">
+						<Label className="text-xs">PR description (optional)</Label>
+						<Textarea
+							value={prBody}
+							onChange={(event) => setPrBody(event.target.value)}
+							placeholder="Describe what changed"
+							className="min-h-20 text-xs"
+							disabled={isSyncing || isCreatingPr}
+						/>
+					</div>
+					{pullRequestUrl ? (
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
+							onClick={() =>
+								window.open(pullRequestUrl, "_blank", "noreferrer")
+							}
+						>
+							<Icons.gitHub className="size-3.5" />
+							Open pull request
+						</Button>
+					) : null}
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
+							onClick={syncChanges}
+							disabled={isSyncing || isCreatingPr}
+						>
+							{isSyncing ? (
+								<>
+									<Loader2 className="size-3.5 animate-spin" />
+									Syncing...
+								</>
+							) : (
+								<>Sync</>
+							)}
+						</Button>
+						<Button
+							size="sm"
+							className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
+							onClick={createPullRequest}
+							disabled={isCreatingPr || isSyncing}
+						>
+							{isCreatingPr ? (
+								<>
+									<Loader2 className="size-3.5 animate-spin" />
+									Creating PR...
+								</>
+							) : (
+								<>Create PR</>
+							)}
+						</Button>
+					</div>
+				</div>
+			) : (
+				<>
+					<div className="space-y-1.5">
+						<Label htmlFor="repository-name" className="text-xs">
+							Repository name
+						</Label>
+						<Input
+							id="repository-name"
+							value={repositoryName}
+							onChange={(event) => setRepositoryName(event.target.value)}
+							placeholder="my-app"
+							className="h-8 text-xs"
+							disabled={isPublishing}
+						/>
+					</div>
+					<div className="space-y-1.5">
+						<Label className="text-xs">Visibility</Label>
+						<Select
+							value={visibility}
+							onValueChange={(value) => setVisibility(value as Visibility)}
+							disabled={isPublishing}
+						>
+							<SelectTrigger
+								id="repository-visibility"
+								className="w-full h-8 text-xs cursor-pointer"
+							>
+								<SelectValue placeholder="Select visibility" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="private" className="cursor-pointer">
+									Private
+								</SelectItem>
+								<SelectItem value="public" className="cursor-pointer">
+									Public
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="space-y-2 pt-1">
+						{publishedUrl ? (
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
+								onClick={() =>
+									window.open(publishedUrl, "_blank", "noreferrer")
+								}
+							>
+								<Icons.gitHub className="size-3.5" />
+								Open repo
+							</Button>
+						) : (
+							<div />
+						)}
+						<Button
+							size="sm"
+							className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
+							onClick={publishToGitHub}
+							disabled={isPublishing}
+						>
+							{isPublishing ? (
+								<>
+									<Loader2 className="size-3.5 animate-spin" />
+									Publishing...
+								</>
+							) : (
+								<>Publish</>
+							)}
+						</Button>
+					</div>
+				</>
+			)}
+		</div>
+	);
+
+	const trigger = (
+		<Button variant="outline" className="px-2 h-fit gap-1.5 cursor-pointer">
+			<UploadCloud className="size-3.5 mr-2" />
+			<span>Publish</span>
+		</Button>
+	);
+
+	if (isMobile) {
+		return (
+			<Drawer open={open} onOpenChange={setOpen}>
+				<DrawerTrigger asChild>{trigger}</DrawerTrigger>
+				<DrawerContent className="max-h-[85vh]">
+					<DrawerHeader>
+						<DrawerTitle>{headerTitle}</DrawerTitle>
+						<DrawerDescription>{headerDescription}</DrawerDescription>
+					</DrawerHeader>
+					<div className="overflow-y-auto p-4 pt-0">{panelBody}</div>
+				</DrawerContent>
+			</Drawer>
+		);
+	}
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-8 px-3 text-xs gap-1.5 cursor-pointer"
-				>
-					<UploadCloud className="size-3.5" />
-					<span>Publish</span>
-				</Button>
-			</PopoverTrigger>
+			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent align="end" className="w-80">
 				<div className="space-y-3">
 					<div className="space-y-1">
-						<div className="text-sm font-medium">
-							{isImportedRepo ? "Create pull request" : "Publish to GitHub"}
-						</div>
-						<p className="text-xs text-muted-foreground">
-							{isImportedRepo
-								? `Push your local changes and open a PR in ${source?.repository?.fullName}.`
-								: "Create a new private repository in your signed-in GitHub account and push this project."}
-						</p>
+						<div className="text-sm font-medium">{headerTitle}</div>
+						<p className="text-xs text-muted-foreground">{headerDescription}</p>
 					</div>
-
-					{isCheckingSource ? (
-						<div className="text-xs text-muted-foreground">
-							Checking repository link...
-						</div>
-					) : null}
-
-					{isImportedRepo ? (
-						<div className="space-y-2">
-							<div className="rounded-md border p-2 text-xs text-muted-foreground">
-								<div className="flex items-center gap-1">
-									<Icons.gitHub className="size-3.5" />
-									<span>{source.repository?.fullName}</span>
-								</div>
-								<div className="pt-1">
-									Base branch: {source.baseBranch || "main"}
-								</div>
-								<div>
-									Working branch: {source.workingBranch || "(not synced yet)"}
-								</div>
-								<div>
-									{source.hasChanges
-										? "Detected local changes ready to push."
-										: "No local git changes detected."}
-								</div>
-							</div>
-							<div className="space-y-1">
-								<Label className="text-xs">PR title</Label>
-								<Input
-									value={prTitle}
-									onChange={(event) => setPrTitle(event.target.value)}
-									placeholder="Update project"
-									className="h-8 text-xs"
-									disabled={isSyncing || isCreatingPr}
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label className="text-xs">PR description (optional)</Label>
-								<Textarea
-									value={prBody}
-									onChange={(event) => setPrBody(event.target.value)}
-									placeholder="Describe what changed"
-									className="min-h-20 text-xs"
-									disabled={isSyncing || isCreatingPr}
-								/>
-							</div>
-							{pullRequestUrl ? (
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
-									onClick={() =>
-										window.open(pullRequestUrl, "_blank", "noreferrer")
-									}
-								>
-									<Icons.gitHub className="size-3.5" />
-									Open pull request
-								</Button>
-							) : null}
-							<div className="grid grid-cols-2 gap-2">
-								<Button
-									size="sm"
-									variant="outline"
-									className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
-									onClick={syncChanges}
-									disabled={isSyncing || isCreatingPr}
-								>
-									{isSyncing ? (
-										<>
-											<Loader2 className="size-3.5 animate-spin" />
-											Syncing...
-										</>
-									) : (
-										<>Sync</>
-									)}
-								</Button>
-								<Button
-									size="sm"
-									className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
-									onClick={createPullRequest}
-									disabled={isCreatingPr || isSyncing}
-								>
-									{isCreatingPr ? (
-										<>
-											<Loader2 className="size-3.5 animate-spin" />
-											Creating PR...
-										</>
-									) : (
-										<>Create PR</>
-									)}
-								</Button>
-							</div>
-						</div>
-					) : (
-						<>
-							<div className="space-y-1.5">
-								<Label htmlFor="repository-name" className="text-xs">
-									Repository name
-								</Label>
-								<Input
-									id="repository-name"
-									value={repositoryName}
-									onChange={(event) => setRepositoryName(event.target.value)}
-									placeholder="my-app"
-									className="h-8 text-xs"
-									disabled={isPublishing}
-								/>
-							</div>
-							<div className="space-y-1.5">
-								<Label className="text-xs">Visibility</Label>
-								<Select
-									value={visibility}
-									onValueChange={(value) => setVisibility(value as Visibility)}
-									disabled={isPublishing}
-								>
-									<SelectTrigger
-										id="repository-visibility"
-										className="w-full h-8 text-xs cursor-pointer"
-									>
-										<SelectValue placeholder="Select visibility" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="private" className="cursor-pointer">
-											Private
-										</SelectItem>
-										<SelectItem value="public" className="cursor-pointer">
-											Public
-										</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className="space-y-2 pt-1">
-								{publishedUrl ? (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
-										onClick={() =>
-											window.open(publishedUrl, "_blank", "noreferrer")
-										}
-									>
-										<Icons.gitHub className="size-3.5" />
-										Open repo
-									</Button>
-								) : (
-									<div />
-								)}
-								<Button
-									size="sm"
-									className="h-8 w-full px-3 text-xs gap-1 cursor-pointer"
-									onClick={publishToGitHub}
-									disabled={isPublishing}
-								>
-									{isPublishing ? (
-										<>
-											<Loader2 className="size-3.5 animate-spin" />
-											Publishing...
-										</>
-									) : (
-										<>Publish</>
-									)}
-								</Button>
-							</div>
-						</>
-					)}
+					{panelBody}
 				</div>
 			</PopoverContent>
 		</Popover>
