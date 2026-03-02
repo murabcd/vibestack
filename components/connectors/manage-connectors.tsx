@@ -45,9 +45,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerHeader,
+	DrawerTitle,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	createConnector,
 	deleteConnector,
@@ -165,6 +173,7 @@ interface EnvVar {
 }
 
 export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
+	const isMobile = useIsMobile();
 	const formId = useId();
 	const nameInputId = `${formId}-name`;
 	const baseUrlInputId = `${formId}-base-url`;
@@ -384,12 +393,20 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		}
 	}, [editingConnector, createEnvVar]);
 
+	const Root = isMobile ? Drawer : Dialog;
+	const Content = isMobile ? DrawerContent : DialogContent;
+	const Header = isMobile ? DrawerHeader : DialogHeader;
+	const Title = isMobile ? DrawerTitle : DialogTitle;
+	const Description = isMobile ? DrawerDescription : DialogDescription;
+
 	return (
 		<>
-			<Dialog open={open} onOpenChange={onOpenChange}>
-				<DialogContent className="sm:max-w-lg">
-					<DialogHeader>
-						<DialogTitle className="flex items-center">
+			<Root open={open} onOpenChange={onOpenChange}>
+				<Content className={isMobile ? "max-h-[85vh]" : "sm:max-w-lg"}>
+					<Header className={isMobile ? undefined : "sm:text-left"}>
+						<Title
+							className={`flex items-center ${isMobile && view === "list" ? "justify-center text-center" : ""}`}
+						>
 							{(view === "form" || view === "presets") && (
 								<Button
 									variant="ghost"
@@ -403,16 +420,22 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 							{view === "list" && "MCP servers"}
 							{view === "presets" && "Add MCP"}
 							{view === "form" && (isEditing ? "Edit MCP" : "Add MCP")}
-						</DialogTitle>
-						<DialogDescription>
+						</Title>
+						<Description>
 							{view === "list" && "Manage your Model Context Protocol servers."}
 							{view === "presets" && "Choose a preset or add a custom server."}
 							{view === "form" &&
 								"Allow agents to reference other apps and services for more context."}
-						</DialogDescription>
-					</DialogHeader>
+						</Description>
+					</Header>
 
-					<div className="max-h-[70vh] overflow-y-auto pr-1">
+					<div
+						className={
+							isMobile
+								? "max-h-[70vh] overflow-y-auto p-4 pt-0"
+								: "max-h-[70vh] overflow-y-auto pr-1"
+						}
+					>
 						{view === "list" ? (
 							<div className="space-y-3">
 								{connectorsLoading ? (
@@ -486,11 +509,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										);
 									})
 								)}
-								<div className="flex justify-end pt-2">
+								<div className={`pt-2 ${isMobile ? "" : "flex justify-end"}`}>
 									<Button
 										type="button"
 										variant="default"
-										className="cursor-pointer"
+										className={`cursor-pointer ${isMobile ? "w-full" : ""}`}
 										onClick={startAdding}
 									>
 										Add MCP
@@ -869,11 +892,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 											</Button>
 										)}
 										<div
-											className={`flex space-x-2 ${isEditing ? "ml-auto" : "w-full justify-end"}`}
+											className={`flex space-x-2 ${isEditing ? "ml-auto" : isMobile ? "w-full" : "w-full justify-end"}`}
 										>
 											<Button
 												type="submit"
-												className="cursor-pointer"
+												className={`cursor-pointer ${!isEditing && isMobile ? "w-full" : ""}`}
 												disabled={pending || isDeleting}
 											>
 												{pending
@@ -890,8 +913,8 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 							</div>
 						)}
 					</div>
-				</DialogContent>
-			</Dialog>
+				</Content>
+			</Root>
 
 			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
 				<AlertDialogContent>
