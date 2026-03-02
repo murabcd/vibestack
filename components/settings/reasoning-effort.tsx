@@ -1,23 +1,14 @@
 import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Models } from "@/lib/ai/constants";
 import { useReasoningEffort } from "./use-settings";
 
-interface ReasoningEffortProps {
-	modelId?: string;
-}
-
-export function ReasoningEffort({ modelId }: ReasoningEffortProps) {
+export function ReasoningEffort() {
 	const [effort, setEffort] = useReasoningEffort();
 	const id = useId();
 
-	if (modelId !== Models.AnthropicClaude45Haiku) {
-		return null;
-	}
-
 	const toggleEffort = () => {
-		setEffort(effort === "medium" ? "low" : "medium");
+		setEffort(effort === "high" ? "medium" : "high");
 	};
 
 	const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -41,15 +32,15 @@ export function ReasoningEffort({ modelId }: ReasoningEffortProps) {
 					Higher effort level
 				</Label>
 				<p className="text-xs text-muted-foreground leading-relaxed">
-					Request higher reasoning effort level.
+					Use high reasoning effort.
 				</p>
 			</div>
 			<Checkbox
 				id={id}
 				className="ml-3 pointer-events-none"
-				checked={effort === "medium"}
+				checked={effort === "high"}
 				onCheckedChange={(checked) =>
-					setEffort(checked === true ? "medium" : "low")
+					setEffort(checked === true ? "high" : "medium")
 				}
 			/>
 		</div>

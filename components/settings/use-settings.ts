@@ -37,7 +37,7 @@ export function useModelId(initialModelId?: string) {
 export function useReasoningEffort() {
 	return useQueryState(
 		"effort",
-		parseAsStringLiteral(["medium", "low"]).withDefault("low"),
+		parseAsStringLiteral(["high", "medium", "low"]).withDefault("medium"),
 	);
 }
 

@@ -13,11 +13,7 @@ import {
 import { AutoFixErrors } from "./auto-fix-errors";
 import { ReasoningEffort } from "./reasoning-effort";
 
-interface SettingsProps {
-	modelId?: string;
-}
-
-export function Settings({ modelId }: SettingsProps) {
+export function Settings() {
 	return (
 		<Popover>
 			<Tooltip>
@@ -38,7 +34,7 @@ export function Settings({ modelId }: SettingsProps) {
 			<PopoverContent className="p-0 min-w-80">
 				<div className="p-4 space-y-6">
 					<AutoFixErrors />
-					<ReasoningEffort modelId={modelId} />
+					<ReasoningEffort />
 				</div>
 			</PopoverContent>
 		</Popover>

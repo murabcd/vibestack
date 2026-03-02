@@ -77,7 +77,7 @@ const getTokenlensCatalog = cache(
 interface BodyData {
 	messages: ChatUIMessage[];
 	modelId?: string;
-	reasoningEffort?: "low" | "medium";
+	reasoningEffort?: "low" | "medium" | "high";
 	projectId?: string;
 	sandboxDuration?: number;
 	mcpServerIds?: string[];

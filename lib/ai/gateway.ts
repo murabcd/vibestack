@@ -32,16 +32,21 @@ export interface ModelOptions {
 
 export function getModelOptions(
 	modelId: string,
-	options?: { reasoningEffort?: "minimal" | "low" | "medium" },
+	options?: { reasoningEffort?: "low" | "medium" | "high" },
 ): ModelOptions {
+	const anthropicProviderOptions: Record<string, JSONValue> = {
+		cacheControl: { type: "ephemeral" },
+	};
+	if (options?.reasoningEffort) {
+		anthropicProviderOptions.effort = options.reasoningEffort;
+	}
+
 	if (modelId === Models.AnthropicClaude46Opus) {
 		return {
 			model: anthropic("claude-opus-4-6"),
 			headers: { "anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },
 			providerOptions: {
-				anthropic: {
-					cacheControl: { type: "ephemeral" },
-				},
+				anthropic: anthropicProviderOptions,
 			},
 		};
 	}
@@ -51,46 +56,45 @@ export function getModelOptions(
 			model: anthropic("claude-sonnet-4-5"),
 			headers: { "anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },
 			providerOptions: {
-				anthropic: {
-					cacheControl: { type: "ephemeral" },
-				},
+				anthropic: anthropicProviderOptions,
 			},
 		};
 	}
 
 	if (modelId === Models.AnthropicClaude45Haiku) {
-		const providerOptions: Record<string, Record<string, JSONValue>> = {
-			anthropic: {
-				cacheControl: { type: "ephemeral" },
-			},
-		};
-
-		if (options?.reasoningEffort) {
-			providerOptions.anthropic.reasoning = { effort: options.reasoningEffort };
-		}
-
 		return {
 			model: anthropic("claude-haiku-4-5"),
 			headers: { "anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },
-			providerOptions,
+			providerOptions: {
+				anthropic: anthropicProviderOptions,
+			},
 		};
 	}
 
 	if (modelId === Models.OpenAIGpt52) {
 		return {
 			model: openai("gpt-5.2"),
+			providerOptions: options?.reasoningEffort
+				? { openai: { reasoningEffort: options.reasoningEffort } }
+				: undefined,
 		};
 	}
 
 	if (modelId === Models.OpenAIGpt5Mini) {
 		return {
 			model: openai("gpt-5-mini"),
+			providerOptions: options?.reasoningEffort
+				? { openai: { reasoningEffort: options.reasoningEffort } }
+				: undefined,
 		};
 	}
 
 	if (modelId === Models.OpenAIGpt5Nano) {
 		return {
 			model: openai("gpt-5-nano"),
+			providerOptions: options?.reasoningEffort
+				? { openai: { reasoningEffort: options.reasoningEffort } }
+				: undefined,
 		};
 	}
 

@@ -180,7 +180,7 @@ export const PromptForm = memo(function PromptForm({
 								<TaskOptions initialSandboxDuration={initialSandboxDuration} />
 							</>
 						)}
-						<Settings modelId={modelId} />
+						<Settings />
 						<ModelSelector
 							modelId={modelId}
 							onModelChange={handleModelChange}
