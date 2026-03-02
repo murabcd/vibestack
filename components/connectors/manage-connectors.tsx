@@ -387,7 +387,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	return (
 		<>
 			<Dialog open={open} onOpenChange={onOpenChange}>
-				<DialogContent className="w-[800px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col">
+				<DialogContent className="sm:max-w-lg">
 					<DialogHeader>
 						<DialogTitle className="flex items-center">
 							{(view === "form" || view === "presets") && (
@@ -412,9 +412,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="flex-1 overflow-y-auto">
+					<div className="max-h-[70vh] overflow-y-auto pr-1">
 						{view === "list" ? (
-							<div className="space-y-3 py-4">
+							<div className="space-y-3">
 								{connectorsLoading ? (
 									<div className="text-center text-muted-foreground py-8">
 										Loading connectors...
@@ -486,20 +486,19 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										);
 									})
 								)}
-								<div className="flex justify-end pt-4">
+								<div className="flex justify-end pt-2">
 									<Button
 										type="button"
 										variant="default"
 										className="cursor-pointer"
 										onClick={startAdding}
 									>
-										<Plus className="h-4 w-4 mr-2" />
 										Add MCP
 									</Button>
 								</div>
 							</div>
 						) : view === "presets" ? (
-							<div className="space-y-4 py-4">
+							<div className="space-y-4">
 								<div className="grid grid-cols-3 gap-4">
 									{PRESETS.map((preset) => {
 										const iconKey = getPresetIcon(preset.name);
@@ -530,7 +529,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 								</Button>
 							</div>
 						) : (
-							<div className="space-y-4 py-4">
+							<div className="space-y-4">
 								<form
 									noValidate
 									onSubmit={(e) => {
@@ -872,15 +871,6 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 										<div
 											className={`flex space-x-2 ${isEditing ? "ml-auto" : "w-full justify-end"}`}
 										>
-											<Button
-												type="button"
-												variant="outline"
-												className="cursor-pointer"
-												onClick={goBack}
-												disabled={pending || isDeleting}
-											>
-												Back
-											</Button>
 											<Button
 												type="submit"
 												className="cursor-pointer"

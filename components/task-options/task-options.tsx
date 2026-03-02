@@ -84,7 +84,7 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 							</SelectContent>
 						</Select>
 						<p className="text-xs text-muted-foreground">
-							Maximum time a sandbox can run.
+							How long the sandbox can run.
 						</p>
 					</div>
 				</div>
