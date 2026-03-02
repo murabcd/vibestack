@@ -3,12 +3,27 @@
 import type * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { cn } from "@/lib/utils";
 
 function Drawer({
+	onOpenChange,
 	...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-	return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+	const { selection } = useAppHaptics();
+
+	return (
+		<DrawerPrimitive.Root
+			data-slot="drawer"
+			onOpenChange={(open) => {
+				if (open) {
+					selection();
+				}
+				onOpenChange?.(open);
+			}}
+			{...props}
+		/>
+	);
 }
 
 function DrawerTrigger({

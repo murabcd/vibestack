@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp, LogOut, Moon, Sun } from "lucide-react";
+import { ChevronUp, LogOut, Moon, Sun, Vibrate } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useRef } from "react";
@@ -16,11 +16,16 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 
 export function SidebarUserNav() {
 	const { session, signOut } = useSession();
 	const { setTheme, resolvedTheme } = useTheme();
+	const { isMobile } = useSidebar();
+	const { isEnabled, setEnabled, selection } = useAppHaptics();
 	const triggerRef = useRef<HTMLButtonElement>(null);
 
 	if (!session) {
@@ -60,9 +65,10 @@ export function SidebarUserNav() {
 					>
 						<DropdownMenuItem
 							className="cursor-pointer w-full flex items-center"
-							onClick={() =>
-								setTheme(resolvedTheme === "dark" ? "light" : "dark")
-							}
+							onClick={() => {
+								selection();
+								setTheme(resolvedTheme === "dark" ? "light" : "dark");
+							}}
 						>
 							{resolvedTheme === "dark" ? (
 								<Sun className="mr-2 size-4" />
@@ -71,10 +77,39 @@ export function SidebarUserNav() {
 							)}
 							{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
 						</DropdownMenuItem>
+						{isMobile ? (
+							<DropdownMenuItem
+								className="w-full flex items-center justify-between gap-2 cursor-pointer"
+								onSelect={(event) => {
+									event.preventDefault();
+								}}
+								onClick={() => {
+									setEnabled(!isEnabled);
+									selection();
+								}}
+							>
+								<span className="flex items-center gap-2">
+									<Vibrate className="size-4 mr-2" />
+									Haptic feedback
+								</span>
+								<Switch
+									checked={isEnabled}
+									aria-label="Toggle haptic feedback"
+									onCheckedChange={(checked) => {
+										setEnabled(checked);
+										selection();
+									}}
+									onClick={(event) => {
+										event.stopPropagation();
+									}}
+								/>
+							</DropdownMenuItem>
+						) : null}
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							className="cursor-pointer w-full flex items-center"
 							onClick={() => {
+								selection();
 								void signOut();
 							}}
 						>

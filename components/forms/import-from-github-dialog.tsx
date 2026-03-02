@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
 
@@ -64,6 +65,11 @@ export function ImportFromGithubDialog({
 	const [repoUrlInput, setRepoUrlInput] = useState("");
 	const [importingRepo, setImportingRepo] = useState<string | null>(null);
 	const [reposError, setReposError] = useState<string | null>(null);
+	const {
+		selection,
+		success: successHaptic,
+		error: errorHaptic,
+	} = useAppHaptics();
 
 	useEffect(() => {
 		if (!open) return;
@@ -83,6 +89,7 @@ export function ImportFromGithubDialog({
 					const message = json?.error ?? "Failed to load GitHub repositories";
 					setReposError(message);
 					toast.error(message);
+					errorHaptic();
 					return;
 				}
 
@@ -92,6 +99,7 @@ export function ImportFromGithubDialog({
 				if (!cancelled) {
 					setReposError("Failed to load GitHub repositories");
 					toast.error("Failed to load GitHub repositories");
+					errorHaptic();
 				}
 			})
 			.finally(() => {
@@ -103,7 +111,7 @@ export function ImportFromGithubDialog({
 		return () => {
 			cancelled = true;
 		};
-	}, [open]);
+	}, [open, errorHaptic]);
 
 	const filteredRepos = useMemo(() => {
 		const query = search.trim().toLowerCase();
@@ -117,6 +125,7 @@ export function ImportFromGithubDialog({
 	}, [repos, search]);
 
 	const importRepository = async (repository: string) => {
+		selection();
 		setIsImporting(true);
 		setImportingRepo(repository);
 		try {
@@ -139,6 +148,7 @@ export function ImportFromGithubDialog({
 
 			if (!response.ok || !json?.projectId) {
 				toast.error(json?.error ?? "Failed to import repository");
+				errorHaptic();
 				return;
 			}
 
@@ -152,10 +162,12 @@ export function ImportFromGithubDialog({
 			);
 
 			toast.success(`Imported ${json.repoFullName ?? repository}`);
+			successHaptic();
 			onOpenChange(false);
 			router.push(`/project/${json.projectId}`);
 		} catch {
 			toast.error("Failed to import repository");
+			errorHaptic();
 		} finally {
 			setIsImporting(false);
 			setImportingRepo(null);

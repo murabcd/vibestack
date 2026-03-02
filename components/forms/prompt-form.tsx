@@ -36,6 +36,7 @@ import {
 	PromptInputTools,
 	usePromptInputController,
 } from "@/components/ui/prompt-input";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { Icons } from "../icons/icons";
@@ -72,6 +73,7 @@ export const PromptForm = memo(function PromptForm({
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
 	const [isImportGithubOpen, setIsImportGithubOpen] = useState(false);
+	const { selection } = useAppHaptics();
 
 	// Use isLoading prop if provided, otherwise use provided chat status
 	const currentStatus = isLoading ? "submitted" : chatStatus;
@@ -101,11 +103,12 @@ export const PromptForm = memo(function PromptForm({
 			const hasAttachments = Boolean(message.files?.length);
 
 			if (hasText || hasAttachments) {
+				selection();
 				onSubmit(message);
 				controller.textInput.clear();
 			}
 		},
-		[onSubmit, controller.textInput],
+		[onSubmit, controller.textInput, selection],
 	);
 
 	return (
@@ -156,13 +159,14 @@ export const PromptForm = memo(function PromptForm({
 				<PromptInputFooter>
 					<PromptInputTools>
 						<PromptInputActionMenu>
-							<PromptInputActionMenuTrigger />
+							<PromptInputActionMenuTrigger onClick={selection} />
 							<PromptInputActionMenuContent>
 								{enableGithubImport && (
 									<PromptInputActionMenuItem
 										className="cursor-pointer"
 										onSelect={(event) => {
 											event.preventDefault();
+											selection();
 											setIsImportGithubOpen(true);
 										}}
 									>

@@ -55,6 +55,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	createConnector,
@@ -200,6 +201,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const {
+		selection,
+		success: successHaptic,
+		error: errorHaptic,
+	} = useAppHaptics();
 
 	const createEnvVar = useCallback(
 		(key = "", value = ""): EnvVar => ({
@@ -248,22 +254,31 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		if (stateChanged && state.message) {
 			if (state.success) {
 				toast.success(state.message);
+				successHaptic();
 				refreshConnectors();
 				setView("list");
 				setEditingConnector(null);
 				setSelectedPreset(null);
 			} else {
 				toast.error(state.message);
+				errorHaptic();
 			}
 
 			lastStateRef.current = { success: state.success, message: state.message };
 		}
-	}, [state.success, state.message, refreshConnectors]);
+	}, [
+		state.success,
+		state.message,
+		refreshConnectors,
+		successHaptic,
+		errorHaptic,
+	]);
 
 	const handleToggleConnectorStatus = async (
 		id: string,
 		currentStatus: "connected" | "disconnected",
 	) => {
+		selection();
 		const newStatus =
 			currentStatus === "connected" ? "disconnected" : "connected";
 
@@ -275,11 +290,14 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 			if (result.success) {
 				await refreshConnectors();
 				toast.success(result.message);
+				successHaptic();
 			} else {
 				toast.error(result.message);
+				errorHaptic();
 			}
 		} catch {
 			toast.error("Failed to update connector status");
+			errorHaptic();
 		} finally {
 			setLoadingConnectors((prev) => {
 				const newSet = new Set(prev);
@@ -292,19 +310,23 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	const handleDelete = async () => {
 		if (!editingConnector) return;
 
+		selection();
 		setIsDeleting(true);
 		try {
 			const result = await deleteConnector(editingConnector.id);
 			if (result.success) {
 				toast.success(result.message);
+				successHaptic();
 				refreshConnectors();
 				setView("list");
 				setEditingConnector(null);
 			} else {
 				toast.error(result.message);
+				errorHaptic();
 			}
 		} catch {
 			toast.error("Failed to delete MCP server");
+			errorHaptic();
 		} finally {
 			setIsDeleting(false);
 			setShowDeleteDialog(false);
@@ -606,6 +628,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 
 										// Prevent default form submission and use React Server Action
 										e.preventDefault();
+										selection();
 										startTransition(() => {
 											formAction(submitFormData);
 										});
@@ -884,6 +907,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 												className="cursor-pointer"
 												onClick={(e) => {
 													e.preventDefault();
+													selection();
 													setShowDeleteDialog(true);
 												}}
 												disabled={pending || isDeleting}
@@ -926,7 +950,11 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel className="cursor-pointer" disabled={isDeleting}>
+						<AlertDialogCancel
+							className="cursor-pointer"
+							disabled={isDeleting}
+							onClick={selection}
+						>
 							Cancel
 						</AlertDialogCancel>
 						<AlertDialogAction

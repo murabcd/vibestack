@@ -85,6 +85,7 @@
 		"use-stick-to-bottom": "1.1.1",
 		"usehooks-ts": "^3.1.1",
 		"vaul": "^1.1.2",
+		"web-haptics": "^0.0.6",
 		"zod": "^4.3.6",
 		"zustand": "5.0.6"
 	},

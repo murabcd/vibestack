@@ -28,6 +28,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 
 interface CommitGitHubButtonProps {
 	projectId: string;
@@ -93,6 +94,7 @@ export function CommitGitHubButton({
 	const [prTitle, setPrTitle] = useState("");
 	const [prBody, setPrBody] = useState("");
 	const [isMobile, setIsMobile] = useState(false);
+	const { selection, success, error } = useAppHaptics();
 
 	useEffect(() => {
 		let mounted = true;
@@ -158,9 +160,11 @@ export function CommitGitHubButton({
 	const publishToGitHub = async () => {
 		if (!repositoryName.trim()) {
 			toast.error("Repository name is required");
+			error();
 			return;
 		}
 
+		selection();
 		setIsPublishing(true);
 		try {
 			const response = await fetch(
@@ -187,6 +191,7 @@ export function CommitGitHubButton({
 
 			if (!response.ok) {
 				toast.error(json?.error ?? "Failed to publish to GitHub");
+				error();
 				return;
 			}
 
@@ -196,17 +201,20 @@ export function CommitGitHubButton({
 					json?.skippedFiles ? ` (${json.skippedFiles} skipped)` : ""
 				}`,
 			);
+			success();
 			for (const warning of json?.warnings ?? []) {
 				toast.warning(warning);
 			}
 		} catch {
 			toast.error("Failed to publish to GitHub");
+			error();
 		} finally {
 			setIsPublishing(false);
 		}
 	};
 
 	const syncChanges = async () => {
+		selection();
 		setIsSyncing(true);
 		try {
 			const response = await fetch(`/api/projects/${projectId}/github/sync`, {
@@ -223,6 +231,7 @@ export function CommitGitHubButton({
 			} | null;
 			if (!response.ok) {
 				toast.error(json?.error ?? "Failed to sync changes");
+				error();
 				return;
 			}
 			toast.success(
@@ -230,6 +239,7 @@ export function CommitGitHubButton({
 					? `Changes synced to ${json.branchName}`
 					: "No local changes to sync",
 			);
+			success();
 			const sourceResponse = await fetch(
 				`/api/projects/${projectId}/github/source`,
 				{
@@ -244,12 +254,14 @@ export function CommitGitHubButton({
 			}
 		} catch {
 			toast.error("Failed to sync changes");
+			error();
 		} finally {
 			setIsSyncing(false);
 		}
 	};
 
 	const createPullRequest = async () => {
+		selection();
 		setIsCreatingPr(true);
 		try {
 			const response = await fetch(
@@ -276,6 +288,7 @@ export function CommitGitHubButton({
 
 			if (!response.ok) {
 				toast.error(json?.error ?? "Failed to create pull request");
+				error();
 				return;
 			}
 
@@ -286,6 +299,7 @@ export function CommitGitHubButton({
 					? `Pull request #${json.pullRequest.number} created`
 					: "Pull request created",
 			);
+			success();
 			const sourceResponse = await fetch(
 				`/api/projects/${projectId}/github/source`,
 				{
@@ -300,6 +314,7 @@ export function CommitGitHubButton({
 			}
 		} catch {
 			toast.error("Failed to create pull request");
+			error();
 		} finally {
 			setIsCreatingPr(false);
 		}
@@ -357,9 +372,10 @@ export function CommitGitHubButton({
 							variant="ghost"
 							size="sm"
 							className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
-							onClick={() =>
-								window.open(pullRequestUrl, "_blank", "noreferrer")
-							}
+							onClick={() => {
+								selection();
+								window.open(pullRequestUrl, "_blank", "noreferrer");
+							}}
 						>
 							<Icons.gitHub className="size-3.5" />
 							Open pull request
@@ -442,9 +458,10 @@ export function CommitGitHubButton({
 								variant="ghost"
 								size="sm"
 								className="h-8 w-full px-2 text-xs gap-1 cursor-pointer"
-								onClick={() =>
-									window.open(publishedUrl, "_blank", "noreferrer")
-								}
+								onClick={() => {
+									selection();
+									window.open(publishedUrl, "_blank", "noreferrer");
+								}}
 							>
 								<Icons.gitHub className="size-3.5" />
 								Open repo
@@ -506,7 +523,15 @@ export function CommitGitHubButton({
 	}
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (nextOpen) {
+					selection();
+				}
+				setOpen(nextOpen);
+			}}
+		>
 			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent align="end" className="w-80">
 				<div className="space-y-3">

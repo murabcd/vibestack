@@ -8,10 +8,12 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { ConnectorDialog } from "./manage-connectors";
 
 export function McpButton() {
 	const [showDialog, setShowDialog] = useState(false);
+	const { selection } = useAppHaptics();
 
 	return (
 		<>
@@ -21,7 +23,10 @@ export function McpButton() {
 						type="button"
 						variant="ghost"
 						size="sm"
-						onClick={() => setShowDialog(true)}
+						onClick={() => {
+							selection();
+							setShowDialog(true);
+						}}
 						className="cursor-pointer"
 					>
 						<Server className="size-4" />

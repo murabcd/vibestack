@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
 	Conversation,
 	ConversationContent,
@@ -16,6 +16,7 @@ import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { useSandboxStore } from "./state";
@@ -30,6 +31,8 @@ function ChatInner({ className }: Props) {
 	const { messages, sendMessage, status } = useChat<ChatUIMessage>({ chat });
 	const { setChatStatus } = useSandboxStore();
 	const { modelId, reasoningEffort } = useSettings();
+	const { success, error } = useAppHaptics();
+	const previousStatusRef = useRef(status);
 
 	const handleMessageSubmit = useCallback(
 		(message: PromptInputMessage) => {
@@ -52,6 +55,24 @@ function ChatInner({ className }: Props) {
 	useEffect(() => {
 		setChatStatus(status);
 	}, [status, setChatStatus]);
+
+	useEffect(() => {
+		const previousStatus = previousStatusRef.current;
+
+		if (status === "streaming" && previousStatus !== "streaming") {
+			success();
+		}
+
+		if (previousStatus === "streaming" && status === "ready") {
+			success();
+		}
+
+		if (status === "error" && previousStatus !== "error") {
+			error();
+		}
+
+		previousStatusRef.current = status;
+	}, [status, success, error]);
 
 	return (
 		<Panel className={className}>

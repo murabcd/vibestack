@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { generateUUID } from "@/lib/utils";
 import { InitialScreen } from "../initial-screen";
 
@@ -21,10 +22,12 @@ export function PageClient({
 }) {
 	const router = useRouter();
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
+	const { selection, error: errorHaptic, success } = useAppHaptics();
 
 	const handleMessageSubmit = async (message: PromptInputMessage) => {
 		if (isCreatingProject) return;
 
+		selection();
 		setIsCreatingProject(true);
 
 		try {
@@ -42,6 +45,7 @@ export function PageClient({
 
 			// Navigate to project page immediately (no waiting!)
 			router.push(`/project/${projectId}`);
+			success();
 
 			// Create project in background while the UI transitions to project view.
 			void fetch("/api/projects", {
@@ -76,13 +80,15 @@ export function PageClient({
 						body: JSON.stringify({ title }),
 					});
 				})
-				.catch((error) => {
-					console.error("Failed to initialize project:", error);
+				.catch((caughtError) => {
+					console.error("Failed to initialize project:", caughtError);
 					toast.error("Failed to initialize project. Please try again.");
+					errorHaptic();
 				});
-		} catch (error) {
-			console.error("Failed to create project:", error);
+		} catch (caughtError) {
+			console.error("Failed to create project:", caughtError);
 			toast.error("Failed to create project. Please try again.");
+			errorHaptic();
 			setIsCreatingProject(false);
 		}
 	};

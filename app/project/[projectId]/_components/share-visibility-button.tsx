@@ -17,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 
 type Visibility = "public" | "private";
 
@@ -31,9 +32,11 @@ export function ShareVisibilityButton({
 }: ShareVisibilityButtonProps) {
 	const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
 	const [isUpdating, setIsUpdating] = useState(false);
+	const { selection, success, error } = useAppHaptics();
 
 	const updateVisibility = async (nextVisibility: Visibility) => {
 		if (nextVisibility === visibility || isUpdating) return;
+		selection();
 		const previousVisibility = visibility;
 		setVisibility(nextVisibility);
 		setIsUpdating(true);
@@ -55,21 +58,26 @@ export function ShareVisibilityButton({
 			if (!response.ok) {
 				setVisibility(previousVisibility);
 				toast.error(json?.error ?? "Failed to update visibility");
+				error();
 				return;
 			}
+			success();
 
 			if (nextVisibility === "public") {
 				try {
 					const url = `${window.location.origin}/project/${projectId}`;
 					await navigator.clipboard.writeText(url);
 					toast("Link copied to clipboard");
+					success();
 				} catch {
 					toast.error("Failed to copy link");
+					error();
 				}
 			}
 		} catch {
 			setVisibility(previousVisibility);
 			toast.error("Failed to update visibility");
+			error();
 		} finally {
 			setIsUpdating(false);
 		}
@@ -83,6 +91,7 @@ export function ShareVisibilityButton({
 					className="relative h-8 px-2 gap-1.5 cursor-pointer max-sm:size-9 max-sm:px-0"
 					aria-label="Share project"
 					title="Share project"
+					onClick={selection}
 				>
 					<Share2 className="size-4 mr-2 max-sm:mr-0" />
 					<span className="max-sm:hidden">Share</span>

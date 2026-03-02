@@ -7,9 +7,11 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 
 export function SidebarToggle() {
 	const { toggleSidebar, state } = useSidebar();
+	const { selection } = useAppHaptics();
 	const router = useRouter();
 	const toggleSidebarTooltip =
 		state === "collapsed" ? "Expand sidebar" : "Collapse sidebar";
@@ -19,7 +21,10 @@ export function SidebarToggle() {
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						onClick={toggleSidebar}
+						onClick={() => {
+							selection();
+							toggleSidebar();
+						}}
 						variant="outline"
 						className="cursor-pointer md:size-8"
 					>
@@ -34,6 +39,7 @@ export function SidebarToggle() {
 					<TooltipTrigger asChild>
 						<Button
 							onClick={() => {
+								selection();
 								router.push("/");
 								router.refresh();
 							}}

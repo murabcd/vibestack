@@ -25,6 +25,7 @@ import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
@@ -73,9 +74,11 @@ function ProjectChatInner({
 	);
 
 	const { setChatStatus } = useSandboxStore();
+	const { success, error } = useAppHaptics();
 	const localSentRef = useRef(false);
 	const hasSentPendingMessage = sentMessageRef ?? localSentRef;
 	const hasInitializedMessages = useRef(false);
+	const previousStatusRef = useRef(status);
 
 	const waitForProject = async () => {
 		const maxAttempts = 20;
@@ -336,6 +339,24 @@ function ProjectChatInner({
 	useEffect(() => {
 		setChatStatus(status);
 	}, [status, setChatStatus]);
+
+	useEffect(() => {
+		const previousStatus = previousStatusRef.current;
+
+		if (status === "streaming" && previousStatus !== "streaming") {
+			success();
+		}
+
+		if (previousStatus === "streaming" && status === "ready") {
+			success();
+		}
+
+		if (status === "error" && previousStatus !== "error") {
+			error();
+		}
+
+		previousStatusRef.current = status;
+	}, [status, success, error]);
 
 	return (
 		<Panel className={className}>

@@ -26,6 +26,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAppHaptics } from "@/hooks/use-app-haptics";
 
 interface Project {
 	id: string;
@@ -40,12 +41,16 @@ interface Project {
 export const AppSidebar = () => {
 	const router = useRouter();
 	const { isMobile, setOpenMobile } = useSidebar();
+	const { selection } = useAppHaptics();
 	const [openCommandDialog, setOpenCommandDialog] = useState(false);
 	const { session } = useSession();
 	const { data } = useSWR<{ projects: Project[] }>("/api/projects");
 	const allProjects = data?.projects ?? [];
 
 	const handleOpenCommandDialog = (open: boolean) => {
+		if (open) {
+			selection();
+		}
 		setOpenCommandDialog(open);
 		if (open && isMobile) {
 			setOpenMobile(false);
@@ -70,6 +75,7 @@ export const AppSidebar = () => {
 	}, [isMobile, setOpenMobile]);
 
 	const handleSelectProject = (projectId: string) => {
+		selection();
 		router.push(`/project/${projectId}`);
 		setOpenCommandDialog(false);
 		setOpenMobile(false);
@@ -85,6 +91,7 @@ export const AppSidebar = () => {
 								<Link
 									href="/"
 									onClick={() => {
+										selection();
 										setOpenMobile(false);
 									}}
 									className="flex flex-row gap-3 items-center"
@@ -121,6 +128,7 @@ export const AppSidebar = () => {
 													type="button"
 													className="cursor-pointer"
 													onClick={() => {
+														selection();
 														setOpenMobile(false);
 														router.push("/");
 														router.refresh();
@@ -139,6 +147,7 @@ export const AppSidebar = () => {
 									variant="outline"
 									type="button"
 									onClick={() => {
+										selection();
 										setOpenMobile(false);
 										router.push("/");
 										router.refresh();
