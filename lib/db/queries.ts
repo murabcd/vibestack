@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq, notInArray } from "drizzle-orm";
 import type { ChatUIMessage } from "@/components/chat/types";
 import type { AppUsage } from "@/lib/ai/usage";
+import type { ProjectGitHubMetadata } from "@/lib/github/project-metadata";
 import { logger } from "@/lib/logging/logger";
 import { db } from "./index";
 import { messages, type Project, projectRuns, projects } from "./schema";
@@ -116,6 +117,7 @@ export async function updateProject(
 		status?: "idle" | "processing" | "completed" | "error";
 		progress?: number;
 		lastContext?: AppUsage | null;
+		githubMetadata?: ProjectGitHubMetadata | null;
 	},
 ): Promise<Project | null> {
 	try {

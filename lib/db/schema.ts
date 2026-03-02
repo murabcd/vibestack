@@ -14,6 +14,7 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { AppUsage } from "@/lib/ai/usage";
+import type { ProjectGitHubMetadata } from "@/lib/github/project-metadata";
 
 // Users table - application users + Better Auth user model
 export const users = pgTable(
@@ -149,6 +150,8 @@ export const projects = pgTable("projects", {
 	lastContext: jsonb("lastContext").$type<AppUsage | null>(),
 	// MCP server IDs
 	mcpServerIds: jsonb("mcpServerIds").$type<string[] | null>(),
+	// GitHub source/sync/PR metadata
+	githubMetadata: jsonb("githubMetadata").$type<ProjectGitHubMetadata | null>(),
 });
 
 export type Project = InferSelectModel<typeof projects>;

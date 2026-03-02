@@ -52,6 +52,7 @@ export async function GET(
 			sandboxId: null,
 			sandboxUrl: null,
 			previewUrl: null,
+			githubMetadata: null,
 		};
 		return NextResponse.json({ project: publicProject });
 	} catch (error) {

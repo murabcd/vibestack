@@ -8,6 +8,16 @@ import { logger } from "@/lib/logging/logger";
 
 type OAuthProvider = "github" | "vercel";
 
+function decodeToken(value: string | null | undefined) {
+	if (!value) return null;
+	try {
+		// Legacy rows may store plain OAuth tokens. Prefer decrypt, fall back to raw.
+		return decrypt(value);
+	} catch {
+		return value;
+	}
+}
+
 /**
  * Get the OAuth access token for a user from the database
  * Returns the decrypted token or null if not found
@@ -40,10 +50,8 @@ export async function getOAuthToken(
 
 			if (account[0]?.accessToken) {
 				return {
-					accessToken: decrypt(account[0].accessToken),
-					refreshToken: account[0].refreshToken
-						? decrypt(account[0].refreshToken)
-						: null,
+					accessToken: decodeToken(account[0].accessToken) ?? "",
+					refreshToken: decodeToken(account[0].refreshToken),
 					expiresAt: account[0].expiresAt,
 				};
 			}
@@ -60,10 +68,8 @@ export async function getOAuthToken(
 
 			if (user[0]?.accessToken) {
 				return {
-					accessToken: decrypt(user[0].accessToken),
-					refreshToken: user[0].refreshToken
-						? decrypt(user[0].refreshToken)
-						: null,
+					accessToken: decodeToken(user[0].accessToken) ?? "",
+					refreshToken: decodeToken(user[0].refreshToken),
 					expiresAt: null, // Users table doesn't have expiresAt
 				};
 			}
@@ -80,10 +86,8 @@ export async function getOAuthToken(
 
 			if (user[0]?.accessToken) {
 				return {
-					accessToken: decrypt(user[0].accessToken),
-					refreshToken: user[0].refreshToken
-						? decrypt(user[0].refreshToken)
-						: null,
+					accessToken: decodeToken(user[0].accessToken) ?? "",
+					refreshToken: decodeToken(user[0].refreshToken),
 					expiresAt: null, // Users table doesn't have expiresAt
 				};
 			}
