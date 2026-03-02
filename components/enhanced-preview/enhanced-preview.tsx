@@ -10,11 +10,6 @@ import {
 	Square,
 } from "lucide-react";
 import { useId, useState } from "react";
-import {
-	PanelGroup,
-	PanelResizeHandle,
-	Panel as ResizePanel,
-} from "react-resizable-panels";
 import { toast } from "sonner";
 import { useSandboxStore } from "@/app/state";
 import { CommandsLogs } from "@/components/commands-logs/commands-logs";
@@ -22,6 +17,11 @@ import { FileExplorer } from "@/components/file-explorer/file-explorer";
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { Preview } from "@/components/preview/preview";
 import { Button } from "@/components/ui/button";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -199,12 +199,11 @@ export function EnhancedPreview({ className }: Props) {
 				</TooltipProvider>
 			</PanelHeader>
 
-			<PanelGroup direction="vertical" className="flex-1 min-h-0">
-				<ResizePanel
-					defaultSize={consoleExpanded ? 70 : 100}
-					minSize={30}
+			<ResizablePanelGroup orientation="vertical" className="flex-1 min-h-0">
+				<ResizablePanel
+					defaultSize={consoleExpanded ? "70%" : "100%"}
+					minSize="30%"
 					id={`${panelId}-main-panel`}
-					order={1}
 				>
 					<Tabs
 						value={activeTab}
@@ -233,22 +232,21 @@ export function EnhancedPreview({ className }: Props) {
 							/>
 						</TabsContent>
 					</Tabs>
-				</ResizePanel>
+				</ResizablePanel>
 
 				{consoleExpanded && (
 					<>
-						<PanelResizeHandle className="h-px bg-border hover:bg-accent transition-colors" />
-						<ResizePanel
-							defaultSize={30}
-							minSize={15}
+						<ResizableHandle className="h-px bg-border hover:bg-accent transition-colors" />
+						<ResizablePanel
+							defaultSize="30%"
+							minSize="15%"
 							id={`${panelId}-console-panel`}
-							order={2}
 						>
 							<CommandsLogs className="h-full" commands={commands} />
-						</ResizePanel>
+						</ResizablePanel>
 					</>
 				)}
-			</PanelGroup>
+			</ResizablePanelGroup>
 		</Panel>
 	);
 }

@@ -10,11 +10,6 @@ import {
 	FolderTree,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import {
-	PanelGroup,
-	PanelResizeHandle,
-	Panel as ResizePanel,
-} from "react-resizable-panels";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { FileContent } from "@/components/file-explorer/file-content";
@@ -30,6 +25,11 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+	ResizablePanelGroup as PanelGroup,
+	ResizableHandle,
+	ResizablePanel as ResizePanel,
+} from "@/components/ui/resizable";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
 	Tooltip,
@@ -465,29 +465,29 @@ export const FileExplorer = memo(function FileExplorer({
 				<div className="text-sm flex-1 min-h-0">
 					{isMobile ? (
 						<PanelGroup
-							direction="vertical"
+							orientation="vertical"
 							className="flex h-full"
 							key="mobile"
 						>
-							<ResizePanel defaultSize={35} minSize={20} maxSize={60}>
+							<ResizePanel defaultSize="35%" minSize="20%" maxSize="60%">
 								<div className="h-full border-b border-border">{treePane}</div>
 							</ResizePanel>
-							<PanelResizeHandle className="h-px bg-border hover:bg-accent transition-colors" />
-							<ResizePanel defaultSize={65} minSize={40}>
+							<ResizableHandle className="h-px bg-border hover:bg-accent transition-colors" />
+							<ResizePanel defaultSize="65%" minSize="40%">
 								{contentPane}
 							</ResizePanel>
 						</PanelGroup>
 					) : (
 						<PanelGroup
-							direction="horizontal"
+							orientation="horizontal"
 							className="flex h-full"
 							key="desktop"
 						>
-							<ResizePanel defaultSize={25} minSize={15} maxSize={45}>
+							<ResizePanel defaultSize="25%" minSize="15%" maxSize="45%">
 								<div className="h-full border-r border-border">{treePane}</div>
 							</ResizePanel>
-							<PanelResizeHandle className="w-px bg-border hover:bg-accent transition-colors" />
-							<ResizePanel defaultSize={75} minSize={55}>
+							<ResizableHandle className="w-px bg-border hover:bg-accent transition-colors" />
+							<ResizePanel defaultSize="75%" minSize="55%">
 								{contentPane}
 							</ResizePanel>
 						</PanelGroup>
