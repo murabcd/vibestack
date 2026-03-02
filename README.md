@@ -35,6 +35,8 @@
   - Intelligent error monitoring that automatically detects and reports issues
 - MCP Connectors
   - Manage and integrate Model Context Protocol (MCP) connectors
+- GitHub Integration
+  - Import and export repositories directly in a project workspace
 
 ## Built with
 
@@ -67,31 +69,12 @@ Integration with Model Context Protocol (MCP) connectors via [AI SDK v6](https:/
 
 - [Context7](https://context7.com)
   - Access comprehensive library documentation and code snippets
-  - Real-time code examples and API references for popular frameworks
 - [Figma](https://figma.com)
-  - Integrate with Figma designs and assets
   - Access design files, components, and export assets programmatically
 - [Hugging Face](https://huggingface.co)
-  - Access Hugging Face models and datasets
   - Run inference and download pre-trained models for AI workflows
-- [Linear](https://linear.app)
-  - Manage tasks and projects in Linear
-  - Create issues, update statuses, and query project data
-- [Notion](https://notion.so)
-  - Access and manage Notion pages and databases
-  - Read and write content, query database entries, and manage blocks
-- [Supabase](https://supabase.com)
-  - Interact with Supabase databases and services
-  - Query tables, manage rows, and access real-time subscriptions
-- [Browserbase](https://browserbase.com)
-  - Browser automation and web scraping capabilities
-  - Take screenshots, navigate pages, and extract content from websites
-- [Convex](https://convex.dev)
-  - Connect to Convex backends and databases
-  - Query data, run functions, and interact with Convex deployments
-- [Playwright](https://playwright.dev)
-  - Advanced browser automation and testing
-  - Control browsers, interact with pages, and perform end-to-end testing
+
+Beyond these core connectors, you have access to [Linear](https://linear.app), [Notion](https://notion.so), [Supabase](https://supabase.com), [Browserbase](https://browserbase.com), [Convex](https://convex.dev), and [Playwright](https://playwright.dev) to manage tasks, databases, and browser automation within your workflow, or you can add you own MCP connectors.
 
 ## Deploy your own
 
