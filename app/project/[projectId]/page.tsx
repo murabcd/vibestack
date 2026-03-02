@@ -78,6 +78,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 			horizontalSizes={horizontalSizes ?? []}
 			projectId={projectId}
 			projectTitle={project.title}
+			initialVisibility={project.visibility}
 			isOwner={isOwner}
 			initialMessages={initialMessages}
 			initialSandboxDuration={initialSandboxDuration}

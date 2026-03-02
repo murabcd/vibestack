@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, UploadCloud } from "lucide-react";
+import { GitBranch, Loader2, UploadCloud } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "@/components/icons/icons";
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-interface PublishGitHubButtonProps {
+interface CommitGitHubButtonProps {
 	projectId: string;
 	projectTitle?: string | null;
 }
@@ -72,10 +72,10 @@ function toRepoName(
 	return value || `vibestack-${projectId.slice(0, 6)}`;
 }
 
-export function PublishGitHubButton({
+export function CommitGitHubButton({
 	projectId,
 	projectTitle,
-}: PublishGitHubButtonProps) {
+}: CommitGitHubButtonProps) {
 	const defaultRepoName = useMemo(
 		() => toRepoName(projectTitle, projectId),
 		[projectId, projectTitle],
@@ -150,9 +150,7 @@ export function PublishGitHubButton({
 	}, []);
 
 	const isImportedRepo = source?.imported && !!source.repository;
-	const headerTitle = isImportedRepo
-		? "Create pull request"
-		: "Publish to GitHub";
+	const headerTitle = isImportedRepo ? "Create pull request" : "Commit";
 	const headerDescription = isImportedRepo
 		? `Push your local changes and open a PR in ${source?.repository?.fullName}.`
 		: "Create a new repository and push this project.";
@@ -335,7 +333,7 @@ export function PublishGitHubButton({
 						</div>
 					</div>
 					<div className="space-y-1">
-						<Label className="text-xs">PR title</Label>
+						<Label>PR title</Label>
 						<Input
 							value={prTitle}
 							onChange={(event) => setPrTitle(event.target.value)}
@@ -345,7 +343,7 @@ export function PublishGitHubButton({
 						/>
 					</div>
 					<div className="space-y-1">
-						<Label className="text-xs">PR description (optional)</Label>
+						<Label>PR description (optional)</Label>
 						<Textarea
 							value={prBody}
 							onChange={(event) => setPrBody(event.target.value)}
@@ -404,9 +402,7 @@ export function PublishGitHubButton({
 			) : (
 				<>
 					<div className="space-y-1.5">
-						<Label htmlFor="repository-name" className="text-xs">
-							Repository name
-						</Label>
+						<Label htmlFor="repository-name">Repository name</Label>
 						<Input
 							id="repository-name"
 							value={repositoryName}
@@ -417,7 +413,7 @@ export function PublishGitHubButton({
 						/>
 					</div>
 					<div className="space-y-1.5">
-						<Label className="text-xs">Visibility</Label>
+						<Label>Repository visibility</Label>
 						<Select
 							value={visibility}
 							onValueChange={(value) => setVisibility(value as Visibility)}
@@ -465,10 +461,10 @@ export function PublishGitHubButton({
 							{isPublishing ? (
 								<>
 									<Loader2 className="size-3.5 animate-spin" />
-									Publishing...
+									Committing...
 								</>
 							) : (
-								<>Publish</>
+								<>Commit</>
 							)}
 						</Button>
 					</div>
@@ -477,10 +473,20 @@ export function PublishGitHubButton({
 		</div>
 	);
 
-	const trigger = (
-		<Button variant="outline" className="px-2 h-fit gap-1.5 cursor-pointer">
+	const trigger = isMobile ? (
+		<Button
+			variant="outline"
+			size="icon"
+			className="size-9 cursor-pointer"
+			aria-label="Commit"
+			title="Commit"
+		>
+			<GitBranch className="size-4" />
+		</Button>
+	) : (
+		<Button variant="outline" className="h-8 px-2 gap-1.5 cursor-pointer">
 			<UploadCloud className="size-3.5 mr-2" />
-			<span>Publish</span>
+			<span>Commit</span>
 		</Button>
 	);
 

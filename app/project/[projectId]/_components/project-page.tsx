@@ -1,7 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useMemo, useRef } from "react";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
@@ -11,16 +9,17 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
 import { TabContent } from "@/components/tabs/tab-content";
 import { TabItem } from "@/components/tabs/tab-item";
-import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import type { AppUsage } from "@/lib/ai/usage";
-import { PublishGitHubButton } from "./publish-github-button";
+import { CommitGitHubButton } from "./commit-github-button";
+import { ShareVisibilityButton } from "./share-visibility-button";
 
 interface ProjectPageClientProps {
 	horizontalSizes: number[] | null;
 	projectId: string;
 	projectTitle?: string | null;
+	initialVisibility: "public" | "private";
 	isOwner: boolean;
 	initialMessages: ChatUIMessage[];
 	initialSandboxDuration: number;
@@ -32,13 +31,13 @@ export function ProjectPageClient({
 	horizontalSizes,
 	projectId,
 	projectTitle,
+	initialVisibility,
 	isOwner,
 	initialMessages,
 	initialSandboxDuration,
 	initialLastContext,
 	initialModelId,
 }: ProjectPageClientProps) {
-	const router = useRouter();
 	const { isMobile } = useSidebar();
 	// Global ref to prevent BOTH mobile and desktop ProjectChat from sending the same message
 	const hasSentPendingMessage = useRef(false);
@@ -59,10 +58,6 @@ export function ProjectPageClient({
 		}
 	}, [projectId, initialMessages.length]);
 
-	const handleNewProject = () => {
-		router.push("/");
-	};
-
 	return (
 		<>
 			<AppSidebar />
@@ -72,21 +67,17 @@ export function ProjectPageClient({
 						<SidebarToggle />
 						<div className="flex items-center flex-1" />
 						{isOwner ? (
-							<PublishGitHubButton
-								projectId={projectId}
-								projectTitle={projectTitle}
-							/>
+							<>
+								<ShareVisibilityButton
+									projectId={projectId}
+									initialVisibility={initialVisibility}
+								/>
+								<CommitGitHubButton
+									projectId={projectId}
+									projectTitle={projectTitle}
+								/>
+							</>
 						) : null}
-						<div className="md:hidden">
-							<Button
-								onClick={handleNewProject}
-								variant="outline"
-								className="px-2 h-fit cursor-pointer"
-							>
-								<Plus className="w-4 h-4 mr-2" />
-								New project
-							</Button>
-						</div>
 					</div>
 					{isMobile ? (
 						<>

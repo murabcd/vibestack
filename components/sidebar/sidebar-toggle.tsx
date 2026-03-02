@@ -1,4 +1,4 @@
-import { PanelLeft, Plus } from "lucide-react";
+import { Plus, TextAlignJustify } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -21,9 +21,9 @@ export function SidebarToggle() {
 					<Button
 						onClick={toggleSidebar}
 						variant="outline"
-						className="cursor-pointer md:px-2 md:h-fit"
+						className="cursor-pointer md:size-8"
 					>
-						<PanelLeft className="w-4 h-4" />
+						<TextAlignJustify className="w-4 h-4" />
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent align="start">{toggleSidebarTooltip}</TooltipContent>
@@ -38,7 +38,7 @@ export function SidebarToggle() {
 								router.refresh();
 							}}
 							variant="outline"
-							className="cursor-pointer hidden md:flex md:px-2 md:h-fit"
+							className="cursor-pointer hidden md:flex md:size-8"
 						>
 							<Plus className="w-4 h-4" />
 						</Button>

@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
-import { ChatSearchCommand } from "./chat-search-command";
 
 // Simple type definition for projects
 interface Project {
@@ -312,17 +311,7 @@ export const ProjectItem = memo(PureProjectItem, (prevProps, nextProps) => {
 	return true;
 });
 
-interface SidebarHistoryProps {
-	openCommandDialog: boolean;
-	setOpenCommandDialog: (open: boolean) => void;
-	onSelectProject: (projectId: string) => void;
-}
-
-export function SidebarHistory({
-	openCommandDialog,
-	setOpenCommandDialog,
-	onSelectProject,
-}: SidebarHistoryProps) {
+export function SidebarHistory() {
 	const { setOpenMobile } = useSidebar();
 	const pathname = usePathname();
 	const router = useRouter();
@@ -703,16 +692,6 @@ export function SidebarHistory({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
-			<ChatSearchCommand
-				open={openCommandDialog}
-				onOpenChange={setOpenCommandDialog}
-				history={allProjects.map((project) => ({
-					...project,
-					chatId: project.projectId,
-				}))}
-				onSelectChat={onSelectProject}
-			/>
 		</>
 	);
 }

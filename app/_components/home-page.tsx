@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,7 +7,6 @@ import { toast } from "sonner";
 import { generateTitleFromUserMessage } from "@/app/actions";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
-import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { generateUUID } from "@/lib/utils";
@@ -89,10 +87,6 @@ export function PageClient({
 		}
 	};
 
-	const handleNewProject = () => {
-		router.push("/");
-	};
-
 	// Root page always shows the clean initial screen
 	return (
 		<>
@@ -102,16 +96,6 @@ export function PageClient({
 					<div className="flex items-center w-full gap-2">
 						<SidebarToggle />
 						<div className="flex items-center flex-1" />
-						<div className="md:hidden">
-							<Button
-								onClick={handleNewProject}
-								variant="outline"
-								className="px-2 h-fit"
-							>
-								<Plus className="w-4 h-4 mr-2" />
-								New project
-							</Button>
-						</div>
 					</div>
 					<InitialScreen
 						onMessageSubmit={handleMessageSubmit}
