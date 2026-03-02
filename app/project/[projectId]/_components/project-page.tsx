@@ -15,10 +15,13 @@ import { Button } from "@/components/ui/button";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import type { AppUsage } from "@/lib/ai/usage";
+import { PublishGitHubButton } from "./publish-github-button";
 
 interface ProjectPageClientProps {
 	horizontalSizes: number[] | null;
 	projectId: string;
+	projectTitle?: string | null;
+	isOwner: boolean;
 	initialMessages: ChatUIMessage[];
 	initialSandboxDuration: number;
 	initialLastContext?: AppUsage;
@@ -28,6 +31,8 @@ interface ProjectPageClientProps {
 export function ProjectPageClient({
 	horizontalSizes,
 	projectId,
+	projectTitle,
+	isOwner,
 	initialMessages,
 	initialSandboxDuration,
 	initialLastContext,
@@ -66,11 +71,17 @@ export function ProjectPageClient({
 					<div className="flex items-center w-full gap-2">
 						<SidebarToggle />
 						<div className="flex items-center flex-1" />
+						{isOwner ? (
+							<PublishGitHubButton
+								projectId={projectId}
+								projectTitle={projectTitle}
+							/>
+						) : null}
 						<div className="md:hidden">
 							<Button
 								onClick={handleNewProject}
 								variant="outline"
-								className="px-2 h-fit"
+								className="px-2 h-fit cursor-pointer"
 							>
 								<Plus className="w-4 h-4 mr-2" />
 								New project

@@ -43,6 +43,7 @@ export function InitialScreen({
 							isLoading={isLoading}
 							initialSandboxDuration={initialSandboxDuration}
 							initialModelId={initialModelId}
+							enableGithubImport
 						/>
 
 						{/* Suggestions below the prompt input */}

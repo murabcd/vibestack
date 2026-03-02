@@ -40,6 +40,7 @@ export function SessionProvider({
 
 	const signOut = async () => {
 		await authClient.signOut();
+		window.location.assign("/");
 	};
 
 	return (

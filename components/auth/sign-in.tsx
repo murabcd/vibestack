@@ -63,7 +63,7 @@ export function SignIn() {
 								</>
 							) : (
 								<>
-									<Icons.gitHubLogo />
+									<Icons.gitHub />
 									Sign in with GitHub
 								</>
 							)}

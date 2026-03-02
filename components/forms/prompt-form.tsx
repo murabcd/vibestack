@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { saveModelAsCookie } from "@/app/actions";
 import {
 	Context,
@@ -14,6 +14,7 @@ import {
 	ContextTrigger,
 } from "@/components/ai-elements/context";
 import { McpButton } from "@/components/connectors/mcp-button";
+import { ImportFromGithubDialog } from "@/components/forms/import-from-github-dialog";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
 import { useSettings } from "@/components/settings/use-settings";
@@ -23,6 +24,7 @@ import {
 	PromptInputActionAddAttachments,
 	PromptInputActionMenu,
 	PromptInputActionMenuContent,
+	PromptInputActionMenuItem,
 	PromptInputActionMenuTrigger,
 	PromptInputAttachment,
 	PromptInputAttachments,
@@ -36,6 +38,7 @@ import {
 } from "@/components/ui/prompt-input";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
+import { Icons } from "../icons/icons";
 
 interface PromptFormProps {
 	onSubmit: (message: PromptInputMessage) => void;
@@ -47,6 +50,7 @@ interface PromptFormProps {
 	hideAuxiliaryToolsWhenChatActive?: boolean;
 	chatStatus?: "ready" | "submitted" | "streaming" | "error";
 	hasChatContext?: boolean;
+	enableGithubImport?: boolean;
 }
 
 export const PromptForm = memo(function PromptForm({
@@ -59,6 +63,7 @@ export const PromptForm = memo(function PromptForm({
 	hideAuxiliaryToolsWhenChatActive = false,
 	chatStatus = "ready",
 	hasChatContext = false,
+	enableGithubImport = false,
 }: PromptFormProps) {
 	const { modelId, setModelId } = useSettings(
 		initialSandboxDuration,
@@ -66,6 +71,7 @@ export const PromptForm = memo(function PromptForm({
 	);
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
+	const [isImportGithubOpen, setIsImportGithubOpen] = useState(false);
 
 	// Use isLoading prop if provided, otherwise use provided chat status
 	const currentStatus = isLoading ? "submitted" : chatStatus;
@@ -152,6 +158,18 @@ export const PromptForm = memo(function PromptForm({
 						<PromptInputActionMenu>
 							<PromptInputActionMenuTrigger />
 							<PromptInputActionMenuContent>
+								{enableGithubImport && (
+									<PromptInputActionMenuItem
+										className="cursor-pointer"
+										onSelect={(event) => {
+											event.preventDefault();
+											setIsImportGithubOpen(true);
+										}}
+									>
+										<Icons.gitHub className="size-4 mr-2" />
+										Import from GitHub
+									</PromptInputActionMenuItem>
+								)}
 								<PromptInputActionAddAttachments />
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
@@ -178,6 +196,12 @@ export const PromptForm = memo(function PromptForm({
 					/>
 				</PromptInputFooter>
 			</PromptInput>
+			{enableGithubImport && (
+				<ImportFromGithubDialog
+					open={isImportGithubOpen}
+					onOpenChange={setIsImportGithubOpen}
+				/>
+			)}
 		</div>
 	);
 });

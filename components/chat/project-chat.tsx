@@ -193,6 +193,43 @@ function ProjectChatInner({
 		reset();
 
 		if (initialMessages.length === 0) {
+			if (typeof window !== "undefined") {
+				try {
+					const raw = sessionStorage.getItem(
+						`imported-project-state-${projectId}`,
+					);
+					if (raw) {
+						const parsed = JSON.parse(raw) as {
+							sandboxId?: unknown;
+							url?: unknown;
+							paths?: unknown;
+						};
+						const importedSandboxId =
+							typeof parsed.sandboxId === "string"
+								? parsed.sandboxId
+								: undefined;
+						const importedUrl =
+							typeof parsed.url === "string" ? parsed.url : undefined;
+						const importedPaths = Array.isArray(parsed.paths)
+							? parsed.paths.filter(
+									(path): path is string => typeof path === "string",
+								)
+							: [];
+						if (importedSandboxId) {
+							setSandboxId(importedSandboxId);
+							if (importedUrl) {
+								setUrl(importedUrl, crypto.randomUUID());
+							}
+						}
+						if (importedPaths.length > 0) {
+							addPaths(importedPaths);
+						}
+						sessionStorage.removeItem(`imported-project-state-${projectId}`);
+					}
+				} catch {
+					sessionStorage.removeItem(`imported-project-state-${projectId}`);
+				}
+			}
 			return;
 		}
 
@@ -294,7 +331,7 @@ function ProjectChatInner({
 				setUrl(hydratedUrl, crypto.randomUUID());
 			}
 		}
-	}, [initialMessages]);
+	}, [initialMessages, projectId]);
 
 	useEffect(() => {
 		setChatStatus(status);

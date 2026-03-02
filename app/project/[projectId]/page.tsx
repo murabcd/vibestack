@@ -52,6 +52,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 	if (project.visibility !== "public" && project.userId !== session?.user?.id) {
 		notFound();
 	}
+	const isOwner = project.userId === session?.user?.id;
 
 	// Fetch messages from database with error handling
 	let initialMessages: ChatUIMessage[] = [];
@@ -76,6 +77,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 		<ProjectPageClient
 			horizontalSizes={horizontalSizes ?? []}
 			projectId={projectId}
+			projectTitle={project.title}
+			isOwner={isOwner}
 			initialMessages={initialMessages}
 			initialSandboxDuration={initialSandboxDuration}
 			initialLastContext={initialLastContext}
