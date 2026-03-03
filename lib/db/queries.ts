@@ -45,7 +45,7 @@ export async function getProjectById(
 			project_id: projectId,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		throw new Error("Failed to get project by id");
+		return null;
 	}
 }
 
@@ -64,7 +64,7 @@ export async function getProjectBySandboxId(
 			sandbox_id: sandboxId,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		throw new Error("Failed to get project by sandbox id");
+		return null;
 	}
 }
 

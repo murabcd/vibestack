@@ -910,11 +910,25 @@ export async function POST(req: NextRequest) {
 								};
 							}
 						},
-						onFinish: async ({ messages: allMessages }) => {
+						onFinish: async ({
+							messages: streamMessages,
+							responseMessage,
+							isContinuation,
+						}) => {
 							await closeMcpClients();
 
 							// Log message parts to debug tool calls
-							const assistantMessages = allMessages.filter(
+							const completedMessages = (() => {
+								if (isContinuation && validatedMessages.length > 0) {
+									return [
+										...validatedMessages.slice(0, validatedMessages.length - 1),
+										responseMessage as ChatUIMessage,
+									];
+								}
+
+								return [...validatedMessages, responseMessage as ChatUIMessage];
+							})();
+							const assistantMessages = completedMessages.filter(
 								(msg) => msg.role === "assistant",
 							);
 							const latestAssistantMessage =
@@ -923,13 +937,12 @@ export async function POST(req: NextRequest) {
 							if (projectId) {
 								try {
 									const persistedMessages = compactMessagesForPersistence(
-										reconcileIncompleteTaskMessages(
-											allMessages as ChatUIMessage[],
-										).messages,
+										reconcileIncompleteTaskMessages(completedMessages).messages,
 									);
 									wide.add({
 										persisted_message_count: persistedMessages.length,
-										stream_message_count: allMessages.length,
+										stream_message_count: streamMessages.length,
+										completed_message_count: completedMessages.length,
 									});
 									await replaceProjectMessages({
 										projectId,
