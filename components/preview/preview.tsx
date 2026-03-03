@@ -4,8 +4,8 @@ import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { CompassIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BarLoader } from "react-spinners";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Panel, PanelHeader } from "@/components/panels/panels";
-import { PreviewLoading } from "@/components/preview/preview-loading";
 import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
@@ -149,7 +149,9 @@ export function Preview({ className, disabled, url }: Props) {
 				)}
 				{!currentUrl && !disabled && (
 					<div className="absolute inset-0 bg-background flex items-center justify-center p-4">
-						<PreviewLoading />
+						<Shimmer as="p" className="text-sm">
+							Generating preview...
+						</Shimmer>
 					</div>
 				)}
 				{currentUrl && !disabled && (
