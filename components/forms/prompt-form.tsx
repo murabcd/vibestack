@@ -149,9 +149,7 @@ export const PromptForm = memo(function PromptForm({
 						className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 text-sm text-foreground shadow-sm hover:bg-background/95 cursor-pointer"
 					>
 						<span>Cancel</span>
-						<Kbd className="h-5 rounded-md border border-border/80 bg-transparent px-1.5">
-							Esc
-						</Kbd>
+						<Kbd>Esc</Kbd>
 					</Button>
 				</div>
 			)}
