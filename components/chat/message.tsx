@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { MessagePart } from "./message-part";
+import { ImageDisplay } from "./message-part/image-display";
 import type { ChatUIMessage } from "./types";
 
 interface Props {
@@ -75,17 +77,12 @@ export const Message = memo(function Message({
 							"max-w-[min(fit-content,80%)]": message.role === "user",
 						})}
 					>
-						{visibleParts.map((part, index) => (
-							<MessagePart
-								key={`${message.role}-${part.type}-${index}`}
-								part={part}
-								partIndex={index}
-								messageRole={message.role as "user" | "assistant"}
-								messageId={message.id}
-								onEditMessage={onEditMessage}
-								onDeleteMessage={onDeleteMessage}
-							/>
-						))}
+						{renderVisibleParts({
+							message,
+							visibleParts,
+							onDeleteMessage,
+							onEditMessage,
+						})}
 					</div>
 				</div>
 			</div>
@@ -207,4 +204,66 @@ function getDataPartSignature(
 	}
 
 	return null;
+}
+
+function renderVisibleParts({
+	message,
+	visibleParts,
+	onEditMessage,
+	onDeleteMessage,
+}: {
+	message: ChatUIMessage;
+	visibleParts: ChatUIMessage["parts"];
+	onEditMessage?: (messageId: string, text: string) => void;
+	onDeleteMessage?: (messageId: string) => void;
+}) {
+	const nodes: ReactNode[] = [];
+
+	for (let index = 0; index < visibleParts.length; index += 1) {
+		const part = visibleParts[index];
+		if (part.type === "file") {
+			const startIndex = index;
+			const fileParts: Extract<
+				ChatUIMessage["parts"][number],
+				{ type: "file" }
+			>[] = [];
+
+			while (
+				index < visibleParts.length &&
+				visibleParts[index].type === "file"
+			) {
+				fileParts.push(
+					visibleParts[index] as Extract<
+						ChatUIMessage["parts"][number],
+						{ type: "file" }
+					>,
+				);
+				index += 1;
+			}
+
+			index -= 1;
+			nodes.push(
+				<ImageDisplay
+					key={`${message.role}-file-group-${startIndex}`}
+					messageRole={message.role as "user" | "assistant"}
+					parts={fileParts}
+				/>,
+			);
+			continue;
+		}
+
+		nodes.push(
+			<MessagePart
+				key={`${message.role}-${part.type}-${index}`}
+				messageId={message.id}
+				messageRole={message.role as "user" | "assistant"}
+				onDeleteMessage={onDeleteMessage}
+				onEditMessage={onEditMessage}
+				part={part}
+				partIndex={index}
+			/>,
+		);
+	}
+
+	return nodes;
 }

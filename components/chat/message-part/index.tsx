@@ -62,7 +62,7 @@ export const MessagePart = memo(function MessagePart({
 			/>
 		);
 	} else if (part.type === "file") {
-		return <ImageDisplay part={part} />;
+		return <ImageDisplay messageRole={messageRole} parts={[part]} />;
 	}
 	return null;
 });

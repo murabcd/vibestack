@@ -1,41 +1,46 @@
 import type { UIMessage } from "ai";
-import Image from "next/image";
 import { memo } from "react";
+import {
+	Attachment,
+	AttachmentInfo,
+	AttachmentPreview,
+	Attachments,
+} from "@/components/ai-elements/attachments";
 import { cn } from "@/lib/utils";
 
+type FilePart = Extract<UIMessage["parts"][number], { type: "file" }>;
+
 interface Props {
-	part: UIMessage["parts"][number];
+	parts: FilePart[];
+	messageRole: "user" | "assistant";
 }
 
-export const ImageDisplay = memo(function ImageDisplay({ part }: Props) {
-	if (part.type !== "file") {
+export const ImageDisplay = memo(function ImageDisplay({
+	parts,
+	messageRole,
+}: Props) {
+	if (parts.length === 0) {
 		return null;
 	}
-
-	const isImage = part.mediaType?.startsWith("image/");
-
-	if (!isImage || !part.url) {
-		return null;
-	}
+	const variant = messageRole === "assistant" ? "list" : "grid";
 
 	return (
-		<div className="my-2">
-			<Image
-				src={part.url}
-				alt={part.filename || "Attached image"}
-				width={400}
-				height={256}
-				className={cn(
-					"max-w-full h-auto rounded-lg border",
-					"max-h-64 object-contain bg-muted/50",
-				)}
-				style={{ width: "auto", height: "auto" }}
-			/>
-			{part.filename && (
-				<div className="text-xs text-muted-foreground mt-1">
-					{part.filename}
-				</div>
-			)}
-		</div>
+		<Attachments
+			className={cn("my-2", messageRole === "assistant" && "ml-0")}
+			variant={variant}
+		>
+			{parts.map((part, index) => {
+				const attachment = {
+					...part,
+					id: `file:${part.url || part.filename || part.mediaType || "unknown"}:${index}`,
+				};
+				return (
+					<Attachment data={attachment} key={attachment.id}>
+						<AttachmentPreview />
+						<AttachmentInfo showMediaType={variant === "list"} />
+					</Attachment>
+				);
+			})}
+		</Attachments>
 	);
 });
