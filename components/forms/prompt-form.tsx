@@ -19,6 +19,8 @@ import { ModelSelector } from "@/components/model-selector/model-selector";
 import { Settings } from "@/components/settings/settings";
 import { useSettings } from "@/components/settings/use-settings";
 import { TaskOptions } from "@/components/task-options/task-options";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import {
 	PromptInput,
 	PromptInputActionAddAttachments,
@@ -52,6 +54,8 @@ interface PromptFormProps {
 	chatStatus?: "ready" | "submitted" | "streaming" | "error";
 	hasChatContext?: boolean;
 	enableGithubImport?: boolean;
+	editingMessageId?: string | null;
+	onCancelEdit?: () => void;
 }
 
 export const PromptForm = memo(function PromptForm({
@@ -65,6 +69,8 @@ export const PromptForm = memo(function PromptForm({
 	chatStatus = "ready",
 	hasChatContext = false,
 	enableGithubImport = false,
+	editingMessageId = null,
+	onCancelEdit,
 }: PromptFormProps) {
 	const { modelId, setModelId } = useSettings(
 		initialSandboxDuration,
@@ -103,16 +109,52 @@ export const PromptForm = memo(function PromptForm({
 			const hasAttachments = Boolean(message.files?.length);
 
 			if (hasText || hasAttachments) {
+				const payload = editingMessageId
+					? {
+							...message,
+							messageId: editingMessageId,
+						}
+					: message;
 				selection();
-				onSubmit(message);
+				onSubmit(payload);
+				onCancelEdit?.();
 				controller.textInput.clear();
 			}
 		},
-		[onSubmit, controller.textInput, selection],
+		[onSubmit, controller.textInput, selection, editingMessageId, onCancelEdit],
 	);
+
+	useEffect(() => {
+		if (!editingMessageId || !onCancelEdit) return;
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				event.preventDefault();
+				onCancelEdit();
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [editingMessageId, onCancelEdit]);
 
 	return (
 		<div className={className}>
+			{editingMessageId && onCancelEdit && (
+				<div className="mb-3 flex justify-center">
+					<Button
+						type="button"
+						onClick={onCancelEdit}
+						variant="ghost"
+						className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 text-sm text-foreground shadow-sm hover:bg-background/95 cursor-pointer"
+					>
+						<span>Cancel</span>
+						<Kbd className="h-5 rounded-md border border-border/80 bg-transparent px-1.5">
+							Esc
+						</Kbd>
+					</Button>
+				</div>
+			)}
 			<PromptInput
 				accept="image/*"
 				multiple

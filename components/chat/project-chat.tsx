@@ -24,7 +24,10 @@ import { useAvailableModels } from "@/components/model-selector/use-available-mo
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
-import { PromptInputProvider } from "@/components/ui/prompt-input";
+import {
+	PromptInputProvider,
+	usePromptInputController,
+} from "@/components/ui/prompt-input";
 import { useAppHaptics } from "@/hooks/use-app-haptics";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
@@ -66,6 +69,8 @@ function ProjectChatInner({
 	const currentModel = models.find((model) => model.id === modelId);
 	const modelLabel = currentModel?.label || modelId;
 	const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
+	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+	const controller = usePromptInputController();
 
 	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
 		{
@@ -101,6 +106,7 @@ function ProjectChatInner({
 	useEffect(() => {
 		setMessages([]);
 		hasInitializedMessages.current = false;
+		setEditingMessageId(null);
 
 		if (!sentMessageRef) {
 			localSentRef.current = false;
@@ -126,6 +132,9 @@ function ProjectChatInner({
 					},
 				},
 			);
+			if (message.messageId) {
+				setEditingMessageId(null);
+			}
 		},
 		[
 			sendMessage,
@@ -135,6 +144,64 @@ function ProjectChatInner({
 			sandboxDuration,
 			connectedServerIds,
 		],
+	);
+
+	const handleEditMessage = useCallback(
+		(messageId: string, text: string) => {
+			setEditingMessageId(messageId);
+			controller.textInput.setInput(text);
+		},
+		[controller.textInput],
+	);
+
+	const handleCancelEdit = useCallback(() => {
+		setEditingMessageId(null);
+		controller.textInput.clear();
+		controller.attachments.clear();
+	}, [controller.textInput, controller.attachments]);
+
+	const handleDeleteMessageTurn = useCallback(
+		(messageId: string) => {
+			const previousMessages = messages;
+			const messageIndex = messages.findIndex(
+				(message) => message.id === messageId,
+			);
+			if (messageIndex === -1) return;
+
+			const shouldRemoveAssistantReply =
+				messages[messageIndex]?.role === "user" &&
+				messages[messageIndex + 1]?.role === "assistant";
+			const deleteCount = shouldRemoveAssistantReply ? 2 : 1;
+			const nextMessages = [
+				...messages.slice(0, messageIndex),
+				...messages.slice(messageIndex + deleteCount),
+			];
+			setMessages(nextMessages);
+
+			if (editingMessageId === messageId) {
+				handleCancelEdit();
+			}
+
+			void (async () => {
+				try {
+					const response = await fetch(`/api/projects/${projectId}/messages`, {
+						method: "PATCH",
+						keepalive: true,
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ messages: nextMessages }),
+					});
+
+					if (!response.ok) {
+						throw new Error(`Persist delete failed: ${response.status}`);
+					}
+				} catch {
+					setMessages(previousMessages);
+				}
+			})();
+		},
+		[messages, setMessages, editingMessageId, handleCancelEdit, projectId],
 	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: hasSentPendingMessage is a stable ref
@@ -379,7 +446,12 @@ function ProjectChatInner({
 			<Conversation className="relative w-full">
 				<ConversationContent className="space-y-4">
 					{messages.map((message) => (
-						<Message key={message.id} message={message} />
+						<Message
+							key={message.id}
+							message={message}
+							onEditMessage={handleEditMessage}
+							onDeleteMessage={handleDeleteMessageTurn}
+						/>
 					))}
 				</ConversationContent>
 				<ConversationScrollButton />
@@ -392,8 +464,10 @@ function ProjectChatInner({
 					initialModelId={initialModelId}
 					usage={usage}
 					chatStatus={status}
-					hasChatContext={messages.length > 0}
+					hasChatContext
 					hideAuxiliaryToolsWhenChatActive
+					editingMessageId={editingMessageId}
+					onCancelEdit={handleCancelEdit}
 				/>
 			</div>
 		</Panel>

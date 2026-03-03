@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { MessageCircleIcon } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Conversation,
 	ConversationContent,
@@ -14,8 +14,11 @@ import type { ChatUIMessage } from "@/components/chat/types";
 import { PromptForm } from "@/components/forms/prompt-form";
 import { Panel, PanelHeader } from "@/components/panels/panels";
 import { useSettings } from "@/components/settings/use-settings";
-import type { PromptInputMessage } from "@/components/ui/prompt-input";
-import { PromptInputProvider } from "@/components/ui/prompt-input";
+import {
+	type PromptInputMessage,
+	PromptInputProvider,
+	usePromptInputController,
+} from "@/components/ui/prompt-input";
 import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { useSharedChatContext } from "@/lib/chat-context";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
@@ -28,11 +31,17 @@ interface Props {
 
 function ChatInner({ className }: Props) {
 	const { chat } = useSharedChatContext();
-	const { messages, sendMessage, status } = useChat<ChatUIMessage>({ chat });
+	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
+		{
+			chat,
+		},
+	);
 	const { setChatStatus } = useSandboxStore();
 	const { modelId, reasoningEffort } = useSettings();
 	const { success, error } = useAppHaptics();
 	const previousStatusRef = useRef(status);
+	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+	const controller = usePromptInputController();
 
 	const handleMessageSubmit = useCallback(
 		(message: PromptInputMessage) => {
@@ -48,8 +57,48 @@ function ChatInner({ className }: Props) {
 					},
 				},
 			);
+			if (message.messageId) {
+				setEditingMessageId(null);
+			}
 		},
 		[sendMessage, modelId, reasoningEffort],
+	);
+
+	const handleEditMessage = useCallback(
+		(messageId: string, text: string) => {
+			setEditingMessageId(messageId);
+			controller.textInput.setInput(text);
+		},
+		[controller.textInput],
+	);
+
+	const handleCancelEdit = useCallback(() => {
+		setEditingMessageId(null);
+		controller.textInput.clear();
+		controller.attachments.clear();
+	}, [controller.textInput, controller.attachments]);
+
+	const handleDeleteMessageTurn = useCallback(
+		(messageId: string) => {
+			const messageIndex = messages.findIndex(
+				(message) => message.id === messageId,
+			);
+			if (messageIndex === -1) return;
+
+			const shouldRemoveAssistantReply =
+				messages[messageIndex]?.role === "user" &&
+				messages[messageIndex + 1]?.role === "assistant";
+			const deleteCount = shouldRemoveAssistantReply ? 2 : 1;
+			setMessages([
+				...messages.slice(0, messageIndex),
+				...messages.slice(messageIndex + deleteCount),
+			]);
+
+			if (editingMessageId === messageId) {
+				handleCancelEdit();
+			}
+		},
+		[messages, setMessages, editingMessageId, handleCancelEdit],
 	);
 
 	useEffect(() => {
@@ -89,7 +138,12 @@ function ChatInner({ className }: Props) {
 			<Conversation className="relative w-full">
 				<ConversationContent className="space-y-4">
 					{messages.map((message) => (
-						<Message key={message.id} message={message} />
+						<Message
+							key={message.id}
+							message={message}
+							onEditMessage={handleEditMessage}
+							onDeleteMessage={handleDeleteMessageTurn}
+						/>
 					))}
 					{/* Show "Thinking" only before the first streamed chunks arrive */}
 					{status === "submitted" && (
@@ -112,6 +166,8 @@ function ChatInner({ className }: Props) {
 					onSubmit={handleMessageSubmit}
 					chatStatus={status}
 					hasChatContext={messages.length > 0}
+					editingMessageId={editingMessageId}
+					onCancelEdit={handleCancelEdit}
 				/>
 			</div>
 		</Panel>

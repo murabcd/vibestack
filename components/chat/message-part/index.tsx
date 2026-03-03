@@ -12,12 +12,18 @@ interface Props {
 	part: UIMessage<Metadata, DataPart, ToolSet>["parts"][number];
 	partIndex: number;
 	messageRole: "user" | "assistant";
+	messageId: string;
+	onEditMessage?: (messageId: string, text: string) => void;
+	onDeleteMessage?: (messageId: string) => void;
 }
 
 export const MessagePart = memo(function MessagePart({
 	part,
 	partIndex,
 	messageRole,
+	messageId,
+	onEditMessage,
+	onDeleteMessage,
 }: Props) {
 	if (part.type === "step-start") {
 		return null;
@@ -46,7 +52,15 @@ export const MessagePart = memo(function MessagePart({
 	} else if (part.type === "reasoning") {
 		return <Reasoning part={part} partIndex={partIndex} />;
 	} else if (part.type === "text") {
-		return <Text part={part} messageRole={messageRole} />;
+		return (
+			<Text
+				part={part}
+				messageRole={messageRole}
+				messageId={messageId}
+				onEditMessage={onEditMessage}
+				onDeleteMessage={onDeleteMessage}
+			/>
+		);
 	} else if (part.type === "file") {
 		return <ImageDisplay part={part} />;
 	}

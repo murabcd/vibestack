@@ -5,6 +5,8 @@ import type { ChatUIMessage } from "./types";
 
 interface Props {
 	message: ChatUIMessage;
+	onEditMessage?: (messageId: string, text: string) => void;
+	onDeleteMessage?: (messageId: string) => void;
 }
 
 interface ReasoningContextType {
@@ -19,7 +21,11 @@ export const useReasoningContext = () => {
 	return context;
 };
 
-export const Message = memo(function Message({ message }: Props) {
+export const Message = memo(function Message({
+	message,
+	onEditMessage,
+	onDeleteMessage,
+}: Props) {
 	const [expandedReasoningIndex, setExpandedReasoningIndex] = useState<
 		number | null
 	>(null);
@@ -75,6 +81,9 @@ export const Message = memo(function Message({ message }: Props) {
 								part={part}
 								partIndex={index}
 								messageRole={message.role as "user" | "assistant"}
+								messageId={message.id}
+								onEditMessage={onEditMessage}
+								onDeleteMessage={onDeleteMessage}
 							/>
 						))}
 					</div>
