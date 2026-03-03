@@ -116,7 +116,7 @@ export const AppSidebar = () => {
 										</TooltipTrigger>
 										{!isMobile ? (
 											<TooltipContent align="end">
-												Search projects <Kbd>⌘+K</Kbd>
+												Search projects <Kbd>⌘K</Kbd>
 											</TooltipContent>
 										) : null}
 									</Tooltip>

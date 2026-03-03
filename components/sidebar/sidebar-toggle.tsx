@@ -33,7 +33,7 @@ export function SidebarToggle() {
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent align="start">
-					{toggleSidebarTooltip} <Kbd>⌘+B</Kbd>
+					{toggleSidebarTooltip} <Kbd>⌘B</Kbd>
 				</TooltipContent>
 			</Tooltip>
 
