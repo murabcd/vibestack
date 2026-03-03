@@ -11,6 +11,7 @@ import { ChatSearchCommand } from "@/components/sidebar/chat-search-command";
 import { SidebarHistory } from "@/components/sidebar/sidebar-history";
 import { SidebarUserNav } from "@/components/sidebar/sidebar-user-nav";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import {
 	Sidebar,
 	SidebarContent,
@@ -115,7 +116,7 @@ export const AppSidebar = () => {
 										</TooltipTrigger>
 										{!isMobile ? (
 											<TooltipContent align="end">
-												Search projects (⌘K)
+												Search projects <Kbd>⌘+K</Kbd>
 											</TooltipContent>
 										) : null}
 									</Tooltip>

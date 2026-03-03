@@ -1,5 +1,3 @@
-"use client";
-
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type * as React from "react";
 
@@ -21,7 +19,11 @@ function TooltipProvider({
 function Tooltip({
 	...props
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+	return (
+		<TooltipProvider>
+			<TooltipPrimitive.Root data-slot="tooltip" {...props} />
+		</TooltipProvider>
+	);
 }
 
 function TooltipTrigger({
@@ -42,13 +44,13 @@ function TooltipContent({
 				data-slot="tooltip-content"
 				sideOffset={sideOffset}
 				className={cn(
-					"hidden md:block bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
+					"bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
 					className,
 				)}
 				{...props}
 			>
 				{children}
-				<TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+				<TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 h-[5px] w-2.5 translate-y-[-2px] data-[side=top]:translate-y-[2px] data-[side=left]:translate-x-[-2px] data-[side=right]:translate-x-[2px] [clip-path:polygon(0%_0%,50%_100%,100%_0%)]" />
 			</TooltipPrimitive.Content>
 		</TooltipPrimitive.Portal>
 	);
