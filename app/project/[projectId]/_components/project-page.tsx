@@ -1,6 +1,8 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useMemo, useRef } from "react";
+import useSWR from "swr";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview";
@@ -39,6 +41,15 @@ export function ProjectPageClient({
 	initialModelId,
 }: ProjectPageClientProps) {
 	const { isMobile } = useSidebar();
+	const { data: projectData } = useSWR<{ project?: { title?: string | null } }>(
+		`/api/projects/${projectId}`,
+		{
+			refreshInterval: (latestData) =>
+				latestData?.project?.title?.trim() ? 0 : 1500,
+		},
+	);
+	const displayProjectTitle =
+		projectData?.project?.title?.trim() || projectTitle?.trim() || "";
 	// Global ref to prevent BOTH mobile and desktop ProjectChat from sending the same message
 	const hasSentPendingMessage = useRef(false);
 	const pendingMessage = useMemo<PromptInputMessage | null>(() => {
@@ -65,6 +76,21 @@ export function ProjectPageClient({
 				<div className="flex flex-col h-screen max-h-screen overflow-hidden p-2 space-x-2">
 					<div className="flex items-center w-full gap-2">
 						<SidebarToggle />
+						<nav aria-label="Project breadcrumb">
+							<ol className="flex items-center gap-1.5 text-sm">
+								<li className="text-muted-foreground">Projects</li>
+								{displayProjectTitle ? (
+									<>
+										<li aria-hidden="true" className="text-muted-foreground/70">
+											<ChevronRight className="size-3.5" />
+										</li>
+										<li className="truncate max-w-[120px] sm:max-w-[320px] text-foreground">
+											{displayProjectTitle}
+										</li>
+									</>
+								) : null}
+							</ol>
+						</nav>
 						<div className="flex items-center flex-1" />
 						{isOwner ? (
 							<>
