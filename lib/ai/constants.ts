@@ -17,8 +17,3 @@ export const SUPPORTED_MODELS: string[] = [
 	Models.OpenAIGpt5Mini,
 	Models.OpenAIGpt5Nano,
 ];
-
-export const TEST_PROMPTS = [
-	"Generate a Next.js app that allows to list and search Pokemons",
-	'Create a `golang` server that responds with "Hello World" to any request',
-];

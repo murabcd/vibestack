@@ -1,7 +1,6 @@
 "use client";
 
 import { PromptForm } from "@/components/forms/prompt-form";
-import { Suggestions } from "@/components/forms/suggestions";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { PromptInputProvider } from "@/components/ui/prompt-input";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
@@ -45,9 +44,6 @@ export function InitialScreen({
 							initialModelId={initialModelId}
 							enableGithubImport
 						/>
-
-						{/* Suggestions below the prompt input */}
-						<Suggestions />
 					</PromptInputProvider>
 				</div>
 			</div>
