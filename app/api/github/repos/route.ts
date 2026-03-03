@@ -20,21 +20,37 @@ type GitHubUser = {
 	login: string;
 };
 
-async function githubGet<T>(path: string, accessToken: string) {
-	const response = await fetch(`https://api.github.com${path}`, {
-		headers: {
-			Accept: "application/vnd.github+json",
-			Authorization: `Bearer ${accessToken}`,
-			"X-GitHub-Api-Version": "2022-11-28",
-		},
-		cache: "no-store",
-	});
+type GitHubSearchResponse = {
+	items: GitHubRepoItem[];
+};
 
-	const json = (await response.json().catch(() => null)) as
-		| T
-		| { message?: string }
-		| null;
-	if (!response.ok) {
+async function githubGet<T>(path: string, accessToken: string) {
+	const maxAttempts = 2;
+
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		const response = await fetch(`https://api.github.com${path}`, {
+			headers: {
+				Accept: "application/vnd.github+json",
+				Authorization: `Bearer ${accessToken}`,
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+			cache: "no-store",
+		});
+
+		const json = (await response.json().catch(() => null)) as
+			| T
+			| { message?: string }
+			| null;
+		if (response.ok) {
+			return { ok: true as const, data: json as T };
+		}
+
+		const isRetryable = response.status >= 500 && response.status < 600;
+		if (attempt < maxAttempts && isRetryable) {
+			await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+			continue;
+		}
+
 		return {
 			ok: false as const,
 			status: response.status,
@@ -45,12 +61,17 @@ async function githubGet<T>(path: string, accessToken: string) {
 		};
 	}
 
-	return { ok: true as const, data: json as T };
+	return {
+		ok: false as const,
+		status: 502,
+		error: "GitHub request failed",
+	};
 }
 
 export async function GET(request: NextRequest) {
 	const wide = createApiWideEvent(request, "github.repos.list");
 	try {
+		const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 		const session = await getSessionFromReq(request);
 		if (!session?.user?.id) {
 			wide.end(401, "error", new Error("Authentication required"));
@@ -71,10 +92,17 @@ export async function GET(request: NextRequest) {
 
 		const [viewerRes, reposRes] = await Promise.all([
 			githubGet<GitHubUser>("/user", oauth.accessToken),
-			githubGet<GitHubRepoItem[]>(
-				"/user/repos?per_page=100&sort=updated&direction=desc&affiliation=owner,collaborator,organization_member",
-				oauth.accessToken,
-			),
+			query
+				? githubGet<GitHubSearchResponse>(
+						`/search/repositories?per_page=50&sort=updated&order=desc&q=${encodeURIComponent(
+							`${query} in:name,full_name`,
+						)}`,
+						oauth.accessToken,
+					)
+				: githubGet<GitHubRepoItem[]>(
+						"/user/repos?per_page=100&sort=updated&direction=desc&affiliation=owner,collaborator,organization_member",
+						oauth.accessToken,
+					),
 		]);
 
 		if (!reposRes.ok) {
@@ -88,7 +116,10 @@ export async function GET(request: NextRequest) {
 		const viewer = viewerRes.ok
 			? viewerRes.data.login
 			: session.user.name || "";
-		const repos = reposRes.data.map((repo) => ({
+		const repoItems: GitHubRepoItem[] = query
+			? (reposRes.data as GitHubSearchResponse).items
+			: (reposRes.data as GitHubRepoItem[]);
+		const repos = repoItems.map((repo: GitHubRepoItem) => ({
 			id: repo.id,
 			name: repo.name,
 			fullName: repo.full_name,
@@ -109,6 +140,7 @@ export async function GET(request: NextRequest) {
 
 		wide.add({
 			user_id: session.user.id,
+			query: query || null,
 			repo_count: repos.length,
 			owner_count: owners.length,
 		});

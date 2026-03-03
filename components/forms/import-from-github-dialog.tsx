@@ -1,8 +1,7 @@
 "use client";
 
-import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "@/components/icons/icons";
 import {
@@ -52,6 +51,72 @@ function formatDate(dateValue: string) {
 	});
 }
 
+function parseGitHubRepositoryInput(value: string): string | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+
+	const fullNameMatch = trimmed.match(/^([\w.-]+)\/([\w.-]+)$/);
+	if (fullNameMatch) {
+		return `${fullNameMatch[1]}/${fullNameMatch[2].replace(/\.git$/, "")}`;
+	}
+
+	let url: URL;
+	try {
+		url = new URL(trimmed);
+	} catch {
+		return null;
+	}
+
+	const host = url.hostname.toLowerCase();
+	if (host !== "github.com" && host !== "www.github.com") {
+		return null;
+	}
+
+	const [owner, repo] = url.pathname.replace(/^\/+/, "").split("/");
+	if (!owner || !repo) return null;
+	return `${owner}/${repo.replace(/\.git$/, "")}`;
+}
+
+async function fetchReposWithRetry(): Promise<
+	| {
+			ok: true;
+			repos: Repo[];
+	  }
+	| { ok: false; message: string }
+> {
+	const maxAttempts = 2;
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		try {
+			const response = await fetch("/api/github/repos", { cache: "no-store" });
+			const json = (await response.json().catch(() => null)) as {
+				error?: string;
+				repos?: Repo[];
+			} | null;
+
+			if (response.ok) {
+				return { ok: true, repos: json?.repos ?? [] };
+			}
+
+			const message = json?.error ?? "Failed to load GitHub repositories";
+			const retryable = response.status >= 500 && response.status < 600;
+			if (attempt < maxAttempts && retryable) {
+				await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+				continue;
+			}
+
+			return { ok: false, message };
+		} catch {
+			if (attempt < maxAttempts) {
+				await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+				continue;
+			}
+			return { ok: false, message: "Failed to load GitHub repositories" };
+		}
+	}
+
+	return { ok: false, message: "Failed to load GitHub repositories" };
+}
+
 export function ImportFromGithubDialog({
 	open,
 	onOpenChange,
@@ -60,9 +125,10 @@ export function ImportFromGithubDialog({
 	const isMobile = useIsMobile();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
+	const [isSearching, setIsSearching] = useState(false);
 	const [repos, setRepos] = useState<Repo[]>([]);
-	const [search, setSearch] = useState("");
-	const [repoUrlInput, setRepoUrlInput] = useState("");
+	const [searchRepos, setSearchRepos] = useState<Repo[]>([]);
+	const [queryInput, setQueryInput] = useState("");
 	const [importingRepo, setImportingRepo] = useState<string | null>(null);
 	const [reposError, setReposError] = useState<string | null>(null);
 	const {
@@ -70,6 +136,11 @@ export function ImportFromGithubDialog({
 		success: successHaptic,
 		error: errorHaptic,
 	} = useAppHaptics();
+	const errorHapticRef = useRef(errorHaptic);
+
+	useEffect(() => {
+		errorHapticRef.current = errorHaptic;
+	}, [errorHaptic]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -77,52 +148,99 @@ export function ImportFromGithubDialog({
 		let cancelled = false;
 		setIsLoading(true);
 		setReposError(null);
-		void fetch("/api/github/repos", { cache: "no-store" })
-			.then(async (response) => {
-				const json = (await response.json().catch(() => null)) as {
-					error?: string;
-					repos?: Repo[];
-				} | null;
+		void fetchReposWithRetry().then((result) => {
+			if (cancelled) return;
 
-				if (cancelled) return;
-				if (!response.ok) {
-					const message = json?.error ?? "Failed to load GitHub repositories";
-					setReposError(message);
-					toast.error(message);
-					errorHaptic();
-					return;
-				}
+			if (!result.ok) {
+				setReposError(result.message);
+				toast.error(result.message);
+				errorHapticRef.current();
+				setIsLoading(false);
+				return;
+			}
 
-				setRepos(json?.repos ?? []);
-			})
-			.catch(() => {
-				if (!cancelled) {
-					setReposError("Failed to load GitHub repositories");
-					toast.error("Failed to load GitHub repositories");
-					errorHaptic();
-				}
-			})
-			.finally(() => {
-				if (!cancelled) {
-					setIsLoading(false);
-				}
-			});
+			setRepos(result.repos);
+			setIsLoading(false);
+		});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [open, errorHaptic]);
+	}, [open]);
 
-	const filteredRepos = useMemo(() => {
-		const query = search.trim().toLowerCase();
+	const directImportCandidate = useMemo(
+		() => parseGitHubRepositoryInput(queryInput),
+		[queryInput],
+	);
+	const trimmedQuery = queryInput.trim();
+	const lowerQuery = trimmedQuery.toLowerCase();
+
+	const filteredOwnedRepos = useMemo(() => {
+		if (!lowerQuery) return repos;
 		return repos.filter((repo) => {
-			if (!query) return true;
 			return (
-				repo.fullName.toLowerCase().includes(query) ||
-				repo.name.toLowerCase().includes(query)
+				repo.fullName.toLowerCase().includes(lowerQuery) ||
+				repo.name.toLowerCase().includes(lowerQuery) ||
+				repo.htmlUrl.toLowerCase().includes(lowerQuery)
 			);
 		});
-	}, [repos, search]);
+	}, [repos, lowerQuery]);
+	const displayedRepos = useMemo(() => {
+		const merged =
+			trimmedQuery && !directImportCandidate
+				? [...filteredOwnedRepos, ...searchRepos]
+				: [...filteredOwnedRepos];
+		const seen = new Set<string>();
+		return merged.filter((repo) => {
+			const key = repo.fullName.toLowerCase();
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
+	}, [filteredOwnedRepos, searchRepos, trimmedQuery, directImportCandidate]);
+
+	useEffect(() => {
+		const query = trimmedQuery;
+		if (!query || directImportCandidate) {
+			setSearchRepos([]);
+			setIsSearching(false);
+			return;
+		}
+
+		let cancelled = false;
+		const timeout = window.setTimeout(async () => {
+			setIsSearching(true);
+			try {
+				const response = await fetch(
+					`/api/github/repos?q=${encodeURIComponent(query)}`,
+					{ cache: "no-store" },
+				);
+				const json = (await response.json().catch(() => null)) as {
+					error?: string;
+					repos?: Repo[];
+				} | null;
+				if (cancelled) return;
+				if (!response.ok) {
+					setSearchRepos([]);
+					return;
+				}
+				setSearchRepos(json?.repos ?? []);
+			} catch {
+				if (!cancelled) {
+					setSearchRepos([]);
+				}
+			} finally {
+				if (!cancelled) {
+					setIsSearching(false);
+				}
+			}
+		}, 250);
+
+		return () => {
+			cancelled = true;
+			window.clearTimeout(timeout);
+		};
+	}, [trimmedQuery, directImportCandidate]);
 
 	const importRepository = async (repository: string) => {
 		selection();
@@ -177,42 +295,22 @@ export function ImportFromGithubDialog({
 	const content = (
 		<div className="space-y-3">
 			<div className="space-y-2">
-				<Label htmlFor="github-import-url">Import from a URL</Label>
-				<div className="flex gap-2">
-					<Input
-						id="github-import-url"
-						value={repoUrlInput}
-						onChange={(event) => setRepoUrlInput(event.target.value)}
-						placeholder="https://github.com/owner/repo"
-						disabled={isImporting}
-					/>
-					<Button
-						type="button"
-						onClick={() => {
-							if (!repoUrlInput.trim()) return;
-							void importRepository(repoUrlInput.trim());
-						}}
-						disabled={isImporting || !repoUrlInput.trim()}
-						className="px-5 cursor-pointer"
-					>
-						Import
-					</Button>
-				</div>
-			</div>
-
-			<div className="space-y-2">
-				<Label htmlFor="github-search-repos">Search repositories</Label>
-				<div className="relative">
-					<Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						id="github-search-repos"
-						value={search}
-						onChange={(event) => setSearch(event.target.value)}
-						placeholder="Find repositories by name…"
-						className="pl-9"
-						disabled={isLoading || isImporting}
-					/>
-				</div>
+				<Label htmlFor="github-search-or-import">
+					Search repos or paste link
+				</Label>
+				<Input
+					id="github-search-or-import"
+					value={queryInput}
+					onChange={(event) => setQueryInput(event.target.value)}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" && directImportCandidate) {
+							event.preventDefault();
+							void importRepository(directImportCandidate);
+						}
+					}}
+					placeholder="owner/repo, https://github.com/owner/repo, or name"
+					disabled={isImporting}
+				/>
 			</div>
 
 			{reposError ? (
@@ -223,7 +321,8 @@ export function ImportFromGithubDialog({
 
 			<div className="rounded-md border overflow-hidden">
 				<ScrollArea className="h-[260px]">
-					{isLoading ? (
+					{isLoading ||
+					(trimmedQuery && !directImportCandidate && isSearching) ? (
 						<ul className="p-3 space-y-2">
 							{[
 								"skeleton-1",
@@ -248,46 +347,94 @@ export function ImportFromGithubDialog({
 								</li>
 							))}
 						</ul>
-					) : filteredRepos.length === 0 ? (
-						<div className="p-3 text-sm text-muted-foreground">
-							No repositories found.
-						</div>
 					) : (
-						<ul>
-							{filteredRepos.map((repo) => (
-								<li
-									key={repo.id}
-									className="flex items-center justify-between px-3 py-2.5 border-b last:border-b-0"
-								>
-									<div className="min-w-0 flex items-center gap-2">
-										<div className="size-6 rounded-full border grid place-items-center shrink-0">
-											<Icons.gitHub className="size-3.5 p-0" />
-										</div>
-										<div className="min-w-0">
-											<div className="text-sm font-medium truncate">
-												{repo.name}
+						<>
+							{directImportCandidate ? (
+								<ul className="border-b">
+									<li className="flex items-center gap-2 px-3 py-2.5">
+										<div className="min-w-0 w-0 flex flex-1 items-center gap-2 overflow-hidden">
+											<div className="size-6 rounded-full border grid place-items-center shrink-0">
+												<Icons.gitHub className="size-3.5 p-0" />
 											</div>
-											<div className="text-xs text-muted-foreground truncate">
-												{repo.owner} · {formatDate(repo.updatedAt)}
-												{repo.private ? " · Private" : " · Public"}
+											<div className="min-w-0 w-0 flex-1">
+												<div
+													className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium"
+													title={directImportCandidate}
+												>
+													{directImportCandidate}
+												</div>
+												<div className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted-foreground">
+													Direct import target from URL/owner-repo
+												</div>
 											</div>
 										</div>
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={() =>
+												void importRepository(directImportCandidate)
+											}
+											disabled={isImporting}
+											className="cursor-pointer shrink-0 ml-2"
+										>
+											{isImporting && importingRepo === directImportCandidate
+												? "Importing..."
+												: "Import"}
+										</Button>
+									</li>
+								</ul>
+							) : null}
+							{displayedRepos.length === 0 ? (
+								directImportCandidate ? null : (
+									<div className="h-[260px] grid place-items-center px-3 text-sm text-muted-foreground">
+										No repositories found.
 									</div>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => void importRepository(repo.fullName)}
-										disabled={isImporting}
-										className="cursor-pointer"
-									>
-										{isImporting && importingRepo === repo.fullName
-											? "Importing..."
-											: "Import"}
-									</Button>
-								</li>
-							))}
-						</ul>
+								)
+							) : (
+								<ul>
+									{displayedRepos.map((repo) => (
+										<li
+											key={trimmedQuery ? `query-${repo.id}` : `${repo.id}`}
+											className="flex items-center gap-2 px-3 py-2.5 border-b last:border-b-0"
+										>
+											<div className="min-w-0 w-0 flex flex-1 items-center gap-2 overflow-hidden">
+												<div className="size-6 rounded-full border grid place-items-center shrink-0">
+													<Icons.gitHub className="size-3.5 p-0" />
+												</div>
+												<div className="min-w-0 w-0 flex-1">
+													<div
+														className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium"
+														title={trimmedQuery ? repo.fullName : repo.name}
+													>
+														{trimmedQuery ? repo.fullName : repo.name}
+													</div>
+													<div
+														className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted-foreground"
+														title={`${repo.owner} · ${formatDate(repo.updatedAt)}${repo.private ? " · Private" : " · Public"}`}
+													>
+														{repo.owner} · {formatDate(repo.updatedAt)}
+														{repo.private ? " · Private" : " · Public"}
+													</div>
+												</div>
+											</div>
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => void importRepository(repo.fullName)}
+												disabled={isImporting}
+												className="cursor-pointer shrink-0 ml-2"
+											>
+												{isImporting && importingRepo === repo.fullName
+													? "Importing..."
+													: "Import"}
+											</Button>
+										</li>
+									))}
+								</ul>
+							)}
+						</>
 					)}
 				</ScrollArea>
 			</div>
