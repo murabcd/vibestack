@@ -17,6 +17,10 @@ import {
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import { Message } from "@/components/chat/message";
+import {
+	getLastCompletePart,
+	sliceMessagesThroughPart,
+} from "@/components/chat/stream-persistence";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { useConnectors } from "@/components/connectors-provider";
 import { PromptForm } from "@/components/forms/prompt-form";
@@ -84,6 +88,10 @@ function ProjectChatInner({
 	const hasSentPendingMessage = sentMessageRef ?? localSentRef;
 	const hasInitializedMessages = useRef(false);
 	const previousStatusRef = useRef(status);
+	const statusRef = useRef(status);
+	const lastPersistedCheckpointRef = useRef<string | null>(null);
+	const persistDebounceTimerRef = useRef<number | null>(null);
+	const backgroundPollTimerRef = useRef<number | null>(null);
 
 	const waitForProject = async () => {
 		const maxAttempts = 20;
@@ -107,6 +115,15 @@ function ProjectChatInner({
 		setMessages([]);
 		hasInitializedMessages.current = false;
 		setEditingMessageId(null);
+		lastPersistedCheckpointRef.current = null;
+		if (persistDebounceTimerRef.current) {
+			window.clearTimeout(persistDebounceTimerRef.current);
+			persistDebounceTimerRef.current = null;
+		}
+		if (backgroundPollTimerRef.current) {
+			window.clearInterval(backgroundPollTimerRef.current);
+			backgroundPollTimerRef.current = null;
+		}
 
 		if (!sentMessageRef) {
 			localSentRef.current = false;
@@ -404,8 +421,132 @@ function ProjectChatInner({
 	}, [initialMessages, projectId]);
 
 	useEffect(() => {
+		statusRef.current = status;
 		setChatStatus(status);
 	}, [status, setChatStatus]);
+
+	const persistMessages = useCallback(
+		async (nextMessages: ChatUIMessage[]) => {
+			const response = await fetch(`/api/projects/${projectId}/messages`, {
+				method: "PATCH",
+				keepalive: true,
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ messages: nextMessages }),
+			});
+			if (!response.ok) {
+				throw new Error(`Persist replace failed: ${response.status}`);
+			}
+		},
+		[projectId],
+	);
+
+	useEffect(() => {
+		const checkpoint = getLastCompletePart(messages, status);
+		if (!checkpoint) return;
+		if (checkpoint.key === lastPersistedCheckpointRef.current) return;
+
+		if (persistDebounceTimerRef.current) {
+			window.clearTimeout(persistDebounceTimerRef.current);
+		}
+
+		const persistableMessages = sliceMessagesThroughPart(messages, checkpoint);
+		persistDebounceTimerRef.current = window.setTimeout(() => {
+			void persistMessages(persistableMessages)
+				.then(() => {
+					lastPersistedCheckpointRef.current = checkpoint.key;
+				})
+				.catch(() => {
+					// Best-effort checkpoint persistence; final save still happens server-side.
+				});
+		}, 220);
+
+		return () => {
+			if (persistDebounceTimerRef.current) {
+				window.clearTimeout(persistDebounceTimerRef.current);
+				persistDebounceTimerRef.current = null;
+			}
+		};
+	}, [messages, persistMessages, status]);
+
+	const refreshMessagesFromServer = useCallback(async () => {
+		const response = await fetch(`/api/projects/${projectId}/messages`, {
+			cache: "no-store",
+		});
+		if (!response.ok) {
+			throw new Error(`Refresh messages failed: ${response.status}`);
+		}
+		const payload = (await response.json()) as {
+			messages?: Array<{ content?: ChatUIMessage }>;
+		};
+		const serverMessages = Array.isArray(payload.messages)
+			? payload.messages
+					.map((entry) => entry?.content)
+					.filter((message): message is ChatUIMessage =>
+						Boolean(message && typeof message === "object"),
+					)
+			: [];
+		setMessages(serverMessages);
+		lastPersistedCheckpointRef.current = null;
+	}, [projectId, setMessages]);
+
+	const checkLatestRun = useCallback(async (): Promise<
+		"queued" | "processing" | "completed" | "error" | null
+	> => {
+		const response = await fetch(`/api/projects/${projectId}/runs/latest`, {
+			cache: "no-store",
+		});
+		if (!response.ok) return null;
+
+		const payload = (await response.json()) as {
+			run?: { status?: "queued" | "processing" | "completed" | "error" };
+		};
+		return payload.run?.status ?? null;
+	}, [projectId]);
+
+	useEffect(() => {
+		let cancelled = false;
+		const stopPolling = () => {
+			if (backgroundPollTimerRef.current) {
+				window.clearInterval(backgroundPollTimerRef.current);
+				backgroundPollTimerRef.current = null;
+			}
+		};
+
+		const pollLatestRun = async () => {
+			try {
+				const latestStatus = await checkLatestRun();
+				if (cancelled) return;
+
+				if (latestStatus === "queued" || latestStatus === "processing") {
+					if (!backgroundPollTimerRef.current) {
+						backgroundPollTimerRef.current = window.setInterval(() => {
+							void pollLatestRun();
+						}, 3000);
+					}
+					return;
+				}
+
+				stopPolling();
+				if (
+					(latestStatus === "completed" || latestStatus === "error") &&
+					statusRef.current !== "streaming" &&
+					statusRef.current !== "submitted"
+				) {
+					await refreshMessagesFromServer();
+				}
+			} catch {
+				// Ignore background run polling failures.
+			}
+		};
+
+		void pollLatestRun();
+		return () => {
+			cancelled = true;
+			stopPolling();
+		};
+	}, [checkLatestRun, refreshMessagesFromServer]);
 
 	useEffect(() => {
 		const previousStatus = previousStatusRef.current;

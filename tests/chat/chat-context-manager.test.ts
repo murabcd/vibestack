@@ -113,4 +113,39 @@ describe("ChatContextManager", () => {
 		expect(prepared.collapsedMessagesByBudget).toBeGreaterThan(0);
 		expect(prepared.messages.length).toBeLessThan(messages.length);
 	});
+
+	it("keeps root-level config files in relevant paths", () => {
+		const manager = new ChatContextManager();
+		const messages: ChatUIMessage[] = [
+			msg("u1", "user", "set up scripts"),
+			{
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "data-task-coding-v1",
+						data: {
+							taskNameActive: "Generating files",
+							taskNameComplete: "Files generated",
+							status: "done",
+							parts: [
+								{
+									type: "generated-files-complete",
+									paths: ["package.json", "tsconfig.json"],
+								},
+							],
+						},
+					},
+				],
+			} as unknown as ChatUIMessage,
+		];
+
+		const prepared = manager.prepareContext(messages, {
+			maxContextChars: 5000,
+			minMessagesAfterCollapse: 1,
+		});
+
+		expect(prepared.relevantPaths).toContain("package.json");
+		expect(prepared.relevantPaths).toContain("tsconfig.json");
+	});
 });

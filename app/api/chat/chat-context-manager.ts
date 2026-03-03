@@ -1,6 +1,22 @@
 import type { ChatUIMessage } from "@/components/chat/types";
 
 const MAX_RELEVANT_PATHS = 24;
+const ROOT_PATH_ALLOWLIST = new Set([
+	"package.json",
+	"pnpm-lock.yaml",
+	"bun.lock",
+	"yarn.lock",
+	"package-lock.json",
+	"next.config.js",
+	"next.config.mjs",
+	"next.config.ts",
+	"tsconfig.json",
+	"tailwind.config.js",
+	"tailwind.config.ts",
+	"postcss.config.js",
+	"postcss.config.mjs",
+	"README.md",
+]);
 
 export interface ChatContextPreparationOptions {
 	maxContextChars: number;
@@ -89,30 +105,39 @@ export class ChatContextManager {
 	}
 
 	private collectRelevantPaths(messages: ChatUIMessage[]): string[] {
-		const paths: string[] = [];
-		const seen = new Set<string>();
+		const scores = new Map<string, number>();
 
 		for (let i = messages.length - 1; i >= 0; i -= 1) {
 			const message = messages[i];
-			let messageScore = i + 1;
+			let messageScore = (i + 1) * 10;
 			if (message.role === "assistant") {
 				messageScore += 1000;
 			}
-			for (const part of message.parts) {
+			for (
+				let partIndex = 0;
+				partIndex < message.parts.length;
+				partIndex += 1
+			) {
+				const part = message.parts[partIndex];
+				const score = messageScore + (message.parts.length - partIndex);
 				if (part.type === "data-task-coding-v1") {
 					for (const taskPart of part.data.parts) {
-						collectPathsFromUnknown(taskPart, paths, seen, messageScore);
-						if (paths.length >= MAX_RELEVANT_PATHS) break;
+						collectPathsFromUnknown(taskPart, scores, score);
 					}
 				} else {
-					collectPathsFromUnknown(part, paths, seen, messageScore);
+					collectPathsFromUnknown(part, scores, score);
 				}
-				if (paths.length >= MAX_RELEVANT_PATHS) break;
 			}
-			if (paths.length >= MAX_RELEVANT_PATHS) break;
 		}
 
-		return paths;
+		return [...scores.entries()]
+			.sort((a, b) => {
+				if (b[1] !== a[1]) return b[1] - a[1];
+				if (a[0].length !== b[0].length) return a[0].length - b[0].length;
+				return a[0].localeCompare(b[0]);
+			})
+			.slice(0, MAX_RELEVANT_PATHS)
+			.map(([path]) => path);
 	}
 
 	private injectRelevantPathsMessage(
@@ -154,31 +179,34 @@ export class ChatContextManager {
 
 function collectPathsFromUnknown(
 	value: unknown,
-	paths: string[],
-	seen: Set<string>,
+	scores: Map<string, number>,
 	score: number,
 ): void {
-	if (paths.length >= MAX_RELEVANT_PATHS) return;
-
 	if (typeof value === "string") {
-		pushPath(value, paths, seen);
+		pushPath(value, scores, score);
 		return;
 	}
 
 	if (Array.isArray(value)) {
 		for (const item of value) {
-			collectPathsFromUnknown(item, paths, seen, score);
-			if (paths.length >= MAX_RELEVANT_PATHS) break;
+			collectPathsFromUnknown(item, scores, score);
 		}
 		return;
 	}
 
 	if (value && typeof value === "object") {
 		const record = value as Record<string, unknown>;
-		for (const key of ["path", "filePath", "filename"]) {
+		for (const key of [
+			"path",
+			"filePath",
+			"filename",
+			"target",
+			"from",
+			"to",
+		]) {
 			const candidate = record[key];
 			if (typeof candidate === "string") {
-				pushPath(candidate, paths, seen);
+				pushPath(candidate, scores, score);
 			}
 		}
 
@@ -186,28 +214,67 @@ function collectPathsFromUnknown(
 		if (Array.isArray(listCandidate)) {
 			for (const item of listCandidate) {
 				if (typeof item === "string") {
-					pushPath(item, paths, seen);
+					pushPath(item, scores, score);
 				}
 			}
 		}
+
+		const filesCandidate = record.files;
+		if (Array.isArray(filesCandidate)) {
+			for (const item of filesCandidate) {
+				collectPathsFromUnknown(item, scores, score);
+			}
+		}
 	}
-	void score;
 }
 
-function pushPath(path: string, paths: string[], seen: Set<string>): void {
-	if (paths.length >= MAX_RELEVANT_PATHS) return;
-	const cleaned = path.trim();
+function pushPath(
+	path: string,
+	scores: Map<string, number>,
+	score: number,
+): void {
+	const normalized = normalizePath(path);
+	if (!normalized || !isLikelyProjectPath(normalized)) return;
+	const previousScore = scores.get(normalized) ?? 0;
+	if (score > previousScore) {
+		scores.set(normalized, score);
+	}
+}
+
+function normalizePath(path: string): string {
+	let cleaned = path
+		.trim()
+		.replaceAll("`", "")
+		.replaceAll('"', "")
+		.replaceAll("'", "");
+
+	cleaned = cleaned.replace(/^\/vercel\/sandbox\/?/, "");
+	cleaned = cleaned.replace(/^\.\//, "");
+	cleaned = cleaned.replace(/^\/+/, "");
+	cleaned = cleaned.replace(/\/+$/, "");
+	return cleaned;
+}
+
+function isLikelyProjectPath(cleaned: string): boolean {
 	if (
 		!cleaned ||
 		cleaned.startsWith("...and ") ||
 		cleaned.startsWith("Error:") ||
-		!cleaned.includes("/")
+		cleaned.startsWith("http://") ||
+		cleaned.startsWith("https://")
 	) {
-		return;
+		return false;
 	}
-	if (seen.has(cleaned)) return;
-	seen.add(cleaned);
-	paths.push(cleaned);
+	if (cleaned.includes("..")) {
+		return false;
+	}
+	if (cleaned.includes("/")) {
+		return true;
+	}
+	if (ROOT_PATH_ALLOWLIST.has(cleaned)) {
+		return true;
+	}
+	return /\.[a-z0-9]+$/i.test(cleaned);
 }
 
 function findLastUserMessageIndex(messages: ChatUIMessage[]): number {
