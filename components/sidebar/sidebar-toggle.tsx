@@ -1,4 +1,4 @@
-import { Plus, TextAlignJustify } from "lucide-react";
+import { PanelLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -29,7 +29,7 @@ export function SidebarToggle() {
 						variant="outline"
 						className="cursor-pointer md:size-8"
 					>
-						<TextAlignJustify className="w-4 h-4" />
+						<PanelLeft className="w-4 h-4" />
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent align="start">
