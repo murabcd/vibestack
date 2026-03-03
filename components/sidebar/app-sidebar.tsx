@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, TextSearch } from "lucide-react";
+import { Plus, Star, TextSearch } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -176,6 +176,31 @@ export const AppSidebar = () => {
 					)}
 				</SidebarContent>
 				<SidebarFooter>
+					<div className="mx-2 mb-2 rounded-xl border border-border bg-muted/40 p-3 text-foreground">
+						<p className="text-sm font-medium">Open Source & Free</p>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Give it a star if you find this useful.
+						</p>
+						<Button
+							asChild
+							size="sm"
+							variant="outline"
+							className="group/star-btn mt-3 h-8 w-full px-3 text-xs"
+						>
+							<a
+								href="https://github.com/murabcd/vibestack"
+								target="_blank"
+								rel="noreferrer"
+								onClick={() => {
+									selection();
+									setOpenMobile(false);
+								}}
+							>
+								<Star className="h-3.5 w-3.5 fill-transparent transition-colors group-hover/star-btn:fill-amber-400 group-hover/star-btn:text-amber-400" />
+								Star on GitHub
+							</a>
+						</Button>
+					</div>
 					{session ? <SidebarUserNav /> : <SignIn />}
 				</SidebarFooter>
 			</Sidebar>
