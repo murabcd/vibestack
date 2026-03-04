@@ -129,11 +129,11 @@ export async function POST(request: NextRequest) {
 			...config,
 			timeout: 30 * 60 * 1000,
 			ports: [3000],
+			env: {
+				GITHUB_TOKEN_ENCODED: encodeURIComponent(oauth.accessToken),
+			},
 		});
 
-		const cloneUrl = `https://x-access-token:${encodeURIComponent(
-			oauth.accessToken,
-		)}@github.com/${resolved.owner}/${resolved.repo}.git`;
 		const sanitizedRemote = `https://github.com/${resolved.owner}/${resolved.repo}.git`;
 		const importScript = `
 set -e
@@ -144,7 +144,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-git clone --depth=1 ${shellEscape(cloneUrl)} "$TMP_DIR/repo" >/dev/null 2>&1
+git clone --depth=1 "https://x-access-token:\${GITHUB_TOKEN_ENCODED}@github.com/${resolved.owner}/${resolved.repo}.git" "$TMP_DIR/repo" >/dev/null 2>&1
 
 find "$ROOT_DIR" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 cp -R "$TMP_DIR/repo"/. "$ROOT_DIR"/

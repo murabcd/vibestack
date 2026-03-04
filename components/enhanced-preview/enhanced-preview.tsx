@@ -95,7 +95,7 @@ export function EnhancedPreview({ className }: Props) {
 
 	return (
 		<Panel className={cn(className, "flex flex-col min-h-0")}>
-			<PanelHeader className="h-10 min-h-10 text-xs px-2 flex items-center gap-2 overflow-x-auto">
+			<PanelHeader className="h-10 min-h-10 text-xs px-2 flex items-center gap-2 overflow-x-auto overflow-y-hidden">
 				<TooltipProvider delayDuration={120}>
 					<Tabs value={activeTab} onValueChange={setActiveTab}>
 						<TabsList className="h-8 bg-transparent border-0 rounded-none p-0 gap-1">
