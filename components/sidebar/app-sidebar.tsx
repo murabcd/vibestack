@@ -11,6 +11,13 @@ import { ChatSearchCommand } from "@/components/sidebar/chat-search-command";
 import { SidebarHistory } from "@/components/sidebar/sidebar-history";
 import { SidebarUserNav } from "@/components/sidebar/sidebar-user-nav";
 import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Kbd } from "@/components/ui/kbd";
 import {
 	Sidebar,
@@ -176,31 +183,35 @@ export const AppSidebar = () => {
 					)}
 				</SidebarContent>
 				<SidebarFooter>
-					<div className="mx-2 mb-2 rounded-xl border border-border bg-muted/40 p-3 text-foreground">
-						<p className="text-sm font-medium">Open Source & Free</p>
-						<p className="mt-1 text-xs text-muted-foreground">
-							Give it a star if you find this useful.
-						</p>
-						<Button
-							asChild
-							size="sm"
-							variant="outline"
-							className="group/star-btn mt-3 h-8 w-full px-3 text-xs"
-						>
-							<a
-								href="https://github.com/murabcd/vibestack"
-								target="_blank"
-								rel="noreferrer"
-								onClick={() => {
-									selection();
-									setOpenMobile(false);
-								}}
+					<Card className="mx-2 mb-2 gap-0 bg-muted/40 py-0">
+						<CardHeader className="gap-0.5 p-3 pb-0.5">
+							<CardTitle className="text-sm">Open Source and Free</CardTitle>
+							<CardDescription className="text-xs leading-snug">
+								Give it a star if you find this useful.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="p-3 pt-1.5">
+							<Button
+								asChild
+								size="sm"
+								variant="outline"
+								className="group/star-btn h-8 w-full px-3 text-xs"
 							>
-								<Star className="h-3.5 w-3.5 fill-transparent transition-colors group-hover/star-btn:fill-amber-400 group-hover/star-btn:text-amber-400" />
-								Star on GitHub
-							</a>
-						</Button>
-					</div>
+								<a
+									href="https://github.com/murabcd/vibestack"
+									target="_blank"
+									rel="noreferrer"
+									onClick={() => {
+										selection();
+										setOpenMobile(false);
+									}}
+								>
+									<Star className="h-3.5 w-3.5 fill-transparent transition-colors group-hover/star-btn:fill-amber-400 group-hover/star-btn:text-amber-400" />
+									Star on GitHub
+								</a>
+							</Button>
+						</CardContent>
+					</Card>
 					{session ? <SidebarUserNav /> : <SignIn />}
 				</SidebarFooter>
 			</Sidebar>
