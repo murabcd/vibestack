@@ -16,6 +16,7 @@ import {
 import { McpButton } from "@/components/connectors/mcp-button";
 import { ImportFromGithubDialog } from "@/components/forms/import-from-github-dialog";
 import { ModelSelector } from "@/components/model-selector/model-selector";
+import { PermissionModeSelector } from "@/components/settings/permission-mode-selector";
 import { Settings } from "@/components/settings/settings";
 import { useSettings } from "@/components/settings/use-settings";
 import { TaskOptions } from "@/components/task-options/task-options";
@@ -56,6 +57,7 @@ interface PromptFormProps {
 	enableGithubImport?: boolean;
 	editingMessageId?: string | null;
 	onCancelEdit?: () => void;
+	showPermissionModeSelector?: boolean;
 }
 
 export const PromptForm = memo(function PromptForm({
@@ -71,11 +73,10 @@ export const PromptForm = memo(function PromptForm({
 	enableGithubImport = false,
 	editingMessageId = null,
 	onCancelEdit,
+	showPermissionModeSelector = false,
 }: PromptFormProps) {
-	const { modelId, setModelId } = useSettings(
-		initialSandboxDuration,
-		initialModelId,
-	);
+	const { modelId, setModelId, permissionMode, setPermissionMode } =
+		useSettings(initialSandboxDuration, initialModelId);
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
 	const [isImportGithubOpen, setIsImportGithubOpen] = useState(false);
@@ -240,6 +241,15 @@ export const PromptForm = memo(function PromptForm({
 					/>
 				</PromptInputFooter>
 			</PromptInput>
+			{showPermissionModeSelector && (
+				<div className="mt-2 flex items-center gap-1">
+					<PermissionModeSelector
+						value={permissionMode}
+						onValueChange={setPermissionMode}
+					/>
+					<div className="flex-1" />
+				</div>
+			)}
 			{enableGithubImport && (
 				<ImportFromGithubDialog
 					open={isImportGithubOpen}

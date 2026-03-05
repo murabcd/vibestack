@@ -4,6 +4,7 @@ export interface ToolContext {
 	projectId?: string;
 	userId?: string;
 	sandboxDuration?: number;
+	permissionMode?: "ask-permissions" | "auto-accept-edits";
 	allowNewSandboxCreation?: boolean;
 	getActiveSandboxId?: () => string | null;
 	setActiveSandboxId?: (sandboxId: string) => void;

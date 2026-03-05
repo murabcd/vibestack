@@ -10,6 +10,10 @@ import {
 	isInstallCommand,
 	normalizePackageJsonForInstall,
 } from "./run-command-install-preflight";
+import {
+	getCommandValidationError,
+	needsCommandApproval,
+} from "./run-command-validation";
 import { getSandboxCredentials } from "./sandbox-env";
 import {
 	type CodingTaskEmitter,
@@ -56,6 +60,9 @@ export const runCommand = ({ writer, context }: Params) =>
 					"Whether to wait for the command to finish before returning. If true, the command will block until it completes, and you will receive its output.",
 				),
 		}),
+		needsApproval: ({ command, args = [] }) =>
+			context?.permissionMode !== "auto-accept-edits" &&
+			needsCommandApproval(command, args),
 		execute: async (
 			{ sandboxId, command, sudo, wait, args = [] },
 			{ toolCallId },
@@ -82,7 +89,7 @@ export const runCommand = ({ writer, context }: Params) =>
 				return message;
 			}
 
-			const commandValidationError = getCommandValidationError(command);
+			const commandValidationError = getCommandValidationError(command, args);
 			if (commandValidationError) {
 				task.error([
 					{
@@ -339,20 +346,6 @@ function summarizeOutput(output: string): {
 		)}`,
 		truncatedChars: truncatedLength,
 	};
-}
-
-function getCommandValidationError(command: string): string | null {
-	const trimmed = command.trim();
-	if (!trimmed) {
-		return "Command cannot be empty.";
-	}
-	if (/\s/.test(trimmed)) {
-		return "Command must be a single executable without spaces. Put flags in args.";
-	}
-	if (/[|;&`$()<>]/.test(trimmed)) {
-		return "Command contains unsupported shell control characters.";
-	}
-	return null;
 }
 
 async function hardenPackageJsonForInstall(args: {

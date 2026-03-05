@@ -43,6 +43,7 @@ export function InitialScreen({
 							initialSandboxDuration={initialSandboxDuration}
 							initialModelId={initialModelId}
 							enableGithubImport
+							showPermissionModeSelector
 						/>
 					</PromptInputProvider>
 				</div>

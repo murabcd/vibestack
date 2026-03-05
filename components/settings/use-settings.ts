@@ -6,6 +6,8 @@ import {
 	MAX_SANDBOX_DURATION,
 } from "@/lib/constants";
 
+export type PermissionMode = "ask-permissions" | "auto-accept-edits";
+
 export function useSettings(
 	initialSandboxDuration?: number,
 	initialModelId?: string,
@@ -14,7 +16,16 @@ export function useSettings(
 	const [fixErrors] = useFixErrors();
 	const [reasoningEffort] = useReasoningEffort();
 	const [sandboxDuration] = useSandboxDuration(initialSandboxDuration);
-	return { modelId, setModelId, fixErrors, reasoningEffort, sandboxDuration };
+	const [permissionMode, setPermissionMode] = usePermissionMode();
+	return {
+		modelId,
+		setModelId,
+		fixErrors,
+		reasoningEffort,
+		sandboxDuration,
+		permissionMode,
+		setPermissionMode,
+	};
 }
 
 export function useModelId(initialModelId?: string) {
@@ -53,4 +64,24 @@ export function useSandboxDuration(initialValue?: number) {
 	const [sandboxDuration, setSandboxDuration] =
 		useState<number>(clampedInitialValue);
 	return [sandboxDuration, setSandboxDuration] as const;
+}
+
+export function usePermissionMode() {
+	const [permissionMode, setPermissionMode] =
+		useState<PermissionMode>("ask-permissions");
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const raw = window.localStorage.getItem("permission-mode");
+		if (raw === "ask-permissions" || raw === "auto-accept-edits") {
+			setPermissionMode(raw);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem("permission-mode", permissionMode);
+	}, [permissionMode]);
+
+	return [permissionMode, setPermissionMode] as const;
 }

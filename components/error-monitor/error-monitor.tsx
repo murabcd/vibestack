@@ -26,7 +26,7 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 	const [pending, startTransition] = useTransition();
 	const { cursor, scheduled, setCursor, setScheduled } = useMonitorState();
 	const { errors } = useCommandErrorsLogs();
-	const { fixErrors, modelId, reasoningEffort } = useSettings();
+	const { fixErrors, modelId, reasoningEffort, permissionMode } = useSettings();
 	const { chat } = useSharedChatContext();
 	const { sendMessage, status: chatStatus, messages } = useChat({ chat });
 	const pathname = usePathname();
@@ -97,6 +97,7 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 							body: {
 								modelId,
 								reasoningEffort,
+								permissionMode,
 								projectId: activeProjectId,
 							},
 						},
@@ -104,7 +105,7 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 				}
 			});
 		},
-		[activeProjectId, modelId, reasoningEffort, sendMessage],
+		[activeProjectId, modelId, permissionMode, reasoningEffort, sendMessage],
 	);
 
 	useEffect(() => {
