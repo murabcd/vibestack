@@ -87,14 +87,23 @@ export const useSandboxStore = create<SandboxStore>()((set) => ({
 			state.chatStatus === status ? state : { chatStatus: status },
 		),
 	setSandboxId: (sandboxId) =>
-		set(() => ({
-			sandboxId,
-			status: "running",
-			commands: [],
-			paths: [],
-			url: undefined,
-			generatedFiles: new Set<string>(),
-		})),
+		set((state) => {
+			if (state.sandboxId === sandboxId) {
+				return {
+					sandboxId,
+					status: "running",
+				};
+			}
+
+			return {
+				sandboxId,
+				status: "running",
+				commands: [],
+				paths: [],
+				url: undefined,
+				generatedFiles: new Set<string>(),
+			};
+		}),
 	setStatus: (status) => set(() => ({ status })),
 	setUrl: (url, urlUUID) => set(() => ({ url, urlUUID })),
 	upsertCommand: (cmd) => {

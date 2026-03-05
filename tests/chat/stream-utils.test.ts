@@ -114,7 +114,7 @@ describe("chat stream utils", () => {
 		expect(helperText).toContain("Path: app/page.tsx");
 	});
 
-	it("compacts old reasoning parts while keeping recent content", () => {
+	it("preserves old reasoning parts while keeping recent content", () => {
 		const messages: ChatUIMessage[] = Array.from({ length: 10 }).map(
 			(_, index) =>
 				({
@@ -133,9 +133,9 @@ describe("chat stream utils", () => {
 		const { messages: compacted, stats } = compactMessagesForModel(messages);
 		const firstParts = compacted[0].parts;
 
-		expect(firstParts.some((part) => part.type === "reasoning")).toBe(false);
+		expect(firstParts.some((part) => part.type === "reasoning")).toBe(true);
 		expect(firstParts.some((part) => part.type === "text")).toBe(true);
-		expect(stats.droppedReasoningParts).toBe(1);
+		expect(stats.droppedReasoningParts).toBe(0);
 	});
 
 	it("reconciles incomplete task parts from interrupted streams", () => {
@@ -145,15 +145,6 @@ describe("chat stream utils", () => {
 				id: "a1",
 				role: "assistant",
 				parts: [
-					{
-						type: "data-task-thinking-v1",
-						data: {
-							taskNameActive: "Thought for 3s",
-							taskNameComplete: "Thought for 3s",
-							status: "loading",
-							parts: [{ type: "thinking-step", stepNumber: 1 }],
-						},
-					},
 					{
 						type: "data-task-coding-v1",
 						data: {
@@ -168,22 +159,12 @@ describe("chat stream utils", () => {
 		];
 
 		const reconciled = reconcileIncompleteTaskMessages(messages);
-		expect(reconciled.stats.reconciledThinkingTasks).toBe(1);
 		expect(reconciled.stats.reconciledCodingTasks).toBe(1);
 
 		const assistant = reconciled.messages[1];
-		const thinkingPart = assistant.parts.find(
-			(part) => part.type === "data-task-thinking-v1",
-		);
 		const codingPart = assistant.parts.find(
 			(part) => part.type === "data-task-coding-v1",
 		);
-		expect(thinkingPart?.type).toBe("data-task-thinking-v1");
-		expect(
-			thinkingPart?.type === "data-task-thinking-v1"
-				? thinkingPart.data.status
-				: "",
-		).toBe("done");
 		expect(codingPart?.type).toBe("data-task-coding-v1");
 		expect(
 			codingPart?.type === "data-task-coding-v1" ? codingPart.data.status : "",

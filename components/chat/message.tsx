@@ -3,12 +3,19 @@ import { createContext, memo, useContext, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { MessagePart } from "./message-part";
 import { ImageDisplay } from "./message-part/image-display";
+import type { ChatStreamStatus } from "./stream-persistence";
 import type { ChatUIMessage } from "./types";
 
 interface Props {
 	message: ChatUIMessage;
+	streamStatus: ChatStreamStatus;
 	onEditMessage?: (messageId: string, text: string) => void;
 	onDeleteMessage?: (messageId: string) => void;
+	addToolApprovalResponse?: (payload: {
+		id: string;
+		approved: boolean;
+		reason?: string;
+	}) => void | PromiseLike<void>;
 }
 
 interface ReasoningContextType {
@@ -25,8 +32,10 @@ export const useReasoningContext = () => {
 
 export const Message = memo(function Message({
 	message,
+	streamStatus,
 	onEditMessage,
 	onDeleteMessage,
+	addToolApprovalResponse,
 }: Props) {
 	const [expandedReasoningIndex, setExpandedReasoningIndex] = useState<
 		number | null
@@ -42,6 +51,7 @@ export const Message = memo(function Message({
 	const hasToolOrTaskPart = visibleParts.some(
 		(part) =>
 			part.type === "dynamic-tool" ||
+			part.type.startsWith("tool-") ||
 			part.type === "reasoning" ||
 			part.type.startsWith("data-"),
 	);
@@ -52,9 +62,16 @@ export const Message = memo(function Message({
 
 	useEffect(() => {
 		if (reasoningParts.length > 0) {
-			const latestReasoningIndex =
+			const latestReasoningWithText = [...reasoningParts]
+				.reverse()
+				.find(
+					({ part }) =>
+						part.type === "reasoning" && Boolean(part.text?.trim().length),
+				);
+			const nextExpandedIndex =
+				latestReasoningWithText?.index ??
 				reasoningParts[reasoningParts.length - 1].index;
-			setExpandedReasoningIndex(latestReasoningIndex);
+			setExpandedReasoningIndex(nextExpandedIndex);
 		}
 	}, [reasoningParts]);
 
@@ -79,9 +96,11 @@ export const Message = memo(function Message({
 					>
 						{renderVisibleParts({
 							message,
+							streamStatus,
 							visibleParts,
 							onDeleteMessage,
 							onEditMessage,
+							addToolApprovalResponse,
 						})}
 					</div>
 				</div>
@@ -93,10 +112,10 @@ export const Message = memo(function Message({
 function isAssistantTaskPart(part: ChatUIMessage["parts"][number]): boolean {
 	return (
 		part.type === "text" ||
-		part.type === "data-task-thinking-v1" ||
 		part.type === "data-task-coding-v1" ||
 		part.type === "data-report-errors" ||
-		part.type === "reasoning"
+		part.type === "reasoning" ||
+		part.type === "tool-runCommand"
 	);
 }
 
@@ -192,10 +211,7 @@ function getDataPartSignature(
 ): string | null {
 	if (!part.type.startsWith("data-")) return null;
 
-	if (
-		part.type === "data-task-thinking-v1" ||
-		part.type === "data-task-coding-v1"
-	) {
+	if (part.type === "data-task-coding-v1") {
 		return `${part.type}:${part.data.status}:${part.data.taskNameActive ?? ""}:${part.data.taskNameComplete ?? ""}:${JSON.stringify(part.data.parts)}`;
 	}
 
@@ -208,14 +224,22 @@ function getDataPartSignature(
 
 function renderVisibleParts({
 	message,
+	streamStatus,
 	visibleParts,
 	onEditMessage,
 	onDeleteMessage,
+	addToolApprovalResponse,
 }: {
 	message: ChatUIMessage;
+	streamStatus: ChatStreamStatus;
 	visibleParts: ChatUIMessage["parts"];
 	onEditMessage?: (messageId: string, text: string) => void;
 	onDeleteMessage?: (messageId: string) => void;
+	addToolApprovalResponse?: (payload: {
+		id: string;
+		approved: boolean;
+		reason?: string;
+	}) => void | PromiseLike<void>;
 }) {
 	const nodes: ReactNode[] = [];
 
@@ -257,8 +281,11 @@ function renderVisibleParts({
 				key={`${message.role}-${part.type}-${index}`}
 				messageId={message.id}
 				messageRole={message.role as "user" | "assistant"}
+				streamStatus={streamStatus}
+				isLastPart={index === visibleParts.length - 1}
 				onDeleteMessage={onDeleteMessage}
 				onEditMessage={onEditMessage}
+				addToolApprovalResponse={addToolApprovalResponse}
 				part={part}
 				partIndex={index}
 			/>,

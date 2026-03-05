@@ -1,7 +1,10 @@
 "use client";
 
 import { Chat } from "@ai-sdk/react";
-import type { DataUIPart } from "ai";
+import {
+	type DataUIPart,
+	lastAssistantMessageIsCompleteWithApprovalResponses,
+} from "ai";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -61,6 +64,17 @@ function getChatErrorToast(error: Error): string {
 	return "Failed to send message. Please try again.";
 }
 
+function isExpectedChatTermination(error: Error): boolean {
+	const name = error.name.toLowerCase();
+	const message = error.message.toLowerCase();
+	return (
+		name === "aborterror" ||
+		message === "terminated" ||
+		message.includes("aborted") ||
+		message.includes("signal is aborted")
+	);
+}
+
 export function ChatProvider({ children }: { children: ReactNode }) {
 	const mapDataToState = useDataStateMapper();
 	const mapDataToStateRef = useRef(mapDataToState);
@@ -71,7 +85,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 			new Chat<ChatUIMessage>({
 				onToolCall: () => mutate("/api/auth/info"),
 				onData: (data: DataUIPart<DataPart>) => mapDataToStateRef.current(data),
+				sendAutomaticallyWhen:
+					lastAssistantMessageIsCompleteWithApprovalResponses,
 				onError: (error) => {
+					if (isExpectedChatTermination(error)) {
+						logger.info({
+							event: "chat.client.send.terminated",
+							error: {
+								name: error.name,
+								message: error.message,
+							},
+						});
+						return;
+					}
 					toast.error(getChatErrorToast(error));
 					logger.error({
 						event: "chat.client.send.failed",

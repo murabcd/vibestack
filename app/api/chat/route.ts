@@ -78,6 +78,7 @@ interface BodyData {
 	messages: ChatUIMessage[];
 	modelId?: string;
 	reasoningEffort?: "low" | "medium" | "high";
+	permissionMode?: "ask-permissions" | "auto-accept-edits";
 	projectId?: string;
 	sandboxDuration?: number;
 	mcpServerIds?: string[];
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
 		messages,
 		modelId = DEFAULT_MODEL,
 		reasoningEffort = "medium",
+		permissionMode = "ask-permissions",
 		projectId,
 		sandboxDuration,
 		mcpServerIds,
@@ -149,20 +151,16 @@ export async function POST(req: NextRequest) {
 
 	const reconciledIncoming = reconcileIncompleteTaskMessages(validatedMessages);
 	validatedMessages = reconciledIncoming.messages;
-	if (
-		reconciledIncoming.stats.reconciledCodingTasks > 0 ||
-		reconciledIncoming.stats.reconciledThinkingTasks > 0
-	) {
+	if (reconciledIncoming.stats.reconciledCodingTasks > 0) {
 		wide.add({
 			reconciled_incoming_coding_tasks:
 				reconciledIncoming.stats.reconciledCodingTasks,
-			reconciled_incoming_thinking_tasks:
-				reconciledIncoming.stats.reconciledThinkingTasks,
 		});
 	}
 
 	wide.add({
 		model_id: modelId,
+		permission_mode: permissionMode,
 		project_id: projectId,
 		message_count: validatedMessages.length,
 		mcp_server_ids_count: mcpServerIds?.length ?? 0,
@@ -407,7 +405,6 @@ export async function POST(req: NextRequest) {
 		stream: createUIMessageStream({
 			originalMessages: validatedMessages,
 			execute: async ({ writer }) => {
-				const requestStartedAt = Date.now();
 				// Initialize MCP clients and collect tools
 				const mcpClients: Array<
 					Awaited<ReturnType<typeof experimental_createMCPClient>>
@@ -587,6 +584,7 @@ export async function POST(req: NextRequest) {
 					projectId: projectId ?? undefined,
 					userId: project?.userId ?? undefined,
 					sandboxDuration,
+					permissionMode,
 					allowNewSandboxCreation,
 					getActiveSandboxId: () => activeSandboxId,
 					setActiveSandboxId: (sandboxId: string) => {
@@ -753,8 +751,6 @@ export async function POST(req: NextRequest) {
 				}
 
 				let mcpClientsClosed = false;
-				let thinkingStarted = false;
-				let thinkingCompleted = false;
 				const stepStartedAt = new Map<number, number>();
 				let stepCount = 0;
 				let stepTotalDurationMs = 0;
@@ -773,56 +769,11 @@ export async function POST(req: NextRequest) {
 
 				const agent = new ToolLoopAgent({
 					...getModelOptions(modelId, { reasoningEffort }),
-					instructions: prompt,
+					instructions: buildAgentInstructions(prompt, validatedMessages),
 					stopWhen: stepCountIs(16),
 					tools: toolsDisabledFromRepeatedErrors ? {} : allTools,
 					experimental_onStepStart: ({ stepNumber }) => {
 						stepStartedAt.set(stepNumber, Date.now());
-						if (thinkingCompleted) return;
-						thinkingStarted = true;
-						const elapsedSeconds = Math.max(
-							1,
-							Math.round((Date.now() - requestStartedAt) / 1000),
-						);
-						writer.write({
-							id: "thinking-main",
-							type: "data-task-thinking-v1",
-							data: {
-								taskNameActive: `Thought for ${elapsedSeconds}s`,
-								taskNameComplete: `Thought for ${elapsedSeconds}s`,
-								status: "loading",
-								parts: [
-									{
-										type: "thinking-step",
-										stepNumber: stepNumber + 1,
-										elapsedMs: Date.now() - requestStartedAt,
-									},
-								],
-							},
-						});
-					},
-					experimental_onToolCallStart: () => {
-						if (!thinkingStarted || thinkingCompleted) return;
-						const elapsedSeconds = Math.max(
-							1,
-							Math.round((Date.now() - requestStartedAt) / 1000),
-						);
-						writer.write({
-							id: "thinking-main",
-							type: "data-task-thinking-v1",
-							data: {
-								taskNameActive: `Thought for ${elapsedSeconds}s`,
-								taskNameComplete: `Thought for ${elapsedSeconds}s`,
-								status: "done",
-								parts: [
-									{
-										type: "thinking-complete",
-										elapsedMs: Date.now() - requestStartedAt,
-									},
-								],
-							},
-						});
-						thinkingCompleted = true;
 					},
 					onStepFinish: ({ stepNumber, usage }) => {
 						const startedAt = stepStartedAt.get(stepNumber);
@@ -834,28 +785,6 @@ export async function POST(req: NextRequest) {
 						stepTotalOutputTokens += usage.outputTokens ?? 0;
 					},
 					onFinish: async () => {
-						if (thinkingStarted && !thinkingCompleted) {
-							const elapsedSeconds = Math.max(
-								1,
-								Math.round((Date.now() - requestStartedAt) / 1000),
-							);
-							writer.write({
-								id: "thinking-main",
-								type: "data-task-thinking-v1",
-								data: {
-									taskNameActive: `Thought for ${elapsedSeconds}s`,
-									taskNameComplete: `Thought for ${elapsedSeconds}s`,
-									status: "done",
-									parts: [
-										{
-											type: "thinking-complete",
-											elapsedMs: Date.now() - requestStartedAt,
-										},
-									],
-								},
-							});
-							thinkingCompleted = true;
-						}
 						wide.add({
 							agent_step_count: stepCount,
 							agent_step_total_duration_ms: stepTotalDurationMs,
@@ -889,7 +818,6 @@ export async function POST(req: NextRequest) {
 
 				writer.merge(
 					result.toUIMessageStream({
-						sendReasoning: true,
 						sendStart: false,
 						messageMetadata: ({ part }) => {
 							// Send metadata when streaming completes
@@ -1037,6 +965,48 @@ function hasRepeatedToolFailures(messages: ChatUIMessage[]): boolean {
 	}
 
 	return false;
+}
+
+function buildAgentInstructions(
+	basePrompt: string,
+	messages: ChatUIMessage[],
+): string {
+	if (!isBuildIntentTurn(messages)) {
+		return basePrompt;
+	}
+
+	return `${basePrompt}
+
+Hard requirement for this turn:
+- This is a build/generation request. You must implement via tools in sandbox.
+- Do not return chat-only code snippets or instructions as the final answer.
+- Use tools to create/update files and run commands as needed before final text.
+- If a tool fails, report the error briefly and retry with a different concrete tool step.`;
+}
+
+function isBuildIntentTurn(messages: ChatUIMessage[]): boolean {
+	const latestUser = [...messages]
+		.reverse()
+		.find((message) => message.role === "user");
+	if (!latestUser) return false;
+
+	const text = latestUser.parts
+		.filter(
+			(
+				part,
+			): part is Extract<(typeof latestUser.parts)[number], { type: "text" }> =>
+				part.type === "text",
+		)
+		.map((part) => part.text ?? "")
+		.join(" ")
+		.toLowerCase();
+
+	if (!text.trim()) return false;
+
+	return (
+		/\b(create|build|generate|scaffold|make)\b/.test(text) &&
+		/\b(app|website|site|page|project|landing|html)\b/.test(text)
+	);
 }
 
 function isInitialProjectGenerationTurn(messages: ChatUIMessage[]): boolean {

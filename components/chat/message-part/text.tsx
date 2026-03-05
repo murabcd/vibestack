@@ -48,7 +48,7 @@ export const Text = memo(function Text({
 	};
 
 	return (
-		<div className="group/message text-sm">
+		<div className="group/text-part text-sm">
 			<div
 				className={cn({
 					"w-fit wrap-break-word rounded-2xl px-3 py-2 bg-primary text-primary-foreground":
@@ -71,7 +71,7 @@ export const Text = memo(function Text({
 			</div>
 			<div
 				className={cn(
-					"mt-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100",
+					"mt-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/text-part:opacity-100",
 					{
 						"justify-start": messageRole === "assistant",
 						"justify-end": messageRole === "user",

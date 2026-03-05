@@ -117,10 +117,7 @@ function isPartComplete(
 	streamStatus: ChatStreamStatus,
 	isTailPart: boolean,
 ): boolean {
-	if (
-		part.type === "data-task-coding-v1" ||
-		part.type === "data-task-thinking-v1"
-	) {
+	if (part.type === "data-task-coding-v1") {
 		return part.data.status !== "loading";
 	}
 

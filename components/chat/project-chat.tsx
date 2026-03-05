@@ -49,6 +49,18 @@ interface Props {
 	initialModelId?: string;
 }
 
+function dedupeMessagesById(messages: ChatUIMessage[]): ChatUIMessage[] {
+	const seen = new Set<string>();
+	const dedupedReversed: ChatUIMessage[] = [];
+	for (let index = messages.length - 1; index >= 0; index--) {
+		const message = messages[index];
+		if (seen.has(message.id)) continue;
+		seen.add(message.id);
+		dedupedReversed.push(message);
+	}
+	return dedupedReversed.reverse();
+}
+
 function ProjectChatInner({
 	className,
 	initialMessages,
@@ -60,10 +72,8 @@ function ProjectChatInner({
 	initialModelId,
 }: Props) {
 	const { chat } = useSharedChatContext();
-	const { modelId, reasoningEffort, sandboxDuration } = useSettings(
-		initialSandboxDuration,
-		initialModelId,
-	);
+	const { modelId, reasoningEffort, sandboxDuration, permissionMode } =
+		useSettings(initialSandboxDuration, initialModelId);
 	const { connectors } = useConnectors();
 	const { models } = useAvailableModels();
 	const connectedServerIds = useMemo(
@@ -76,10 +86,18 @@ function ProjectChatInner({
 	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 	const controller = usePromptInputController();
 
-	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
-		{
-			chat,
-		},
+	const {
+		messages,
+		sendMessage,
+		status,
+		setMessages,
+		addToolApprovalResponse,
+	} = useChat<ChatUIMessage>({
+		chat,
+	});
+	const uniqueMessages = useMemo(
+		() => dedupeMessagesById(messages),
+		[messages],
 	);
 
 	const { setChatStatus } = useSandboxStore();
@@ -109,6 +127,21 @@ function ProjectChatInner({
 		}
 		return false;
 	};
+
+	const listSandboxPaths = useCallback(async (sandboxId: string) => {
+		const response = await fetch(
+			`/api/sandboxes/${sandboxId}/files?mode=list`,
+			{
+				cache: "no-store",
+			},
+		);
+		if (!response.ok) return [] as string[];
+		const payload = (await response.json()) as { paths?: unknown };
+		if (!Array.isArray(payload.paths)) return [] as string[];
+		return payload.paths.filter(
+			(path): path is string => typeof path === "string",
+		);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: projectId reset is intentional
 	useEffect(() => {
@@ -143,6 +176,7 @@ function ProjectChatInner({
 						reasoningEffort,
 						projectId,
 						sandboxDuration,
+						permissionMode,
 						mcpServerIds:
 							connectedServerIds.length > 0 ? connectedServerIds : undefined,
 						background: false,
@@ -159,6 +193,7 @@ function ProjectChatInner({
 			reasoningEffort,
 			projectId,
 			sandboxDuration,
+			permissionMode,
 			connectedServerIds,
 		],
 	);
@@ -265,18 +300,34 @@ function ProjectChatInner({
 	}, [pendingMessage, initialMessages, setMessages]);
 
 	useEffect(() => {
-		for (let i = messages.length - 1; i >= 0; i--) {
-			const message = messages[i];
+		if (uniqueMessages.length === messages.length) return;
+		setMessages(uniqueMessages);
+	}, [messages.length, setMessages, uniqueMessages]);
+
+	useEffect(() => {
+		for (let i = uniqueMessages.length - 1; i >= 0; i--) {
+			const message = uniqueMessages[i];
 			if (message.role === "assistant" && message.metadata?.usage) {
 				setUsage(message.metadata.usage);
 				break;
 			}
 		}
-	}, [messages]);
+	}, [uniqueMessages]);
 
 	useEffect(() => {
 		const { reset, setSandboxId, setUrl, addPaths } =
 			useSandboxStore.getState();
+		let cancelled = false;
+		const hydratePathsFromSandbox = (sandboxId: string) => {
+			void listSandboxPaths(sandboxId)
+				.then((paths) => {
+					if (cancelled || paths.length === 0) return;
+					addPaths(paths);
+				})
+				.catch(() => {
+					// Best-effort hydration fallback.
+				});
+		};
 		reset();
 
 		if (initialMessages.length === 0) {
@@ -310,6 +361,8 @@ function ProjectChatInner({
 						}
 						if (importedPaths.length > 0) {
 							addPaths(importedPaths);
+						} else if (importedSandboxId) {
+							hydratePathsFromSandbox(importedSandboxId);
 						}
 						sessionStorage.removeItem(`imported-project-state-${projectId}`);
 					}
@@ -317,11 +370,14 @@ function ProjectChatInner({
 					sessionStorage.removeItem(`imported-project-state-${projectId}`);
 				}
 			}
-			return;
+			return () => {
+				cancelled = true;
+			};
 		}
 
 		let hydratedSandboxId: string | undefined;
 		let hydratedUrl: string | undefined;
+		const hydratedPaths: string[] = [];
 
 		for (const message of initialMessages) {
 			if (message.role !== "assistant" || !message.parts) continue;
@@ -354,10 +410,10 @@ function ProjectChatInner({
 								taskPartType === "generated-files-complete") &&
 							Array.isArray((lastPart as { paths?: unknown }).paths)
 						) {
-							addPaths(
-								((lastPart as { paths?: unknown }).paths as unknown[]).filter(
-									(path): path is string => typeof path === "string",
-								),
+							hydratedPaths.push(
+								...(
+									(lastPart as { paths?: unknown }).paths as unknown[]
+								).filter((path): path is string => typeof path === "string"),
 							);
 						}
 					}
@@ -407,7 +463,7 @@ function ProjectChatInner({
 					part.state === "output-available" &&
 					part.input?.paths
 				) {
-					addPaths(part.input.paths);
+					hydratedPaths.push(...part.input.paths);
 				}
 			}
 		}
@@ -418,7 +474,15 @@ function ProjectChatInner({
 				setUrl(hydratedUrl, crypto.randomUUID());
 			}
 		}
-	}, [initialMessages, projectId]);
+		if (hydratedPaths.length > 0) {
+			addPaths(hydratedPaths);
+		} else if (hydratedSandboxId) {
+			hydratePathsFromSandbox(hydratedSandboxId);
+		}
+		return () => {
+			cancelled = true;
+		};
+	}, [initialMessages, listSandboxPaths, projectId]);
 
 	useEffect(() => {
 		statusRef.current = status;
@@ -443,7 +507,7 @@ function ProjectChatInner({
 	);
 
 	useEffect(() => {
-		const checkpoint = getLastCompletePart(messages, status);
+		const checkpoint = getLastCompletePart(uniqueMessages, status);
 		if (!checkpoint) return;
 		if (checkpoint.key === lastPersistedCheckpointRef.current) return;
 
@@ -451,7 +515,10 @@ function ProjectChatInner({
 			window.clearTimeout(persistDebounceTimerRef.current);
 		}
 
-		const persistableMessages = sliceMessagesThroughPart(messages, checkpoint);
+		const persistableMessages = sliceMessagesThroughPart(
+			uniqueMessages,
+			checkpoint,
+		);
 		persistDebounceTimerRef.current = window.setTimeout(() => {
 			void persistMessages(persistableMessages)
 				.then(() => {
@@ -468,7 +535,7 @@ function ProjectChatInner({
 				persistDebounceTimerRef.current = null;
 			}
 		};
-	}, [messages, persistMessages, status]);
+	}, [persistMessages, status, uniqueMessages]);
 
 	const refreshMessagesFromServer = useCallback(async () => {
 		const response = await fetch(`/api/projects/${projectId}/messages`, {
@@ -586,12 +653,14 @@ function ProjectChatInner({
 
 			<Conversation className="relative w-full">
 				<ConversationContent className="space-y-4">
-					{messages.map((message) => (
+					{uniqueMessages.map((message) => (
 						<Message
 							key={message.id}
 							message={message}
+							streamStatus={status}
 							onEditMessage={handleEditMessage}
 							onDeleteMessage={handleDeleteMessageTurn}
+							addToolApprovalResponse={addToolApprovalResponse}
 						/>
 					))}
 				</ConversationContent>

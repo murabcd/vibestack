@@ -2,11 +2,10 @@
 
 import {
 	BrainIcon,
-	CheckIcon,
 	ChevronDownIcon,
 	FileCode2Icon,
 	FolderCogIcon,
-	LinkIcon,
+	GlobeIcon,
 	SearchIcon,
 	SettingsIcon,
 	TerminalIcon,
@@ -125,7 +124,7 @@ export const TaskTrigger = ({
 			return <Spinner loading={true} className="size-4" />;
 		}
 		if (status === "done") {
-			return <CheckIcon className="size-4" />;
+			return null;
 		}
 		if (status === "error") {
 			return <XIcon className="size-4 text-destructive" />;
@@ -201,7 +200,7 @@ function getTaskIconByName(
 	if (name === "sandbox") return FolderCogIcon;
 	if (name === "files") return FileCode2Icon;
 	if (name === "command") return TerminalIcon;
-	if (name === "link") return LinkIcon;
+	if (name === "link") return GlobeIcon;
 	if (name === "settings") return SettingsIcon;
 	if (name === "wrench") return WrenchIcon;
 	return null;

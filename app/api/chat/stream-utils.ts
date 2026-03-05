@@ -36,7 +36,6 @@ export interface SanitizationStats {
 
 export interface ReconcileTaskStats {
 	reconciledCodingTasks: number;
-	reconciledThinkingTasks: number;
 }
 
 export async function readResponsePreview(
@@ -200,7 +199,6 @@ export function reconcileIncompleteTaskMessages(messages: ChatUIMessage[]): {
 	stats: ReconcileTaskStats;
 } {
 	let reconciledCodingTasks = 0;
-	let reconciledThinkingTasks = 0;
 
 	const nextMessages = messages.map((message) => {
 		if (message.role !== "assistant") return message;
@@ -228,25 +226,6 @@ export function reconcileIncompleteTaskMessages(messages: ChatUIMessage[]): {
 						},
 					};
 				}
-				if (
-					part.type === "data-task-thinking-v1" &&
-					part.data.status === "loading"
-				) {
-					reconciledThinkingTasks += 1;
-					return {
-						...part,
-						data: {
-							...part.data,
-							status: "done" as const,
-							parts: [
-								{
-									type: "thinking-complete",
-									interrupted: true,
-								},
-							],
-						},
-					};
-				}
 				return part;
 			}),
 		};
@@ -256,7 +235,6 @@ export function reconcileIncompleteTaskMessages(messages: ChatUIMessage[]): {
 		messages: nextMessages,
 		stats: {
 			reconciledCodingTasks,
-			reconciledThinkingTasks,
 		},
 	};
 }
@@ -310,8 +288,20 @@ function compactPartForModel(
 	stats: CompactionStats,
 ): ChatUIMessage["parts"][number] | null {
 	if (part.type === "reasoning" && !keepFull) {
-		stats.droppedReasoningParts += 1;
-		return null;
+		// Preserve reasoning parts for model continuity (e.g. OpenAI Responses
+		// reasoning item chains) while still bounding prompt size.
+		const { text, truncatedChars } = truncateString(
+			part.text ?? "",
+			MAX_TEXT_PART_CHARS,
+		);
+		if (truncatedChars > 0) {
+			stats.truncatedTextParts += 1;
+			stats.truncatedCharsTotal += truncatedChars;
+		}
+		return {
+			...part,
+			text,
+		};
 	}
 
 	if (part.type === "text") {
