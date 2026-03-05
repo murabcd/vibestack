@@ -19,6 +19,7 @@ interface Props {
 	messageId: string;
 	onEditMessage?: (messageId: string, text: string) => void;
 	onDeleteMessage?: (messageId: string) => void;
+	showRegenerate?: boolean;
 	addToolApprovalResponse?: (payload: {
 		id: string;
 		approved: boolean;
@@ -35,6 +36,7 @@ export const MessagePart = memo(function MessagePart({
 	messageId,
 	onEditMessage,
 	onDeleteMessage,
+	showRegenerate,
 	addToolApprovalResponse,
 }: Props) {
 	if (part.type === "step-start") {
@@ -74,6 +76,7 @@ export const MessagePart = memo(function MessagePart({
 				messageId={messageId}
 				onEditMessage={onEditMessage}
 				onDeleteMessage={onDeleteMessage}
+				showRegenerate={showRegenerate}
 			/>
 		);
 	} else if (part.type === "file") {

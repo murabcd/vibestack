@@ -1,7 +1,12 @@
 import type { ReasoningUIPart } from "ai";
 import { BrainIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Task, TaskContent, TaskTrigger } from "@/components/ai-elements/task";
+import {
+	Task,
+	TaskContent,
+	TaskItem,
+	TaskTrigger,
+} from "@/components/ai-elements/task";
 import { MarkdownRenderer } from "@/components/markdown-renderer/markdown-renderer";
 import { useReasoningContext } from "../message";
 import { MessageSpinner } from "../message-spinner";
@@ -83,10 +88,10 @@ export function Reasoning({
 				status={isStreaming ? "loading" : "done"}
 			/>
 			<TaskContent lazy={false}>
-				<div className="text-secondary-foreground leading-normal text-sm px-3 pb-3">
+				<TaskItem className="text-xs leading-relaxed">
 					<MarkdownRenderer content={text} isAnimating={isStreaming} />
 					{isStreaming && <MessageSpinner />}
-				</div>
+				</TaskItem>
 			</TaskContent>
 		</Task>
 	);

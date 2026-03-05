@@ -254,6 +254,28 @@ function renderVisibleParts({
 	}) => void | PromiseLike<void>;
 }) {
 	const nodes: ReactNode[] = [];
+	const lastAssistantNonEmptyTextPartIndex =
+		message.role === "assistant"
+			? visibleParts.reduce(
+					(lastIndex, part, index) =>
+						part.type === "text" && part.text.trim().length > 0
+							? index
+							: lastIndex,
+					-1,
+				)
+			: -1;
+	const fallbackLastAssistantTextPartIndex =
+		message.role === "assistant"
+			? visibleParts.reduce(
+					(lastIndex, part, index) =>
+						part.type === "text" ? index : lastIndex,
+					-1,
+				)
+			: -1;
+	const lastAssistantTextPartIndex =
+		lastAssistantNonEmptyTextPartIndex >= 0
+			? lastAssistantNonEmptyTextPartIndex
+			: fallbackLastAssistantTextPartIndex;
 
 	for (let index = 0; index < visibleParts.length; index += 1) {
 		const part = visibleParts[index];
@@ -298,6 +320,9 @@ function renderVisibleParts({
 				onDeleteMessage={onDeleteMessage}
 				onEditMessage={onEditMessage}
 				addToolApprovalResponse={addToolApprovalResponse}
+				showRegenerate={
+					message.role === "assistant" && index === lastAssistantTextPartIndex
+				}
 				part={part}
 				partIndex={index}
 			/>,
