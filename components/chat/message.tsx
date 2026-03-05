@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { createContext, memo, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	memo,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { cn } from "@/lib/utils";
 import { MessagePart } from "./message-part";
 import { ImageDisplay } from "./message-part/image-display";
@@ -40,6 +47,7 @@ export const Message = memo(function Message({
 	const [expandedReasoningIndex, setExpandedReasoningIndex] = useState<
 		number | null
 	>(null);
+	const hadStreamingReasoningRef = useRef(false);
 	const renderedParts = coalesceStreamingTaskParts(message.parts);
 	const visibleParts =
 		message.role === "assistant"
@@ -61,17 +69,21 @@ export const Message = memo(function Message({
 		.filter(({ part }) => part.type === "reasoning");
 
 	useEffect(() => {
-		if (reasoningParts.length > 0) {
-			const latestReasoningWithText = [...reasoningParts]
-				.reverse()
-				.find(
-					({ part }) =>
-						part.type === "reasoning" && Boolean(part.text?.trim().length),
-				);
-			const nextExpandedIndex =
-				latestReasoningWithText?.index ??
-				reasoningParts[reasoningParts.length - 1].index;
-			setExpandedReasoningIndex(nextExpandedIndex);
+		const streamingReasoning = [...reasoningParts]
+			.reverse()
+			.find(
+				({ part }) => part.type === "reasoning" && part.state === "streaming",
+			);
+
+		if (streamingReasoning) {
+			setExpandedReasoningIndex(streamingReasoning.index);
+			hadStreamingReasoningRef.current = true;
+			return;
+		}
+
+		if (hadStreamingReasoningRef.current) {
+			setExpandedReasoningIndex(null);
+			hadStreamingReasoningRef.current = false;
 		}
 	}, [reasoningParts]);
 

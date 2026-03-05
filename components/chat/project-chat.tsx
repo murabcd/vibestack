@@ -94,6 +94,7 @@ function ProjectChatInner({
 		addToolApprovalResponse,
 	} = useChat<ChatUIMessage>({
 		chat,
+		experimental_throttle: 50,
 	});
 	const uniqueMessages = useMemo(
 		() => dedupeMessagesById(messages),

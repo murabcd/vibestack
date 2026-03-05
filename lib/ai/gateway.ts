@@ -36,6 +36,8 @@ export function getModelOptions(
 ): ModelOptions {
 	const anthropicProviderOptions: Record<string, JSONValue> = {
 		cacheControl: { type: "ephemeral" },
+		sendReasoning: true,
+		thinking: { type: "enabled", budgetTokens: 4096 },
 	};
 	if (options?.reasoningEffort) {
 		anthropicProviderOptions.effort = options.reasoningEffort;
@@ -74,27 +76,42 @@ export function getModelOptions(
 	if (modelId === Models.OpenAIGpt52) {
 		return {
 			model: openai("gpt-5.2"),
-			providerOptions: options?.reasoningEffort
-				? { openai: { reasoningEffort: options.reasoningEffort } }
-				: undefined,
+			providerOptions: {
+				openai: {
+					reasoningSummary: "detailed",
+					...(options?.reasoningEffort
+						? { reasoningEffort: options.reasoningEffort }
+						: {}),
+				},
+			},
 		};
 	}
 
 	if (modelId === Models.OpenAIGpt5Mini) {
 		return {
 			model: openai("gpt-5-mini"),
-			providerOptions: options?.reasoningEffort
-				? { openai: { reasoningEffort: options.reasoningEffort } }
-				: undefined,
+			providerOptions: {
+				openai: {
+					reasoningSummary: "detailed",
+					...(options?.reasoningEffort
+						? { reasoningEffort: options.reasoningEffort }
+						: {}),
+				},
+			},
 		};
 	}
 
 	if (modelId === Models.OpenAIGpt5Nano) {
 		return {
 			model: openai("gpt-5-nano"),
-			providerOptions: options?.reasoningEffort
-				? { openai: { reasoningEffort: options.reasoningEffort } }
-				: undefined,
+			providerOptions: {
+				openai: {
+					reasoningSummary: "detailed",
+					...(options?.reasoningEffort
+						? { reasoningEffort: options.reasoningEffort }
+						: {}),
+				},
+			},
 		};
 	}
 

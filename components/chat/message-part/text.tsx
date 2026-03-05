@@ -22,7 +22,10 @@ export const Text = memo(function Text({
 }) {
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 	const { chat } = useSharedChatContext();
-	const { regenerate } = useChat({ chat });
+	const { regenerate } = useChat({
+		chat,
+		experimental_throttle: 50,
+	});
 	const { modelId, reasoningEffort } = useSettings();
 	const visibleText =
 		messageRole === "assistant" ? stripFencedCodeBlocks(part.text) : part.text;

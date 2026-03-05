@@ -28,7 +28,14 @@ export function ErrorMonitor({ children, debounceTimeMs = 10000 }: Props) {
 	const { errors } = useCommandErrorsLogs();
 	const { fixErrors, modelId, reasoningEffort, permissionMode } = useSettings();
 	const { chat } = useSharedChatContext();
-	const { sendMessage, status: chatStatus, messages } = useChat({ chat });
+	const {
+		sendMessage,
+		status: chatStatus,
+		messages,
+	} = useChat({
+		chat,
+		experimental_throttle: 50,
+	});
 	const pathname = usePathname();
 	const activeProjectId = getProjectIdFromPathname(pathname);
 	const submitTimeout = useRef<NodeJS.Timeout | null>(null);

@@ -34,6 +34,7 @@ function ChatInner({ className }: Props) {
 	const { messages, sendMessage, status, setMessages } = useChat<ChatUIMessage>(
 		{
 			chat,
+			experimental_throttle: 50,
 		},
 	);
 	const { setChatStatus } = useSandboxStore();

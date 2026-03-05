@@ -819,6 +819,7 @@ export async function POST(req: NextRequest) {
 				writer.merge(
 					result.toUIMessageStream({
 						sendStart: false,
+						sendReasoning: true,
 						messageMetadata: ({ part }) => {
 							// Send metadata when streaming completes
 							if (part.type === "finish") {
@@ -971,11 +972,21 @@ function buildAgentInstructions(
 	basePrompt: string,
 	messages: ChatUIMessage[],
 ): string {
+	const progressNarration = `
+Progress narration requirement for this turn:
+- Before each major tool action, send one short user-facing sentence describing what you are about to do.
+- After each major result (success or failure), send one short sentence describing outcome and next action.
+- Keep each update under 20 words and avoid repeating the same sentence.`.trim();
+
 	if (!isBuildIntentTurn(messages)) {
-		return basePrompt;
+		return `${basePrompt}
+
+${progressNarration}`;
 	}
 
 	return `${basePrompt}
+
+${progressNarration}
 
 Hard requirement for this turn:
 - This is a build/generation request. You must implement via tools in sandbox.
