@@ -29,6 +29,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function EnhancedPreview({ className }: Props) {
+	const isMobile = useIsMobile();
 	const [consoleExpanded, setConsoleExpanded] = useState(false);
 	const [activeTab, setActiveTab] = useState("preview");
 	const [isControllingDevServer, setIsControllingDevServer] = useState(false);
@@ -199,20 +201,16 @@ export function EnhancedPreview({ className }: Props) {
 				</TooltipProvider>
 			</PanelHeader>
 
-			<ResizablePanelGroup orientation="vertical" className="flex-1 min-h-0">
-				<ResizablePanel
-					defaultSize={consoleExpanded ? "70%" : "100%"}
-					minSize="30%"
-					id={`${panelId}-main-panel`}
-				>
+			{isMobile ? (
+				<div className="flex flex-1 min-h-0 flex-col">
 					<Tabs
 						value={activeTab}
 						onValueChange={setActiveTab}
-						className="h-full"
+						className="h-full min-h-0"
 					>
 						<TabsContent
 							value="preview"
-							className="h-full m-0 data-[state=active]:h-full"
+							className="h-full m-0 min-h-0 data-[state=active]:h-full"
 						>
 							<Preview
 								className="h-full"
@@ -222,7 +220,7 @@ export function EnhancedPreview({ className }: Props) {
 						</TabsContent>
 						<TabsContent
 							value="code"
-							className="h-full m-0 data-[state=active]:h-full"
+							className="h-full m-0 min-h-0 data-[state=active]:h-full"
 						>
 							<FileExplorer
 								className="h-full"
@@ -232,21 +230,62 @@ export function EnhancedPreview({ className }: Props) {
 							/>
 						</TabsContent>
 					</Tabs>
-				</ResizablePanel>
-
-				{consoleExpanded && (
-					<>
-						<ResizableHandle className="h-px bg-border hover:bg-accent transition-colors" />
-						<ResizablePanel
-							defaultSize="30%"
-							minSize="15%"
-							id={`${panelId}-console-panel`}
-						>
+					{consoleExpanded && (
+						<div className="h-48 min-h-40 border-t border-border">
 							<CommandsLogs className="h-full" commands={commands} />
-						</ResizablePanel>
-					</>
-				)}
-			</ResizablePanelGroup>
+						</div>
+					)}
+				</div>
+			) : (
+				<ResizablePanelGroup orientation="vertical" className="flex-1 min-h-0">
+					<ResizablePanel
+						defaultSize={consoleExpanded ? "70%" : "100%"}
+						minSize="30%"
+						id={`${panelId}-main-panel`}
+					>
+						<Tabs
+							value={activeTab}
+							onValueChange={setActiveTab}
+							className="h-full"
+						>
+							<TabsContent
+								value="preview"
+								className="h-full m-0 data-[state=active]:h-full"
+							>
+								<Preview
+									className="h-full"
+									disabled={status === "stopped"}
+									url={url}
+								/>
+							</TabsContent>
+							<TabsContent
+								value="code"
+								className="h-full m-0 data-[state=active]:h-full"
+							>
+								<FileExplorer
+									className="h-full"
+									disabled={status === "stopped"}
+									sandboxId={sandboxId}
+									paths={paths}
+								/>
+							</TabsContent>
+						</Tabs>
+					</ResizablePanel>
+
+					{consoleExpanded && (
+						<>
+							<ResizableHandle className="h-px bg-border hover:bg-accent transition-colors" />
+							<ResizablePanel
+								defaultSize="30%"
+								minSize="15%"
+								id={`${panelId}-console-panel`}
+							>
+								<CommandsLogs className="h-full" commands={commands} />
+							</ResizablePanel>
+						</>
+					)}
+				</ResizablePanelGroup>
+			)}
 		</Panel>
 	);
 }

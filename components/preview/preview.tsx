@@ -1,6 +1,5 @@
 "use client";
 
-import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { CompassIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BarLoader } from "react-spinners";
@@ -148,7 +147,7 @@ export function Preview({ className, disabled, url }: Props) {
 					</div>
 				)}
 				{!currentUrl && !disabled && (
-					<div className="absolute inset-0 bg-background flex items-center justify-center p-4">
+					<div className="pointer-events-none absolute inset-0 bg-background flex items-center justify-center p-4">
 						<Shimmer as="p" className="text-sm">
 							Generating preview...
 						</Shimmer>
@@ -156,7 +155,7 @@ export function Preview({ className, disabled, url }: Props) {
 				)}
 				{currentUrl && !disabled && (
 					<>
-						<ScrollArea className="w-full">
+						<div className="w-full h-full min-h-0">
 							<iframe
 								ref={iframeRef}
 								src={currentUrl}
@@ -165,10 +164,10 @@ export function Preview({ className, disabled, url }: Props) {
 								onError={handleIframeError}
 								title="Browser content"
 							/>
-						</ScrollArea>
+						</div>
 
 						{isLoading && !error && (
-							<div className="absolute inset-0 bg-background bg-opacity-90 flex items-center justify-center flex-col gap-2">
+							<div className="pointer-events-none absolute inset-0 bg-background bg-opacity-90 flex items-center justify-center flex-col gap-2">
 								<BarLoader color="var(--color-primary)" />
 								<span className="text-muted-foreground text-xs">
 									Loading...

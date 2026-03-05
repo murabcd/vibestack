@@ -464,19 +464,12 @@ export const FileExplorer = memo(function FileExplorer({
 
 				<div className="text-sm flex-1 min-h-0">
 					{isMobile ? (
-						<PanelGroup
-							orientation="vertical"
-							className="flex h-full"
-							key="mobile"
-						>
-							<ResizePanel defaultSize="35%" minSize="20%" maxSize="60%">
-								<div className="h-full border-b border-border">{treePane}</div>
-							</ResizePanel>
-							<ResizableHandle className="h-px bg-border hover:bg-accent transition-colors" />
-							<ResizePanel defaultSize="65%" minSize="40%">
-								{contentPane}
-							</ResizePanel>
-						</PanelGroup>
+						<div className="flex h-full min-h-0 flex-col" key="mobile">
+							<div className="h-[42%] min-h-32 border-b border-border">
+								{treePane}
+							</div>
+							<div className="flex-1 min-h-0">{contentPane}</div>
+						</div>
 					) : (
 						<PanelGroup
 							orientation="horizontal"
@@ -578,7 +571,7 @@ const FileTreeNode = memo(function FileTreeNode({
 		<div>
 			<button
 				className={cn(
-					"flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-sm w-full text-left",
+					"flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-sm w-full text-left touch-manipulation",
 					selected?.path === node.path ? "bg-card" : "hover:bg-card/50",
 				)}
 				type="button"
