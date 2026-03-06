@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
@@ -9,11 +9,10 @@ import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview"
 import { Horizontal } from "@/components/layout/panels";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
-import { TabContent } from "@/components/tabs/tab-content";
-import { TabItem } from "@/components/tabs/tab-item";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import type { AppUsage } from "@/lib/ai/usage";
+import { cn } from "@/lib/utils";
 import { CommitGitHubButton } from "./commit-github-button";
 import { ShareVisibilityButton } from "./share-visibility-button";
 
@@ -41,6 +40,8 @@ export function ProjectPageClient({
 	initialModelId,
 }: ProjectPageClientProps) {
 	const { isMobile } = useSidebar();
+	const [activePanel, setActivePanel] = useState<"chat" | "preview">("chat");
+	const [hasOpenedPreview, setHasOpenedPreview] = useState(false);
 	const { data: projectData } = useSWR<{ project?: { title?: string | null } }>(
 		`/api/projects/${projectId}`,
 		{
@@ -108,11 +109,39 @@ export function ProjectPageClient({
 					{isMobile ? (
 						<>
 							<ul className="flex space-x-5 text-sm tracking-tight px-1 py-2">
-								<TabItem tabId="chat">Chat</TabItem>
-								<TabItem tabId="preview">Preview</TabItem>
+								<li>
+									<button
+										type="button"
+										onClick={() => setActivePanel("chat")}
+										className={cn("cursor-pointer", {
+											"border-b border-b-black": activePanel === "chat",
+										})}
+									>
+										Chat
+									</button>
+								</li>
+								<li>
+									<button
+										type="button"
+										onClick={() => {
+											setHasOpenedPreview(true);
+											setActivePanel("preview");
+										}}
+										className={cn("cursor-pointer", {
+											"border-b border-b-black": activePanel === "preview",
+										})}
+									>
+										Preview
+									</button>
+								</li>
 							</ul>
 							<div className="flex flex-1 w-full overflow-hidden pt-2">
-								<TabContent tabId="chat" className="flex-1">
+								<div
+									className={cn("flex-1 min-h-0", {
+										hidden: activePanel !== "chat",
+										flex: activePanel === "chat",
+									})}
+								>
 									<ProjectChat
 										className="flex-1 overflow-hidden"
 										initialMessages={initialMessages}
@@ -123,10 +152,17 @@ export function ProjectPageClient({
 										initialLastContext={initialLastContext}
 										initialModelId={initialModelId}
 									/>
-								</TabContent>
-								<TabContent tabId="preview" className="flex-1">
-									<EnhancedPreview className="flex-1 overflow-hidden" />
-								</TabContent>
+								</div>
+								{hasOpenedPreview ? (
+									<div
+										className={cn("flex-1 min-h-0", {
+											hidden: activePanel !== "preview",
+											flex: activePanel === "preview",
+										})}
+									>
+										<EnhancedPreview className="flex-1 overflow-hidden" />
+									</div>
+								) : null}
 							</div>
 						</>
 					) : (

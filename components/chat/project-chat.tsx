@@ -559,6 +559,20 @@ function ProjectChatInner({
 		lastPersistedCheckpointRef.current = null;
 	}, [projectId, setMessages]);
 
+	useEffect(() => {
+		if (
+			pendingMessage ||
+			initialMessages.length > 0 ||
+			hasInitializedMessages.current
+		) {
+			return;
+		}
+		hasInitializedMessages.current = true;
+		void refreshMessagesFromServer().catch(() => {
+			// Best-effort initial hydration fallback.
+		});
+	}, [pendingMessage, initialMessages.length, refreshMessagesFromServer]);
+
 	const checkLatestRun = useCallback(async (): Promise<
 		"queued" | "processing" | "completed" | "error" | null
 	> => {

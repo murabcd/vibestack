@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import type { ChatUIMessage } from "@/components/chat/types";
 import { getHorizontal } from "@/components/layout/sizing";
 import type { AppUsage } from "@/lib/ai/usage";
 import { MAX_SANDBOX_DURATION } from "@/lib/constants";
-import { getMessagesByProjectId, getProjectById } from "@/lib/db/queries";
+import { getProjectById } from "@/lib/db/queries";
 import { getSessionFromCookie } from "@/lib/session/server";
-import { convertToUIMessages } from "@/lib/utils";
 import { ProjectPageClient } from "./_components/project-page";
 
 const getProjectCached = cache(getProjectById);
@@ -42,30 +40,27 @@ export async function generateMetadata({
 export default async function ProjectPage({ params }: ProjectPageProps) {
 	const cookieStore = await cookies();
 	const horizontalSizes = getHorizontal(cookieStore);
+	const session = await getSessionFromCookie();
 
 	const { projectId } = await params;
 	const project = await getProjectCached(projectId);
-	if (!project) {
-		notFound();
-	}
-	const session = await getSessionFromCookie();
-	if (project.visibility !== "public" && project.userId !== session?.user?.id) {
-		notFound();
-	}
-	const isOwner = project.userId === session?.user?.id;
+	const pendingProjectId = cookieStore.get("pending_project_id")?.value;
+	const isPendingProjectBootstrap =
+		!project && pendingProjectId && pendingProjectId === projectId;
 
-	// Fetch messages from database with error handling
-	let initialMessages: ChatUIMessage[] = [];
-	const initialLastContext: AppUsage | undefined =
-		project.lastContext ?? undefined;
-	try {
-		const messagesFromDb = await getMessagesByProjectId(projectId);
-		initialMessages = await convertToUIMessages(messagesFromDb);
-	} catch (error) {
-		console.error("Failed to fetch project messages:", error);
-		// Continue with empty messages array - this allows the page to load
-		// even if the database query fails
+	if (!project && !isPendingProjectBootstrap) {
+		notFound();
 	}
+	if (
+		project &&
+		project.visibility !== "public" &&
+		project.userId !== session?.user?.id
+	) {
+		notFound();
+	}
+	const isOwner = project ? project.userId === session?.user?.id : true;
+	const initialLastContext: AppUsage | undefined =
+		project?.lastContext ?? undefined;
 
 	const modelIdFromCookie = cookieStore.get("selected-model")?.value;
 	const sandboxDurationFromCookie = cookieStore.get("sandbox-duration")?.value;
@@ -77,10 +72,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 		<ProjectPageClient
 			horizontalSizes={horizontalSizes ?? []}
 			projectId={projectId}
-			projectTitle={project.title}
-			initialVisibility={project.visibility}
+			projectTitle={project?.title}
+			initialVisibility={project?.visibility ?? "private"}
 			isOwner={isOwner}
-			initialMessages={initialMessages}
+			initialMessages={[]}
 			initialSandboxDuration={initialSandboxDuration}
 			initialLastContext={initialLastContext}
 			initialModelId={modelIdFromCookie}

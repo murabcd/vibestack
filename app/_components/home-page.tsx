@@ -24,6 +24,23 @@ export function PageClient({
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
 	const { selection, error: errorHaptic, success } = useAppHaptics();
 
+	const setPendingProjectCookie = (projectId?: string) => {
+		if (typeof window === "undefined" || !window.cookieStore) return;
+		if (projectId) {
+			void window.cookieStore.set({
+				name: "pending_project_id",
+				value: projectId,
+				path: "/",
+				expires: Date.now() + 120_000,
+			});
+			return;
+		}
+		void window.cookieStore.delete({
+			name: "pending_project_id",
+			path: "/",
+		});
+	};
+
 	const handleMessageSubmit = async (message: PromptInputMessage) => {
 		if (isCreatingProject) return;
 
@@ -42,6 +59,7 @@ export function PageClient({
 					files: message.files,
 				}),
 			);
+			setPendingProjectCookie(projectId);
 
 			// Navigate to project page immediately (no waiting!)
 			router.push(`/project/${projectId}`);
@@ -62,6 +80,7 @@ export function PageClient({
 						throw new Error("Failed to create project");
 					}
 					await response.json();
+					setPendingProjectCookie();
 
 					// Generate title in background after project exists.
 					const title = await generateTitleFromUserMessage({
@@ -81,11 +100,13 @@ export function PageClient({
 					});
 				})
 				.catch((caughtError) => {
+					setPendingProjectCookie();
 					console.error("Failed to initialize project:", caughtError);
 					toast.error("Failed to initialize project. Please try again.");
 					errorHaptic();
 				});
 		} catch (caughtError) {
+			setPendingProjectCookie();
 			console.error("Failed to create project:", caughtError);
 			toast.error("Failed to create project. Please try again.");
 			errorHaptic();
