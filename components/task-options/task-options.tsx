@@ -24,9 +24,13 @@ import {
 
 interface TaskOptionsProps {
 	initialSandboxDuration?: number;
+	compact?: boolean;
 }
 
-export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
+export function TaskOptions({
+	initialSandboxDuration,
+	compact = false,
+}: TaskOptionsProps) {
 	const [sandboxDuration, setSandboxDuration] = useSandboxDuration(
 		initialSandboxDuration,
 	);
@@ -43,6 +47,38 @@ export function TaskOptions({ initialSandboxDuration }: TaskOptionsProps) {
 		setSandboxDuration(duration);
 		saveSandboxDurationAsCookie(duration);
 	};
+
+	const selectedLabel =
+		durationOptions.find((option) => option.value === sandboxDuration)?.label ??
+		`${sandboxDuration} minutes`;
+
+	if (compact) {
+		return (
+			<Select
+				value={sandboxDuration?.toString()}
+				onValueChange={handleDurationChange}
+			>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<SelectTrigger className="!h-6 w-fit gap-1.5 rounded-full border border-transparent !bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none transition-colors hover:!bg-accent dark:!bg-transparent dark:hover:!bg-accent focus-visible:border-transparent focus-visible:ring-0 [&_svg]:size-3.5 [&_[data-slot=select-value]]:inline-flex [&_[data-slot=select-value]]:items-center [&_[data-slot=select-value]]:gap-1.5">
+							<span className="inline-flex items-center gap-1.5">
+								<ClockIcon className="size-3.5" />
+								<SelectValue>{selectedLabel}</SelectValue>
+							</span>
+						</SelectTrigger>
+					</TooltipTrigger>
+					<TooltipContent align="end">Sandbox duration</TooltipContent>
+				</Tooltip>
+				<SelectContent position="popper" align="start" className="w-40">
+					{durationOptions.map((option) => (
+						<SelectItem key={option.value} value={option.value.toString()}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		);
+	}
 
 	return (
 		<DropdownMenu>

@@ -223,7 +223,11 @@ export const PromptForm = memo(function PromptForm({
 						{!shouldHideAuxiliaryTools && (
 							<>
 								<McpButton />
-								<TaskOptions initialSandboxDuration={initialSandboxDuration} />
+								{!showPermissionModeSelector && (
+									<TaskOptions
+										initialSandboxDuration={initialSandboxDuration}
+									/>
+								)}
 							</>
 						)}
 						<Settings />
@@ -251,6 +255,10 @@ export const PromptForm = memo(function PromptForm({
 			</PromptInput>
 			{showPermissionModeSelector && (
 				<div className="mt-2 flex items-center gap-1">
+					<TaskOptions
+						initialSandboxDuration={initialSandboxDuration}
+						compact
+					/>
 					<PermissionModeSelector
 						value={permissionMode}
 						onValueChange={setPermissionMode}

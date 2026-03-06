@@ -15,6 +15,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { PermissionMode } from "./use-settings";
 
 interface Props {
@@ -90,16 +95,21 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 				if (!open) setHoveredMode(null);
 			}}
 		>
-			<SelectTrigger className="h-6! w-fit gap-1.5 rounded-full border border-transparent bg-transparent! px-2 py-0 text-xs text-muted-foreground shadow-none transition-colors hover:bg-accent! dark:bg-transparent! dark:hover:bg-accent! focus-visible:border-transparent focus-visible:ring-0 [&_svg]:size-3.5 [&_[data-slot=select-value]]:inline-flex [&_[data-slot=select-value]]:items-center [&_[data-slot=select-value]]:gap-1.5">
-				<span className="inline-flex items-center gap-1.5">
-					{value === "ask-permissions" ? (
-						<HandIcon className="size-3.5" />
-					) : (
-						<PencilLineIcon className="size-3.5" />
-					)}
-					<SelectValue>{MODE_LABELS[value]}</SelectValue>
-				</span>
-			</SelectTrigger>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<SelectTrigger className="h-6! w-fit gap-1.5 rounded-full border border-transparent bg-transparent! px-2 py-0 text-xs text-muted-foreground shadow-none transition-colors hover:bg-accent! dark:bg-transparent! dark:hover:bg-accent! focus-visible:border-transparent focus-visible:ring-0 [&_svg]:size-3.5 [&_[data-slot=select-value]]:inline-flex [&_[data-slot=select-value]]:items-center [&_[data-slot=select-value]]:gap-1.5">
+						<span className="inline-flex items-center gap-1.5">
+							{value === "ask-permissions" ? (
+								<HandIcon className="size-3.5" />
+							) : (
+								<PencilLineIcon className="size-3.5" />
+							)}
+							<SelectValue>{MODE_LABELS[value]}</SelectValue>
+						</span>
+					</SelectTrigger>
+				</TooltipTrigger>
+				<TooltipContent align="start">Change permissions</TooltipContent>
+			</Tooltip>
 			<SelectContent
 				position="popper"
 				align="start"
