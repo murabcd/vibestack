@@ -109,6 +109,13 @@ export const PromptForm = memo(function PromptForm({
 	} = useConnectors();
 	const { selection } = useAppHaptics();
 
+	useEffect(() => {
+		if (!isActionMenuOpen) {
+			setActionMenuView("root");
+			setMcpSearchQuery("");
+		}
+	}, [isActionMenuOpen]);
+
 	// Use isLoading prop if provided, otherwise use provided chat status
 	const currentStatus = isLoading ? "submitted" : chatStatus;
 
@@ -290,13 +297,7 @@ export const PromptForm = memo(function PromptForm({
 					<PromptInputTools>
 						<PromptInputActionMenu
 							open={isActionMenuOpen}
-							onOpenChange={(open) => {
-								setIsActionMenuOpen(open);
-								if (!open) {
-									setActionMenuView("root");
-									setMcpSearchQuery("");
-								}
-							}}
+							onOpenChange={setIsActionMenuOpen}
 						>
 							<PromptInputActionMenuTrigger onClick={selection} />
 							<PromptInputActionMenuContent
