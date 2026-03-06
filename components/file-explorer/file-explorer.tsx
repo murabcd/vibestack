@@ -9,7 +9,7 @@ import {
 	FolderOpenIcon,
 	FolderTree,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useFileHistory } from "@/app/state";
 import { FileContent } from "@/components/file-explorer/file-content";
@@ -101,6 +101,8 @@ export const FileExplorer = memo(function FileExplorer({
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
 	const [pendingFile, setPendingFile] = useState<FileNode | null>(null);
 	const [showCloseDialog, setShowCloseDialog] = useState(false);
+	const [mobileTreeSize, setMobileTreeSize] = useState(42);
+	const mobileSplitRef = useRef<HTMLDivElement>(null);
 	const showFiles = useCallback(() => {
 		setViewMode((current) => (current === "files" ? current : "files"));
 	}, []);
@@ -296,6 +298,35 @@ export const FileExplorer = memo(function FileExplorer({
 	const handleCloseDialogCancel = useCallback(() => {
 		setShowCloseDialog(false);
 	}, []);
+	const handleMobileResizeStart = useCallback(
+		(event: React.PointerEvent<HTMLDivElement>) => {
+			const container = mobileSplitRef.current;
+			if (!container) return;
+			event.preventDefault();
+			event.stopPropagation();
+			const startY = event.clientY;
+			const startSize = mobileTreeSize;
+			const rect = container.getBoundingClientRect();
+			if (rect.height <= 0) return;
+
+			const onPointerMove = (moveEvent: PointerEvent) => {
+				const deltaY = moveEvent.clientY - startY;
+				const nextSize =
+					((startSize / 100) * rect.height + deltaY) / rect.height;
+				const clamped = Math.min(70, Math.max(20, nextSize * 100));
+				setMobileTreeSize(clamped);
+			};
+
+			const onPointerUp = () => {
+				window.removeEventListener("pointermove", onPointerMove);
+				window.removeEventListener("pointerup", onPointerUp);
+			};
+
+			window.addEventListener("pointermove", onPointerMove);
+			window.addEventListener("pointerup", onPointerUp);
+		},
+		[mobileTreeSize],
+	);
 
 	const renderFileTree = useCallback(
 		(nodes: FileNode[]) => {
@@ -464,10 +495,27 @@ export const FileExplorer = memo(function FileExplorer({
 
 				<div className="text-sm flex-1 min-h-0">
 					{isMobile ? (
-						<div className="flex h-full min-h-0 flex-col" key="mobile">
-							<div className="h-[42%] min-h-32 border-b border-border">
+						<div
+							ref={mobileSplitRef}
+							className="flex h-full min-h-0 flex-col"
+							key="mobile"
+						>
+							<div
+								className="min-h-32 border-b border-border"
+								style={{ height: `${mobileTreeSize}%` }}
+							>
 								{treePane}
 							</div>
+							<hr
+								className="h-4 shrink-0 touch-none cursor-row-resize border-0 bg-transparent relative before:absolute before:left-1/2 before:top-1/2 before:h-px before:w-16 before:-translate-x-1/2 before:-translate-y-1/2 before:bg-border"
+								onPointerDown={handleMobileResizeStart}
+								aria-orientation="horizontal"
+								aria-label="Resize file tree and editor panels"
+								aria-valuemin={20}
+								aria-valuemax={70}
+								aria-valuenow={Math.round(mobileTreeSize)}
+								tabIndex={0}
+							/>
 							<div className="flex-1 min-h-0">{contentPane}</div>
 						</div>
 					) : (
