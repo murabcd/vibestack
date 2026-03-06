@@ -8,7 +8,13 @@ import {
 	HoverCardContent,
 	HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	getModelContextWindow,
 	getModelPricing,
@@ -97,7 +103,11 @@ type ContextSchema = {
 	modelId?: ModelId;
 };
 
-const ContextContext = createContext<ContextSchema | null>(null);
+type ContextValue = ContextSchema & {
+	isMobile: boolean;
+};
+
+const ContextContext = createContext<ContextValue | null>(null);
 
 const useContextValue = () => {
 	const context = useContext(ContextContext);
@@ -109,15 +119,31 @@ const useContextValue = () => {
 	return context;
 };
 
-export type ContextProps = ComponentProps<typeof HoverCard> & ContextSchema;
+type ContextRootProps = {
+	children?: React.ReactNode;
+	open?: boolean;
+	defaultOpen?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	openDelay?: number;
+	closeDelay?: number;
+};
+
+export type ContextProps = ContextRootProps & ContextSchema;
 
 export const Context = ({
 	usedTokens,
 	maxTokens,
 	usage,
 	modelId,
-	...props
+	children,
+	open,
+	defaultOpen,
+	onOpenChange,
+	openDelay = 0,
+	closeDelay = 0,
 }: ContextProps) => {
+	const isMobile = useIsMobile();
+
 	// Use dynamic max tokens from TokenLens data if available
 	const dynamicMaxTokens = getMaxTokens(usage, modelId);
 	const effectiveMaxTokens = maxTokens || dynamicMaxTokens;
@@ -129,9 +155,28 @@ export const Context = ({
 				maxTokens: effectiveMaxTokens,
 				usage,
 				modelId,
+				isMobile,
 			}}
 		>
-			<HoverCard closeDelay={0} openDelay={0} {...props} />
+			{isMobile ? (
+				<Popover
+					open={open}
+					defaultOpen={defaultOpen}
+					onOpenChange={onOpenChange}
+				>
+					{children}
+				</Popover>
+			) : (
+				<HoverCard
+					open={open}
+					defaultOpen={defaultOpen}
+					onOpenChange={onOpenChange}
+					closeDelay={closeDelay}
+					openDelay={openDelay}
+				>
+					{children}
+				</HoverCard>
+			)}
 		</ContextContext.Provider>
 	);
 };
@@ -150,7 +195,7 @@ const ContextIcon = () => {
 export type ContextTriggerProps = ComponentProps<typeof Button>;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
-	const { usedTokens, maxTokens, usage, modelId } = useContextValue();
+	const { usedTokens, maxTokens, usage, modelId, isMobile } = useContextValue();
 	const effectiveMaxTokens = maxTokens || getMaxTokens(usage, modelId);
 	const usedPercent = Math.min(1, usedTokens / effectiveMaxTokens); // Cap at 100%
 	const renderedPercent = new Intl.NumberFormat("en-US", {
@@ -159,16 +204,31 @@ export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
 	}).format(usedPercent);
 
 	return (
-		<HoverCardTrigger asChild>
-			{children ?? (
-				<Button type="button" variant="ghost" {...props}>
-					<span className="font-medium text-muted-foreground text-xs tabular-nums">
-						{renderedPercent}
-					</span>
-					<ContextIcon />
-				</Button>
+		<>
+			{isMobile ? (
+				<PopoverTrigger asChild>
+					{children ?? (
+						<Button type="button" variant="ghost" {...props}>
+							<span className="font-medium text-muted-foreground text-xs tabular-nums">
+								{renderedPercent}
+							</span>
+							<ContextIcon />
+						</Button>
+					)}
+				</PopoverTrigger>
+			) : (
+				<HoverCardTrigger asChild>
+					{children ?? (
+						<Button type="button" variant="ghost" {...props}>
+							<span className="font-medium text-muted-foreground text-xs tabular-nums">
+								{renderedPercent}
+							</span>
+							<ContextIcon />
+						</Button>
+					)}
+				</HoverCardTrigger>
 			)}
-		</HoverCardTrigger>
+		</>
 	);
 };
 
@@ -177,12 +237,25 @@ export type ContextContentProps = ComponentProps<typeof HoverCardContent>;
 export const ContextContent = ({
 	className,
 	...props
-}: ContextContentProps) => (
-	<HoverCardContent
-		className={cn("min-w-[240px] divide-y overflow-hidden p-0", className)}
-		{...props}
-	/>
-);
+}: ContextContentProps) => {
+	const { isMobile } = useContextValue();
+
+	if (isMobile) {
+		return (
+			<PopoverContent
+				className={cn("min-w-[240px] divide-y overflow-hidden p-0", className)}
+				{...props}
+			/>
+		);
+	}
+
+	return (
+		<HoverCardContent
+			className={cn("min-w-[240px] divide-y overflow-hidden p-0", className)}
+			{...props}
+		/>
+	);
+};
 
 export type ContextContentHeader = ComponentProps<"div">;
 
