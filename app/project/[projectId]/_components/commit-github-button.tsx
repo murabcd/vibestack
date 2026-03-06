@@ -502,7 +502,7 @@ export function CommitGitHubButton({
 		</Button>
 	) : (
 		<Button variant="outline" className="h-8 px-2 gap-1.5 cursor-pointer">
-			<UploadCloud className="size-3.5 mr-2" />
+			<UploadCloud className="size-3.5" />
 			<span>Commit</span>
 		</Button>
 	);

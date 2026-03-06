@@ -1,7 +1,12 @@
 "use client";
 
-import { ServerIcon } from "lucide-react";
-import { memo, useCallback, useEffect, useState } from "react";
+import {
+	ChevronRightIcon,
+	PlusIcon,
+	SearchIcon,
+	ServerIcon,
+} from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { saveModelAsCookie } from "@/app/actions";
 import {
 	Context,
@@ -15,6 +20,7 @@ import {
 	ContextTrigger,
 } from "@/components/ai-elements/context";
 import { ConnectorDialog } from "@/components/connectors/manage-connectors";
+import { useConnectors } from "@/components/connectors-provider";
 import { ImportFromGithubDialog } from "@/components/forms/import-from-github-dialog";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { PermissionModeSelector } from "@/components/settings/permission-mode-selector";
@@ -22,6 +28,7 @@ import { Settings } from "@/components/settings/settings";
 import { useSettings } from "@/components/settings/use-settings";
 import { TaskOptions } from "@/components/task-options/task-options";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import {
 	PromptInput,
@@ -41,7 +48,10 @@ import {
 	PromptInputTools,
 	usePromptInputController,
 } from "@/components/ui/prompt-input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { useAppHaptics } from "@/hooks/use-app-haptics";
+import { toggleConnectorStatus } from "@/lib/actions/connectors";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 import { Icons } from "../icons/icons";
@@ -83,6 +93,20 @@ export const PromptForm = memo(function PromptForm({
 	const [input, setInput] = useLocalStorageValue("prompt-input");
 	const [isImportGithubOpen, setIsImportGithubOpen] = useState(false);
 	const [isConnectorDialogOpen, setIsConnectorDialogOpen] = useState(false);
+	const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+	const [actionMenuView, setActionMenuView] = useState<"root" | "mcp">("root");
+	const [mcpSearchQuery, setMcpSearchQuery] = useState("");
+	const [optimisticConnectorStatus, setOptimisticConnectorStatus] = useState<
+		Record<string, "connected" | "disconnected">
+	>({});
+	const [pendingConnectorIds, setPendingConnectorIds] = useState<Set<string>>(
+		new Set(),
+	);
+	const {
+		connectors,
+		refreshConnectors,
+		isLoading: connectorsLoading,
+	} = useConnectors();
 	const { selection } = useAppHaptics();
 
 	// Use isLoading prop if provided, otherwise use provided chat status
@@ -98,6 +122,68 @@ export const PromptForm = memo(function PromptForm({
 			saveModelAsCookie(newModelId);
 		},
 		[setModelId],
+	);
+
+	const filteredConnectors = useMemo(() => {
+		const query = mcpSearchQuery.trim().toLowerCase();
+		const sorted = [...connectors].sort((a, b) => {
+			const aStatus = optimisticConnectorStatus[a.id] ?? a.status;
+			const bStatus = optimisticConnectorStatus[b.id] ?? b.status;
+			if (aStatus === bStatus) return a.name.localeCompare(b.name);
+			return aStatus === "connected" ? -1 : 1;
+		});
+
+		if (!query) return sorted;
+		return sorted.filter((connector) =>
+			`${connector.name} ${connector.baseUrl ?? ""} ${connector.command ?? ""}`
+				.toLowerCase()
+				.includes(query),
+		);
+	}, [connectors, mcpSearchQuery, optimisticConnectorStatus]);
+
+	const selectedMcpCount = useMemo(
+		() =>
+			connectors.reduce((count, connector) => {
+				const status =
+					optimisticConnectorStatus[connector.id] ?? connector.status;
+				return status === "connected" ? count + 1 : count;
+			}, 0),
+		[connectors, optimisticConnectorStatus],
+	);
+
+	const toggleConnector = useCallback(
+		async (id: string, status: "connected" | "disconnected") => {
+			const nextStatus = status === "connected" ? "disconnected" : "connected";
+			setOptimisticConnectorStatus((previous) => ({
+				...previous,
+				[id]: nextStatus,
+			}));
+			setPendingConnectorIds((previous) => new Set(previous).add(id));
+			try {
+				const result = await toggleConnectorStatus(id, nextStatus);
+				if (!result.success) {
+					throw new Error(result.message);
+				}
+				await refreshConnectors();
+				setOptimisticConnectorStatus((previous) => {
+					const next = { ...previous };
+					delete next[id];
+					return next;
+				});
+			} catch {
+				setOptimisticConnectorStatus((previous) => ({
+					...previous,
+					[id]: status,
+				}));
+			} finally {
+				setPendingConnectorIds((previous) => {
+					const next = new Set(previous);
+					next.delete(id);
+					return next;
+				});
+			}
+		},
+		[refreshConnectors],
 	);
 
 	useEffect(() => {
@@ -202,35 +288,150 @@ export const PromptForm = memo(function PromptForm({
 				</PromptInputBody>
 				<PromptInputFooter>
 					<PromptInputTools>
-						<PromptInputActionMenu>
+						<PromptInputActionMenu
+							open={isActionMenuOpen}
+							onOpenChange={(open) => {
+								setIsActionMenuOpen(open);
+								if (!open) {
+									setActionMenuView("root");
+									setMcpSearchQuery("");
+								}
+							}}
+						>
 							<PromptInputActionMenuTrigger onClick={selection} />
-							<PromptInputActionMenuContent>
-								<PromptInputActionAddAttachments />
-								{enableGithubImport && (
-									<PromptInputActionMenuItem
-										className="cursor-pointer"
-										onSelect={(event) => {
-											event.preventDefault();
-											selection();
-											setIsImportGithubOpen(true);
-										}}
-									>
-										<Icons.gitHub className="size-4 mr-2" />
-										Import from GitHub
-									</PromptInputActionMenuItem>
+							<PromptInputActionMenuContent
+								className={actionMenuView === "mcp" ? "w-64 p-0" : undefined}
+							>
+								{actionMenuView === "root" ? (
+									<>
+										<PromptInputActionAddAttachments />
+										{enableGithubImport && (
+											<PromptInputActionMenuItem
+												className="cursor-pointer"
+												onSelect={(event) => {
+													event.preventDefault();
+													selection();
+													setIsImportGithubOpen(true);
+													setIsActionMenuOpen(false);
+												}}
+											>
+												<Icons.gitHub className="size-4" />
+												Import from GitHub
+											</PromptInputActionMenuItem>
+										)}
+										<PromptInputActionMenuItem
+											className="cursor-pointer"
+											onSelect={(event) => {
+												event.preventDefault();
+												setActionMenuView("mcp");
+											}}
+										>
+											<ServerIcon className="size-4" />
+											Connect MCP
+											<span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+												<span>{selectedMcpCount} Selected</span>
+												<ChevronRightIcon className="size-3.5 text-muted-foreground" />
+											</span>
+										</PromptInputActionMenuItem>
+									</>
+								) : (
+									<>
+										<div className="border-b p-2">
+											<div className="relative">
+												<SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+												<Input
+													className="h-8 pl-8 pr-2"
+													placeholder="Search..."
+													value={mcpSearchQuery}
+													onChange={(event) =>
+														setMcpSearchQuery(event.target.value)
+													}
+												/>
+											</div>
+										</div>
+										<ScrollArea className="max-h-56">
+											<div className="p-1">
+												{connectorsLoading ? (
+													<div className="px-2 py-4 text-center text-xs text-muted-foreground">
+														Loading MCPs...
+													</div>
+												) : filteredConnectors.length === 0 ? (
+													<div className="p-3 text-center">
+														<p className="text-xs text-muted-foreground">
+															No MCPs added
+														</p>
+													</div>
+												) : (
+													filteredConnectors.map((connector) => {
+														const isPending = pendingConnectorIds.has(
+															connector.id,
+														);
+														const currentStatus =
+															optimisticConnectorStatus[connector.id] ??
+															connector.status;
+														return (
+															/* biome-ignore lint/a11y/useSemanticElements: Avoid nested interactive elements (<button> containing Switch button) while keeping full-row toggle interaction */
+															<div
+																key={connector.id}
+																role="button"
+																tabIndex={isPending ? -1 : 0}
+																aria-disabled={isPending}
+																className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-accent/50 aria-disabled:pointer-events-none aria-disabled:opacity-60"
+																onClick={() =>
+																	void toggleConnector(
+																		connector.id,
+																		currentStatus,
+																	)
+																}
+																onKeyDown={(event) => {
+																	if (isPending) return;
+																	if (
+																		event.key === "Enter" ||
+																		event.key === " "
+																	) {
+																		event.preventDefault();
+																		void toggleConnector(
+																			connector.id,
+																			currentStatus,
+																		);
+																	}
+																}}
+															>
+																<ServerIcon className="size-3.5 text-muted-foreground" />
+																<span className="flex-1 truncate text-sm">
+																	{connector.name}
+																</span>
+																<Switch
+																	size="sm"
+																	className="pointer-events-none"
+																	checked={currentStatus === "connected"}
+																	disabled={isPending}
+																/>
+															</div>
+														);
+													})
+												)}
+											</div>
+										</ScrollArea>
+										<div className="border-t p-1">
+											<button
+												type="button"
+												className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent cursor-pointer"
+												onClick={() => {
+													selection();
+													setMcpSearchQuery("");
+													setIsActionMenuOpen(false);
+													requestAnimationFrame(() => {
+														setIsConnectorDialogOpen(true);
+													});
+												}}
+											>
+												<PlusIcon className="size-4 text-muted-foreground" />
+												Add MCP
+											</button>
+										</div>
+									</>
 								)}
-								<PromptInputActionMenuItem
-									className="cursor-pointer"
-									onSelect={() => {
-										selection();
-										requestAnimationFrame(() => {
-											setIsConnectorDialogOpen(true);
-										});
-									}}
-								>
-									<ServerIcon className="size-4 mr-2" />
-									Connect MCP
-								</PromptInputActionMenuItem>
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
 						{/* Hide MCP and Sandbox buttons when in project/split view */}

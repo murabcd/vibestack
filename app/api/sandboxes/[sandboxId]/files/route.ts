@@ -177,7 +177,7 @@ export async function POST(
 		wide.end(200, "success");
 		return NextResponse.json({
 			success: true,
-			message: "File saved successfully",
+			message: "File saved",
 		});
 	} catch (error) {
 		wide.end(500, "error", error);

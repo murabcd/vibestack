@@ -177,7 +177,7 @@ export function FileEditor({
 				if (onSaveSuccessRef.current) {
 					onSaveSuccessRef.current();
 				}
-				toast.success("File saved successfully");
+				toast.success("File saved");
 			} else {
 				toast.error(data.error || "Failed to save file");
 			}

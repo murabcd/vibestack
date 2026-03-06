@@ -139,7 +139,7 @@ export async function createConnector(
 
 		return {
 			success: true,
-			message: "Connector created successfully",
+			message: "Connector created",
 			errors: {},
 		};
 	} catch (error) {
@@ -203,7 +203,7 @@ export async function toggleConnectorStatus(
 
 		return {
 			success: true,
-			message: `Connector ${status === "connected" ? "connected" : "disconnected"} successfully`,
+			message: `Connector ${status === "connected" ? "connected" : "disconnected"}`,
 		};
 	} catch (error) {
 		logger.error({
@@ -323,7 +323,7 @@ export async function updateConnector(
 
 		return {
 			success: true,
-			message: "Connector updated successfully",
+			message: "Connector updated",
 			errors: {},
 		};
 	} catch (error) {
@@ -383,7 +383,7 @@ export async function deleteConnector(id: string) {
 
 		return {
 			success: true,
-			message: "Connector deleted successfully",
+			message: "Connector deleted",
 		};
 	} catch (error) {
 		logger.error({

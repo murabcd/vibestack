@@ -59,7 +59,7 @@ export function SidebarUserNav() {
 						</SidebarMenuButton>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
-						className="w-[var(--radix-popper-anchor-width)]"
+						className="w-(--radix-popper-anchor-width)"
 						side="top"
 						align="start"
 					>
@@ -71,9 +71,9 @@ export function SidebarUserNav() {
 							}}
 						>
 							{resolvedTheme === "dark" ? (
-								<Sun className="mr-2 size-4" />
+								<Sun className="size-4" />
 							) : (
-								<Moon className="mr-2 size-4" />
+								<Moon className="size-4" />
 							)}
 							{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
 						</DropdownMenuItem>
@@ -92,7 +92,7 @@ export function SidebarUserNav() {
 								}}
 							>
 								<span className="flex items-center gap-2">
-									<Vibrate className="size-4 mr-2" />
+									<Vibrate className="size-4" />
 									Haptic feedback
 								</span>
 								<Switch
@@ -118,7 +118,7 @@ export function SidebarUserNav() {
 								void signOut();
 							}}
 						>
-							<LogOut className="mr-2 size-4" />
+							<LogOut className="size-4" />
 							Sign out
 						</DropdownMenuItem>
 					</DropdownMenuContent>

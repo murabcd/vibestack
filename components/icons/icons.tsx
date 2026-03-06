@@ -182,7 +182,7 @@ export const Icons = {
 	},
 	loadingSpinner: ({ ...props }: LucideProps) => (
 		<svg
-			className="animate-spin -ml-1 mr-2 h-4 w-4"
+			className="animate-spin -ml-1 size-4"
 			xmlns="http://www.w3.org/2000/svg"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -208,7 +208,7 @@ export const Icons = {
 	vercel: ({ ...props }: LucideProps) => (
 		<svg
 			viewBox="0 0 76 65"
-			className="h-3 w-3 mr-2"
+			className="size-3"
 			fill="currentColor"
 			aria-label="Vercel Logo"
 			{...props}
@@ -219,7 +219,7 @@ export const Icons = {
 	),
 	gitHubLogo: ({ ...props }: LucideProps) => (
 		<svg
-			className="h-4 w-4 mr-2"
+			className="size-4"
 			fill="currentColor"
 			viewBox="0 0 24 24"
 			aria-label="GitHub Logo"

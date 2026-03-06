@@ -184,7 +184,7 @@ const PureProjectItem = ({
 						onClick={() => setOpenMobile(false)}
 						className="flex items-center justify-between"
 					>
-						<span className="truncate flex-1 mr-2">{project.title}</span>
+						<span className="truncate flex-1">{project.title}</span>
 					</Link>
 				</SidebarMenuButton>
 			)}
@@ -200,7 +200,7 @@ const PureProjectItem = ({
 							className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
 							showOnHover={!isActive}
 						>
-							<MoreHorizontal className="w-4 h-4" />
+							<MoreHorizontal className="size-4" />
 							<span className="sr-only">More</span>
 						</SidebarMenuAction>
 					</DropdownMenuTrigger>
@@ -215,16 +215,16 @@ const PureProjectItem = ({
 							}}
 						>
 							{project.isPinned ? (
-								<PinOff className="w-4 h-4 mr-2" />
+								<PinOff className="size-4" />
 							) : (
-								<Pin className="w-4 h-4 mr-2" />
+								<Pin className="size-4" />
 							)}
 							<span>{project.isPinned ? "Unpin" : "Pin"}</span>
 						</DropdownMenuItem>
 
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger className="cursor-pointer">
-								<Share2 className="w-4 h-4 mr-2" />
+								<Share2 className="size-4" />
 								<span>Share</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuPortal>
@@ -280,7 +280,7 @@ const PureProjectItem = ({
 								setDropdownOpen(false);
 							}}
 						>
-							<Pencil className="w-4 h-4 mr-2" />
+							<Pencil className="size-4" />
 							<span>Rename</span>
 						</DropdownMenuItem>
 
@@ -294,7 +294,7 @@ const PureProjectItem = ({
 								setDropdownOpen(false);
 							}}
 						>
-							<Trash className="w-4 h-4 mr-2 text-destructive dark:text-red-500" />
+							<Trash className="size-4 text-destructive dark:text-red-500" />
 							<span>Delete</span>
 						</DropdownMenuItem>
 					</DropdownMenuContent>

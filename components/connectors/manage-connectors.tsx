@@ -1,15 +1,6 @@
 "use client";
 
-import {
-	ArrowLeft,
-	ChevronDown,
-	Eye,
-	EyeOff,
-	Pencil,
-	Plus,
-	Server,
-	X,
-} from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Plus, Server, X } from "lucide-react";
 import {
 	startTransition,
 	useActionState,
@@ -55,12 +46,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	createConnector,
 	deleteConnector,
-	toggleConnectorStatus,
 	updateConnector,
 } from "@/lib/actions/connectors";
 import type { Connector } from "@/lib/db/schema";
@@ -68,6 +59,7 @@ import type { Connector } from "@/lib/db/schema";
 interface ConnectorDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	initialView?: "presets";
 }
 
 type FormState = {
@@ -82,7 +74,7 @@ const initialState: FormState = {
 	errors: {},
 };
 
-type View = "list" | "presets" | "form";
+type View = "presets" | "form";
 
 interface PresetConfig {
 	name: string;
@@ -173,7 +165,11 @@ interface EnvVar {
 	value: string;
 }
 
-export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
+export function ConnectorDialog({
+	open,
+	onOpenChange,
+	initialView = "presets",
+}: ConnectorDialogProps) {
 	const isMobile = useIsMobile();
 	const formId = useId();
 	const nameInputId = `${formId}-name`;
@@ -181,12 +177,8 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	const commandInputId = `${formId}-command`;
 	const oauthClientIdInputId = `${formId}-oauth-client-id`;
 	const oauthClientSecretInputId = `${formId}-oauth-client-secret`;
-	const {
-		connectors,
-		refreshConnectors,
-		isLoading: connectorsLoading,
-	} = useConnectors();
-	const [view, setView] = useState<View>("list");
+	const { connectors, refreshConnectors } = useConnectors();
+	const [view, setView] = useState<View>("presets");
 	const [editingConnector, setEditingConnector] = useState<Connector | null>(
 		null,
 	);
@@ -194,11 +186,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	const [selectedPreset, setSelectedPreset] = useState<PresetConfig | null>(
 		null,
 	);
+	const [presetSearchQuery, setPresetSearchQuery] = useState("");
 	const [envVars, setEnvVars] = useState<EnvVar[]>([]);
 	const [visibleEnvVars, setVisibleEnvVars] = useState<Set<number>>(new Set());
-	const [loadingConnectors, setLoadingConnectors] = useState<Set<string>>(
-		new Set(),
-	);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const {
@@ -237,14 +227,15 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 
 	useEffect(() => {
 		if (open) {
-			setView("list");
+			setView(initialView);
 			setEditingConnector(null);
 			setSelectedPreset(null);
+			setPresetSearchQuery("");
 			setServerType("remote");
 			setEnvVars([]);
 			setVisibleEnvVars(new Set());
 		}
-	}, [open]);
+	}, [open, initialView]);
 
 	useEffect(() => {
 		const stateChanged =
@@ -256,7 +247,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 				toast.success(state.message);
 				successHaptic();
 				refreshConnectors();
-				setView("list");
+				setView("presets");
 				setEditingConnector(null);
 				setSelectedPreset(null);
 			} else {
@@ -274,39 +265,6 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		errorHaptic,
 	]);
 
-	const handleToggleConnectorStatus = async (
-		id: string,
-		currentStatus: "connected" | "disconnected",
-	) => {
-		selection();
-		const newStatus =
-			currentStatus === "connected" ? "disconnected" : "connected";
-
-		setLoadingConnectors((prev) => new Set(prev).add(id));
-
-		try {
-			const result = await toggleConnectorStatus(id, newStatus);
-
-			if (result.success) {
-				await refreshConnectors();
-				toast.success(result.message);
-				successHaptic();
-			} else {
-				toast.error(result.message);
-				errorHaptic();
-			}
-		} catch {
-			toast.error("Failed to update connector status");
-			errorHaptic();
-		} finally {
-			setLoadingConnectors((prev) => {
-				const newSet = new Set(prev);
-				newSet.delete(id);
-				return newSet;
-			});
-		}
-	};
-
 	const handleDelete = async () => {
 		if (!editingConnector) return;
 
@@ -318,7 +276,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 				toast.success(result.message);
 				successHaptic();
 				refreshConnectors();
-				setView("list");
+				setView("presets");
 				setEditingConnector(null);
 			} else {
 				toast.error(result.message);
@@ -333,14 +291,6 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		}
 	};
 
-	const startAdding = () => {
-		setView("presets");
-		setEditingConnector(null);
-		setSelectedPreset(null);
-		setServerType("remote");
-		setEnvVars([]);
-	};
-
 	const selectPreset = (preset: PresetConfig) => {
 		setSelectedPreset(preset);
 		setServerType(preset.type);
@@ -353,17 +303,54 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 		setView("form");
 	};
 
-	const goBack = () => {
-		if (view === "form") {
-			if (selectedPreset) {
-				setView("presets");
-			} else {
-				setView("list");
-			}
-		} else if (view === "presets") {
-			setView("list");
+	const cancelForm = () => {
+		if (isEditing) {
+			setEditingConnector(null);
+			setSelectedPreset(null);
+			setPresetSearchQuery("");
+			setView("presets");
+			return;
 		}
+
+		if (selectedPreset) {
+			setSelectedPreset(null);
+			setView("presets");
+			return;
+		}
+
+		setPresetSearchQuery("");
+		setView("presets");
 	};
+
+	const normalizedPresetQuery = presetSearchQuery.trim().toLowerCase();
+	const filteredPresets = PRESETS.filter((preset) => {
+		if (normalizedPresetQuery.length === 0) return true;
+		const detail =
+			preset.type === "remote"
+				? preset.url || "Remote MCP server"
+				: preset.command || "Local MCP command";
+		return `${preset.name} ${detail}`
+			.toLowerCase()
+			.includes(normalizedPresetQuery);
+	});
+
+	const findExistingConnectorForPreset = (preset: PresetConfig) =>
+		connectors.find((connector) => {
+			const sameName =
+				connector.name.trim().toLowerCase() ===
+				preset.name.trim().toLowerCase();
+			const sameRemote =
+				preset.type === "remote" &&
+				!!preset.url &&
+				connector.type === "remote" &&
+				connector.baseUrl === preset.url;
+			const sameLocal =
+				preset.type === "local" &&
+				!!preset.command &&
+				connector.type === "local" &&
+				connector.command === preset.command;
+			return sameName || sameRemote || sameLocal;
+		});
 
 	const addEnvVar = () => {
 		setEnvVars([...envVars, createEnvVar("", "")]);
@@ -424,146 +411,127 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 	return (
 		<>
 			<Root open={open} onOpenChange={onOpenChange}>
-				<Content className={isMobile ? "max-h-[85vh]" : "sm:max-w-lg"}>
-					<Header className={isMobile ? undefined : "sm:text-left"}>
-						<Title
-							className={`flex items-center ${isMobile && view === "list" ? "justify-center text-center" : ""}`}
-						>
-							{(view === "form" || view === "presets") && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={goBack}
-									className="mr-2 -ml-2 cursor-pointer"
-								>
-									<ArrowLeft className="h-4 w-4" />
-								</Button>
-							)}
-							{view === "list" && "MCP servers"}
-							{view === "presets" && "Add MCP"}
-							{view === "form" && (isEditing ? "Edit MCP" : "Add MCP")}
-						</Title>
-						<Description>
-							{view === "list" && "Manage your Model Context Protocol servers."}
-							{view === "presets" && "Choose a preset or add a custom server."}
-							{view === "form" &&
-								"Allow agents to reference other apps and services for more context."}
-						</Description>
-					</Header>
+				<Content
+					className={
+						isMobile ? "max-h-[85vh]" : "sm:max-w-lg p-0 overflow-hidden"
+					}
+				>
+					<div className={isMobile ? undefined : "p-6 pb-3"}>
+						<Header className={isMobile ? undefined : "sm:text-left"}>
+							<Title className="flex items-center">
+								{view === "presets" && "Add MCP"}
+								{view === "form" && (isEditing ? "Edit MCP" : "Add MCP")}
+							</Title>
+							<Description>
+								{view === "presets" &&
+									"Choose a preset or add a custom server."}
+								{view === "form" &&
+									"Allow agents to reference other apps and services for more context."}
+							</Description>
+						</Header>
+					</div>
 
 					<div
 						className={
 							isMobile
 								? "max-h-[70vh] overflow-y-auto p-4 pt-0"
-								: "max-h-[70vh] overflow-y-auto pr-1"
+								: "max-h-[70vh] overflow-y-auto px-6 pb-6"
 						}
 					>
-						{view === "list" ? (
-							<div className="space-y-3">
-								{connectorsLoading ? (
-									<div className="text-center text-muted-foreground py-8">
-										Loading connectors...
-									</div>
-								) : connectors.length === 0 ? (
-									<div className="text-sm text-center text-muted-foreground py-8">
-										No MCP servers configured yet.
-									</div>
-								) : (
-									connectors.map((connector) => {
-										const iconKey = getPresetIcon(connector.name);
-										const IconComponent = iconKey
-											? (Icons[iconKey] as typeof Server)
-											: Server;
-										return (
-											<div
-												key={connector.id}
-												className="flex items-center justify-between p-3 border rounded-lg"
-											>
-												<div className="flex items-center space-x-3 flex-1 min-w-0">
-													<IconComponent className="h-8 w-8 text-muted-foreground shrink-0" />
-													<div className="flex-1 min-w-0">
-														<h4 className="font-semibold text-sm">
-															{connector.name}
-														</h4>
-														{connector.description && (
-															<p className="text-xs text-muted-foreground truncate">
-																{connector.description}
-															</p>
-														)}
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 cursor-pointer"
-														onClick={() => {
-															setEditingConnector(connector);
-															setView("form");
-														}}
-													>
-														<Pencil className="h-4 w-4 text-muted-foreground" />
-													</Button>
-													<Button
-														type="button"
-														variant={
-															connector.status === "connected"
-																? "default"
-																: "outline"
-														}
-														size="sm"
-														className="cursor-pointer"
-														disabled={loadingConnectors.has(connector.id)}
-														onClick={() =>
-															handleToggleConnectorStatus(
-																connector.id,
-																connector.status,
-															)
-														}
-													>
-														{connector.status === "connected"
-															? "Connected"
-															: "Disconnected"}
-													</Button>
-												</div>
-											</div>
-										);
-									})
-								)}
-								<div className={`pt-2 ${isMobile ? "" : "flex justify-end"}`}>
-									<Button
-										type="button"
-										variant="default"
-										className={`cursor-pointer ${isMobile ? "w-full" : ""}`}
-										onClick={startAdding}
-									>
-										Add MCP
-									</Button>
-								</div>
-							</div>
-						) : view === "presets" ? (
+						{view === "presets" ? (
 							<div className="space-y-4">
-								<div className="grid grid-cols-3 gap-4">
-									{PRESETS.map((preset) => {
-										const iconKey = getPresetIcon(preset.name);
-										const IconComponent = iconKey
-											? (Icons[iconKey] as typeof Server)
-											: Server;
-										return (
-											<button
-												key={preset.name}
-												className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer border"
-												onClick={() => selectPreset(preset)}
-												type="button"
-											>
-												<IconComponent className="h-12 w-12 text-muted-foreground" />
-												<span className="text-sm font-medium text-center">
-													{preset.name}
-												</span>
-											</button>
-										);
-									})}
+								<div className="space-y-2">
+									<Label htmlFor={`${formId}-preset-search`}>Search</Label>
+									<Input
+										id={`${formId}-preset-search`}
+										value={presetSearchQuery}
+										onChange={(event) =>
+											setPresetSearchQuery(event.target.value)
+										}
+										placeholder="Search connections..."
+									/>
+								</div>
+								<div className="rounded-md border overflow-hidden">
+									<ScrollArea className="h-[260px]">
+										{filteredPresets.length === 0 ? (
+											<div className="h-[260px] grid place-items-center px-3 text-sm text-muted-foreground">
+												No presets found.
+											</div>
+										) : (
+											<ul>
+												{filteredPresets.map((preset) => {
+													const iconKey = getPresetIcon(preset.name);
+													const IconComponent = iconKey
+														? (Icons[iconKey] as typeof Server)
+														: Server;
+													const existingConnector =
+														findExistingConnectorForPreset(preset);
+													const detail =
+														preset.type === "remote"
+															? preset.url || "Remote MCP server"
+															: preset.command || "Local MCP command";
+													return (
+														<li
+															key={preset.name}
+															className="flex items-center gap-2 px-3 py-2.5 border-b last:border-b-0"
+														>
+															<div className="min-w-0 w-0 flex flex-1 items-center gap-2 overflow-hidden">
+																<div className="size-8 rounded-md border grid place-items-center shrink-0">
+																	<IconComponent className="size-5 text-muted-foreground" />
+																</div>
+																<div className="min-w-0 w-0 flex-1">
+																	<div
+																		className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium"
+																		title={preset.name}
+																	>
+																		{preset.name}
+																	</div>
+																	<div
+																		className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted-foreground"
+																		title={detail}
+																	>
+																		{detail}
+																	</div>
+																</div>
+															</div>
+															<div className="flex items-center gap-2 shrink-0 ml-2">
+																{existingConnector && (
+																	<span
+																		className={`rounded-md px-2 py-1 text-xs font-medium ${
+																			existingConnector.status === "connected"
+																				? "bg-primary text-primary-foreground"
+																				: "bg-muted text-muted-foreground"
+																		}`}
+																	>
+																		{existingConnector.status === "connected"
+																			? "Connected"
+																			: "Disconnected"}
+																	</span>
+																)}
+																<Button
+																	type="button"
+																	variant="outline"
+																	size="sm"
+																	className="cursor-pointer"
+																	onClick={() => {
+																		if (existingConnector) {
+																			setEditingConnector(existingConnector);
+																			setSelectedPreset(null);
+																			setView("form");
+																			return;
+																		}
+																		selectPreset(preset);
+																	}}
+																>
+																	{existingConnector ? "Edit" : "Add"}
+																</Button>
+															</div>
+														</li>
+													);
+												})}
+											</ul>
+										)}
+									</ScrollArea>
 								</div>
 								<Button
 									variant="outline"
@@ -919,6 +887,15 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 											className={`flex space-x-2 ${isEditing ? "ml-auto" : isMobile ? "w-full" : "w-full justify-end"}`}
 										>
 											<Button
+												type="button"
+												variant="ghost"
+												className={`cursor-pointer ${!isEditing && isMobile ? "w-full" : ""}`}
+												onClick={cancelForm}
+												disabled={pending || isDeleting}
+											>
+												Cancel
+											</Button>
+											<Button
 												type="submit"
 												className={`cursor-pointer ${!isEditing && isMobile ? "w-full" : ""}`}
 												disabled={pending || isDeleting}
@@ -926,7 +903,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 												{pending
 													? isEditing
 														? "Saving..."
-														: "Creating..."
+														: "Adding..."
 													: isEditing
 														? "Save changes"
 														: "Add MCP"}
@@ -945,13 +922,13 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to delete &quot;{editingConnector?.name}
-							&quot;? This action cannot be undone.
+							This action cannot be undone. This will permanently delete this
+							MCP server and remove it from your project.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel
-							className="cursor-pointer"
+							className="cursor-pointer border-transparent bg-transparent shadow-none hover:bg-accent"
 							disabled={isDeleting}
 							onClick={selection}
 						>
@@ -960,9 +937,9 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
 						<AlertDialogAction
 							onClick={handleDelete}
 							disabled={isDeleting}
-							className="cursor-pointer bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							className="cursor-pointer"
 						>
-							{isDeleting ? "Deleting..." : "Delete"}
+							{isDeleting ? "Continuing..." : "Continue"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

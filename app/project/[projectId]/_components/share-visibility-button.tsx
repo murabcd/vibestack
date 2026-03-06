@@ -93,7 +93,7 @@ export function ShareVisibilityButton({
 					title="Share project"
 					onClick={selection}
 				>
-					<Share2 className="size-4 mr-2 max-sm:mr-0" />
+					<Share2 className="size-4 max-sm:mr-0" />
 					<span className="max-sm:hidden">Share</span>
 					{visibility === "public" ? (
 						<span

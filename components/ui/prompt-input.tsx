@@ -421,7 +421,7 @@ export const PromptInputActionAddAttachments = ({
 				attachments.openFileDialog();
 			}}
 		>
-			<ImageIcon className="mr-2 size-4" /> {label}
+			<ImageIcon className="size-4" /> {label}
 		</DropdownMenuItem>
 	);
 };
@@ -1298,7 +1298,7 @@ export const PromptInputSpeechButton = ({
 				<PromptInputButton
 					aria-label={isListening ? "Stop recording" : "Start recording"}
 					className={cn(
-						"relative transition-all duration-200",
+						"relative cursor-pointer transition-all duration-200",
 						isListening && "animate-pulse bg-accent text-accent-foreground",
 						className,
 					)}
