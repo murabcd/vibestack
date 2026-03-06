@@ -1,8 +1,10 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { useSession } from "@/components/auth/session-provider";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { EnhancedPreview } from "@/components/enhanced-preview/enhanced-preview";
@@ -17,40 +19,71 @@ import { CommitGitHubButton } from "./commit-github-button";
 import { ShareVisibilityButton } from "./share-visibility-button";
 
 interface ProjectPageClientProps {
-	horizontalSizes: number[] | null;
 	projectId: string;
-	projectTitle?: string | null;
-	initialVisibility: "public" | "private";
-	isOwner: boolean;
 	initialMessages: ChatUIMessage[];
-	initialSandboxDuration: number;
-	initialLastContext?: AppUsage;
-	initialModelId?: string;
+}
+
+interface ProjectDetails {
+	title?: string | null;
+	visibility: "public" | "private";
+	userId?: string;
+	lastContext?: AppUsage | null;
+}
+
+function hasPendingProjectCookie(projectId: string) {
+	if (typeof window === "undefined") return false;
+
+	const hasPendingMessage =
+		window.sessionStorage.getItem(`pending-message-${projectId}`) !== null;
+	if (hasPendingMessage) {
+		return true;
+	}
+
+	return document.cookie
+		.split("; ")
+		.some((cookie) => cookie === `pending_project_id=${projectId}`);
 }
 
 export function ProjectPageClient({
-	horizontalSizes,
 	projectId,
-	projectTitle,
-	initialVisibility,
-	isOwner,
 	initialMessages,
-	initialSandboxDuration,
-	initialLastContext,
-	initialModelId,
 }: ProjectPageClientProps) {
 	const { isMobile } = useSidebar();
+	const { session } = useSession();
 	const [activePanel, setActivePanel] = useState<"chat" | "preview">("chat");
 	const [hasOpenedPreview, setHasOpenedPreview] = useState(false);
-	const { data: projectData } = useSWR<{ project?: { title?: string | null } }>(
-		`/api/projects/${projectId}`,
-		{
-			refreshInterval: (latestData) =>
-				latestData?.project?.title?.trim() ? 0 : 1500,
-		},
+	const isPendingProjectBootstrap = useMemo(
+		() => hasPendingProjectCookie(projectId),
+		[projectId],
 	);
-	const displayProjectTitle =
-		projectData?.project?.title?.trim() || projectTitle?.trim() || "";
+	const { data: projectData, error: projectError } = useSWR<{
+		project?: ProjectDetails;
+	}>(`/api/projects/${projectId}`, {
+		refreshInterval: (latestData) =>
+			latestData?.project
+				? latestData.project.title?.trim()
+					? 0
+					: 1500
+				: isPendingProjectBootstrap
+					? 400
+					: 0,
+		shouldRetryOnError: (error) =>
+			isPendingProjectBootstrap &&
+			error instanceof Error &&
+			error.message.includes("404"),
+		errorRetryInterval: 400,
+		errorRetryCount: isPendingProjectBootstrap ? 12 : 0,
+	});
+	const project = projectData?.project;
+	const displayProjectTitle = project?.title?.trim() || "";
+	const initialVisibility = project?.visibility ?? "private";
+	const canManageProject =
+		project?.userId !== undefined && project.userId === session?.user?.id;
+	const initialLastContext = project?.lastContext ?? undefined;
+	const notFound =
+		!isPendingProjectBootstrap &&
+		projectError instanceof Error &&
+		projectError.message.includes("404");
 	// Global ref to prevent BOTH mobile and desktop ProjectChat from sending the same message
 	const hasSentPendingMessage = useRef(false);
 	const pendingMessage = useMemo<PromptInputMessage | null>(() => {
@@ -69,6 +102,28 @@ export function ProjectPageClient({
 			return null;
 		}
 	}, [projectId, initialMessages.length]);
+
+	if (notFound) {
+		return (
+			<>
+				<AppSidebar />
+				<SidebarInset>
+					<div className="flex h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+						<h1 className="text-xl font-semibold">Project not found</h1>
+						<p className="max-w-md text-sm text-muted-foreground">
+							This project may be private, deleted, or still being created.
+						</p>
+						<Link
+							href="/"
+							className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+						>
+							Go back home
+						</Link>
+					</div>
+				</SidebarInset>
+			</>
+		);
+	}
 
 	return (
 		<>
@@ -93,7 +148,7 @@ export function ProjectPageClient({
 							</ol>
 						</nav>
 						<div className="flex items-center flex-1" />
-						{isOwner ? (
+						{canManageProject ? (
 							<>
 								<ShareVisibilityButton
 									projectId={projectId}
@@ -101,7 +156,7 @@ export function ProjectPageClient({
 								/>
 								<CommitGitHubButton
 									projectId={projectId}
-									projectTitle={projectTitle}
+									projectTitle={project?.title}
 								/>
 							</>
 						) : null}
@@ -148,9 +203,7 @@ export function ProjectPageClient({
 										projectId={projectId}
 										pendingMessage={pendingMessage}
 										sentMessageRef={hasSentPendingMessage}
-										initialSandboxDuration={initialSandboxDuration}
 										initialLastContext={initialLastContext}
-										initialModelId={initialModelId}
 									/>
 								</div>
 								{hasOpenedPreview ? (
@@ -168,7 +221,7 @@ export function ProjectPageClient({
 					) : (
 						<div className="flex flex-1 w-full min-h-0 overflow-hidden pt-2">
 							<Horizontal
-								defaultLayout={horizontalSizes ?? [30, 70]}
+								defaultLayout={[30, 70]}
 								left={
 									<ProjectChat
 										className="flex-1 overflow-hidden"
@@ -176,9 +229,7 @@ export function ProjectPageClient({
 										projectId={projectId}
 										pendingMessage={pendingMessage}
 										sentMessageRef={hasSentPendingMessage}
-										initialSandboxDuration={initialSandboxDuration}
 										initialLastContext={initialLastContext}
-										initialModelId={initialModelId}
 									/>
 								}
 								right={<EnhancedPreview className="flex-1 overflow-hidden" />}

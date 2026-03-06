@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 import { generateTitleFromUserMessage } from "@/app/actions";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
@@ -13,6 +14,31 @@ import { useAppHaptics } from "@/hooks/use-app-haptics";
 import { generateUUID } from "@/lib/utils";
 import { InitialScreen } from "../initial-screen";
 
+interface ProjectListItem {
+	id: string;
+	projectId: string;
+	title: string;
+	createdAt: Date | string;
+	updatedAt: Date | string;
+	visibility: "public" | "private";
+	userId?: string;
+	isPinned?: boolean;
+	status?: "idle" | "processing" | "completed" | "error";
+	progress?: number;
+	sandboxId?: string;
+	sandboxUrl?: string;
+	previewUrl?: string;
+}
+
+function getTemporaryProjectTitle(message: PromptInputMessage) {
+	const text = message.text?.trim();
+	if (!text) {
+		return "New Project";
+	}
+
+	return text.slice(0, 60);
+}
+
 export function PageClient({
 	initialSandboxDuration,
 	initialModelId,
@@ -21,6 +47,7 @@ export function PageClient({
 	initialModelId?: string;
 }) {
 	const router = useRouter();
+	const { mutate } = useSWRConfig();
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
 	const { selection, error: errorHaptic, success } = useAppHaptics();
 
@@ -50,6 +77,19 @@ export function PageClient({
 		try {
 			// Generate project ID
 			const projectId = nanoid();
+			const now = new Date().toISOString();
+			const temporaryTitle = getTemporaryProjectTitle(message);
+			const optimisticProject: ProjectListItem = {
+				id: projectId,
+				projectId,
+				title: temporaryTitle,
+				createdAt: now,
+				updatedAt: now,
+				visibility: "private",
+				isPinned: false,
+				status: "idle",
+				progress: 0,
+			};
 
 			// Store message in sessionStorage to be picked up by project page
 			sessionStorage.setItem(
@@ -60,13 +100,31 @@ export function PageClient({
 				}),
 			);
 			setPendingProjectCookie(projectId);
+			void mutate<{ projects: ProjectListItem[] }>(
+				"/api/projects",
+				(current) => {
+					if (!current) {
+						return { projects: [optimisticProject] };
+					}
 
-			// Navigate to project page immediately (no waiting!)
-			router.push(`/project/${projectId}`);
-			success();
+					const hasProject = current.projects.some(
+						(project) => project.projectId === projectId,
+					);
+					if (hasProject) {
+						return current;
+					}
 
-			// Create project in background while the UI transitions to project view.
-			void fetch("/api/projects", {
+					return {
+						...current,
+						projects: [optimisticProject, ...current.projects],
+					};
+				},
+				{
+					revalidate: false,
+				},
+			);
+
+			const initializeProjectPromise = fetch("/api/projects", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -98,13 +156,60 @@ export function PageClient({
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ title }),
 					});
+					void mutate<{ projects: ProjectListItem[] }>(
+						"/api/projects",
+						(current) => {
+							if (!current) {
+								return current;
+							}
+
+							return {
+								...current,
+								projects: current.projects.map((project) =>
+									project.projectId === projectId
+										? {
+												...project,
+												title,
+												updatedAt: new Date().toISOString(),
+											}
+										: project,
+								),
+							};
+						},
+						{
+							revalidate: false,
+						},
+					);
 				})
 				.catch((caughtError) => {
+					void mutate<{ projects: ProjectListItem[] }>(
+						"/api/projects",
+						(current) => {
+							if (!current) {
+								return current;
+							}
+
+							return {
+								...current,
+								projects: current.projects.filter(
+									(project) => project.projectId !== projectId,
+								),
+							};
+						},
+						{
+							revalidate: false,
+						},
+					);
 					setPendingProjectCookie();
 					console.error("Failed to initialize project:", caughtError);
 					toast.error("Failed to initialize project. Please try again.");
 					errorHaptic();
 				});
+
+			// Navigate to project page immediately (no waiting!)
+			router.push(`/project/${projectId}`);
+			success();
+			void initializeProjectPromise;
 		} catch (caughtError) {
 			setPendingProjectCookie();
 			console.error("Failed to create project:", caughtError);
