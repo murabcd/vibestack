@@ -121,14 +121,12 @@ export const AppSidebar = () => {
 												<TextSearch className="w-4 h-4" />
 											</Button>
 										</TooltipTrigger>
-										{!isMobile ? (
-											<TooltipContent align="end">
-												<span className="inline-flex items-center gap-1">
-													Search projects <Kbd>⌘</Kbd>
-													<Kbd>K</Kbd>
-												</span>
-											</TooltipContent>
-										) : null}
+										<TooltipContent align="end">
+											<span className="inline-flex items-center gap-1">
+												Search projects <Kbd>⌘</Kbd>
+												<Kbd>K</Kbd>
+											</span>
+										</TooltipContent>
 									</Tooltip>
 									{!isMobile ? (
 										<Tooltip>

@@ -1,6 +1,7 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type * as React from "react";
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 function TooltipProvider({
@@ -16,9 +17,7 @@ function TooltipProvider({
 	);
 }
 
-function Tooltip({
-	...props
-}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+function Tooltip(props: React.ComponentProps<typeof TooltipPrimitive.Root>) {
 	return (
 		<TooltipProvider>
 			<TooltipPrimitive.Root data-slot="tooltip" {...props} />
@@ -38,6 +37,12 @@ function TooltipContent({
 	children,
 	...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+	const isMobile = useIsMobile();
+
+	if (isMobile) {
+		return null;
+	}
+
 	return (
 		<TooltipPrimitive.Portal>
 			<TooltipPrimitive.Content
