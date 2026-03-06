@@ -72,8 +72,13 @@ function ProjectChatInner({
 	initialModelId,
 }: Props) {
 	const { chat } = useSharedChatContext();
-	const { modelId, reasoningEffort, sandboxDuration, permissionMode } =
-		useSettings(initialSandboxDuration, initialModelId);
+	const {
+		modelId,
+		reasoningEffort,
+		sandboxDuration,
+		permissionMode,
+		webSearch,
+	} = useSettings(initialSandboxDuration, initialModelId);
 	const { connectors } = useConnectors();
 	const { models } = useAvailableModels();
 	const connectedServerIds = useMemo(
@@ -178,6 +183,7 @@ function ProjectChatInner({
 						projectId,
 						sandboxDuration,
 						permissionMode,
+						webSearch,
 						mcpServerIds:
 							connectedServerIds.length > 0 ? connectedServerIds : undefined,
 						background: false,
@@ -195,6 +201,7 @@ function ProjectChatInner({
 			projectId,
 			sandboxDuration,
 			permissionMode,
+			webSearch,
 			connectedServerIds,
 		],
 	);

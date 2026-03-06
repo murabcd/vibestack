@@ -1,4 +1,6 @@
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
+import { createOpenAI } from "@ai-sdk/openai";
 import { Sandbox } from "@vercel/sandbox";
 import {
 	consumeStream,
@@ -79,6 +81,7 @@ interface BodyData {
 	modelId?: string;
 	reasoningEffort?: "low" | "medium" | "high";
 	permissionMode?: "ask-permissions" | "auto-accept-edits";
+	webSearch?: boolean;
 	projectId?: string;
 	sandboxDuration?: number;
 	mcpServerIds?: string[];
@@ -94,6 +97,8 @@ const TOOL_COOLDOWN_FAILURE_THRESHOLD = 2;
 const MAX_LRU_FILE_CONTEXT_FILES = 6;
 const MAX_LRU_FILE_CONTEXT_CHARS_PER_FILE = 3000;
 const MAX_LRU_FILE_CONTEXT_TOTAL_CHARS = 12000;
+const openaiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+const anthropicProvider = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
 	const wide = createApiWideEvent(req, "chat.stream");
@@ -126,6 +131,7 @@ export async function POST(req: NextRequest) {
 		modelId = DEFAULT_MODEL,
 		reasoningEffort = "medium",
 		permissionMode = "ask-permissions",
+		webSearch = false,
 		projectId,
 		sandboxDuration,
 		mcpServerIds,
@@ -161,6 +167,7 @@ export async function POST(req: NextRequest) {
 	wide.add({
 		model_id: modelId,
 		permission_mode: permissionMode,
+		web_search: webSearch,
 		project_id: projectId,
 		message_count: validatedMessages.length,
 		mcp_server_ids_count: mcpServerIds?.length ?? 0,
@@ -616,10 +623,29 @@ export async function POST(req: NextRequest) {
 				});
 
 				const allTools = { ...baseTools, ...mcpTools };
+				const providerWebSearchTools =
+					webSearch && provider === "openai"
+						? {
+								web_search: openaiProvider.tools.webSearch({
+									searchContextSize: "low",
+								}),
+							}
+						: webSearch && provider === "anthropic"
+							? {
+									web_search: anthropicProvider.tools.webSearch_20250305({}),
+								}
+							: {};
+				const enabledTools = {
+					...allTools,
+					...providerWebSearchTools,
+				};
 
 				wide.add({
 					base_tools_count: Object.keys(baseTools).length,
 					all_tools_count: Object.keys(allTools).length,
+					web_search_enabled: webSearch,
+					web_search_tools_count: Object.keys(providerWebSearchTools).length,
+					enabled_tools_count: Object.keys(enabledTools).length,
 				});
 
 				if (projectId) {
@@ -771,7 +797,7 @@ export async function POST(req: NextRequest) {
 					...getModelOptions(modelId, { reasoningEffort }),
 					instructions: buildAgentInstructions(prompt, validatedMessages),
 					stopWhen: stepCountIs(16),
-					tools: toolsDisabledFromRepeatedErrors ? {} : allTools,
+					tools: toolsDisabledFromRepeatedErrors ? {} : enabledTools,
 					experimental_onStepStart: ({ stepNumber }) => {
 						stepStartedAt.set(stepNumber, Date.now());
 					},

@@ -38,7 +38,7 @@ function ChatInner({ className }: Props) {
 		},
 	);
 	const { setChatStatus } = useSandboxStore();
-	const { modelId, reasoningEffort, permissionMode } = useSettings();
+	const { modelId, reasoningEffort, permissionMode, webSearch } = useSettings();
 	const { success, error } = useAppHaptics();
 	const previousStatusRef = useRef(status);
 	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -56,6 +56,7 @@ function ChatInner({ className }: Props) {
 						modelId,
 						reasoningEffort,
 						permissionMode,
+						webSearch,
 					},
 				},
 			);
@@ -63,7 +64,7 @@ function ChatInner({ className }: Props) {
 				setEditingMessageId(null);
 			}
 		},
-		[sendMessage, modelId, permissionMode, reasoningEffort],
+		[sendMessage, modelId, permissionMode, reasoningEffort, webSearch],
 	);
 
 	const handleEditMessage = useCallback(

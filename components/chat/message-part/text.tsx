@@ -34,7 +34,7 @@ export const Text = memo(function Text({
 		chat,
 		experimental_throttle: 50,
 	});
-	const { modelId, reasoningEffort } = useSettings();
+	const { modelId, reasoningEffort, webSearch } = useSettings();
 	const visibleText =
 		messageRole === "assistant" ? stripFencedCodeBlocks(part.text) : part.text;
 
@@ -54,6 +54,7 @@ export const Text = memo(function Text({
 			body: {
 				modelId,
 				reasoningEffort,
+				webSearch,
 			},
 		});
 	};

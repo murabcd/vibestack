@@ -15,6 +15,7 @@ export function useSettings(
 	const [modelId, setModelId] = useModelId(initialModelId);
 	const [fixErrors] = useFixErrors();
 	const [reasoningEffort] = useReasoningEffort();
+	const [webSearch] = useWebSearch();
 	const [sandboxDuration] = useSandboxDuration(initialSandboxDuration);
 	const [permissionMode, setPermissionMode] = usePermissionMode();
 	return {
@@ -22,6 +23,7 @@ export function useSettings(
 		setModelId,
 		fixErrors,
 		reasoningEffort,
+		webSearch,
 		sandboxDuration,
 		permissionMode,
 		setPermissionMode,
@@ -54,6 +56,10 @@ export function useReasoningEffort() {
 
 export function useFixErrors() {
 	return useQueryState("fix-errors", parseAsBoolean.withDefault(true));
+}
+
+export function useWebSearch() {
+	return useQueryState("web-search", parseAsBoolean.withDefault(false));
 }
 
 export function useSandboxDuration(initialValue?: number) {

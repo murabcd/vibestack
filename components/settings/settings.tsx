@@ -1,10 +1,11 @@
-import { SlidersVerticalIcon } from "lucide-react";
+import { Settings2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Tooltip,
 	TooltipContent,
@@ -12,31 +13,33 @@ import {
 } from "@/components/ui/tooltip";
 import { AutoFixErrors } from "./auto-fix-errors";
 import { ReasoningEffort } from "./reasoning-effort";
+import { WebSearch } from "./web-search";
 
 export function Settings() {
 	return (
-		<Popover>
+		<DropdownMenu>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<PopoverTrigger asChild>
+					<DropdownMenuTrigger asChild>
 						<Button
 							type="button"
 							className="cursor-pointer"
 							variant="ghost"
 							size="sm"
 						>
-							<SlidersVerticalIcon className="size-4" />
+							<Settings2Icon className="size-4" />
 						</Button>
-					</PopoverTrigger>
+					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent align="end">Model settings</TooltipContent>
 			</Tooltip>
-			<PopoverContent className="p-0 min-w-80">
-				<div className="p-4 space-y-6">
+			<DropdownMenuContent align="start" className="w-56 rounded-2xl p-2">
+				<DropdownMenuGroup className="space-y-1">
+					<WebSearch />
 					<AutoFixErrors />
 					<ReasoningEffort />
-				</div>
-			</PopoverContent>
-		</Popover>
+				</DropdownMenuGroup>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
