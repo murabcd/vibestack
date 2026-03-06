@@ -1,20 +1,20 @@
 "use client";
 
-import { ChevronDownIcon, HandIcon, PencilLineIcon } from "lucide-react";
+import { HandIcon, PencilLineIcon } from "lucide-react";
 import { memo, useState } from "react";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
 	HoverCard,
 	HoverCardContent,
 	HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { cn } from "@/lib/utils";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { PermissionMode } from "./use-settings";
 
 interface Props {
@@ -37,7 +37,7 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 	value,
 	onValueChange,
 }: Props) {
-	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [isSelectOpen, setIsSelectOpen] = useState(false);
 	const [isHoverArmed, setIsHoverArmed] = useState(false);
 	const [hoveredMode, setHoveredMode] = useState<PermissionMode | null>(null);
 
@@ -48,7 +48,7 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 	) => (
 		<HoverCard
 			key={mode}
-			open={isMenuOpen && isHoverArmed && hoveredMode === mode}
+			open={isSelectOpen && isHoverArmed && hoveredMode === mode}
 			onOpenChange={(open) => {
 				if (open && isHoverArmed) {
 					setHoveredMode(mode);
@@ -60,25 +60,20 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 			closeDelay={0}
 		>
 			<HoverCardTrigger asChild>
-				<DropdownMenuItem
-					onSelect={() => onValueChange(mode)}
-					className={cn("flex items-center gap-2 py-2", {
-						"bg-accent/50": value === mode,
-					})}
-				>
+				<SelectItem value={mode}>
 					{icon === "hand" ? (
 						<HandIcon className="size-4" />
 					) : (
 						<PencilLineIcon className="size-4" />
 					)}
-					<span className="text-sm">{title}</span>
-				</DropdownMenuItem>
+					<span>{title}</span>
+				</SelectItem>
 			</HoverCardTrigger>
 			<HoverCardContent
 				side="right"
 				align="start"
 				sideOffset={10}
-				className="w-64"
+				className="pointer-events-none w-64"
 			>
 				<p className="text-xs text-muted-foreground">{MODE_DETAILS[mode]}</p>
 			</HoverCardContent>
@@ -86,39 +81,38 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 	);
 
 	return (
-		<DropdownMenu
+		<Select
+			value={value}
+			onValueChange={(next) => onValueChange(next as PermissionMode)}
 			onOpenChange={(open) => {
-				setIsMenuOpen(open);
+				setIsSelectOpen(open);
 				setIsHoverArmed(false);
 				if (!open) setHoveredMode(null);
 			}}
 		>
-			<DropdownMenuTrigger asChild>
-				<button
-					type="button"
-					className="h-6 inline-flex items-center gap-1.5 rounded-full border border-transparent px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
-				>
+			<SelectTrigger className="h-6! w-fit gap-1.5 rounded-full border border-transparent bg-transparent! px-2 py-0 text-xs text-muted-foreground shadow-none transition-colors hover:bg-accent! dark:bg-transparent! dark:hover:bg-accent! focus-visible:border-transparent focus-visible:ring-0 [&_svg]:size-3.5 [&_[data-slot=select-value]]:inline-flex [&_[data-slot=select-value]]:items-center [&_[data-slot=select-value]]:gap-1.5">
+				<span className="inline-flex items-center gap-1.5">
 					{value === "ask-permissions" ? (
 						<HandIcon className="size-3.5" />
 					) : (
 						<PencilLineIcon className="size-3.5" />
 					)}
-					<span>{MODE_LABELS[value]}</span>
-					<ChevronDownIcon className="size-3.5" />
-				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent
+					<SelectValue>{MODE_LABELS[value]}</SelectValue>
+				</span>
+			</SelectTrigger>
+			<SelectContent
+				position="popper"
 				align="start"
 				className="w-56"
 				onPointerMove={() => {
 					if (!isHoverArmed) setIsHoverArmed(true);
 				}}
 			>
-				<DropdownMenuGroup>
+				<SelectGroup>
 					{renderItem("ask-permissions", "hand", "Ask permissions")}
 					{renderItem("auto-accept-edits", "pencil", "Auto accept edits")}
-				</DropdownMenuGroup>
-			</DropdownMenuContent>
-		</DropdownMenu>
+				</SelectGroup>
+			</SelectContent>
+		</Select>
 	);
 });
