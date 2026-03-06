@@ -1,4 +1,4 @@
-import { ClockIcon } from "lucide-react";
+import { Clock3Icon, Clock6Icon, Clock9Icon, ClockIcon } from "lucide-react";
 import { useId } from "react";
 import { saveSandboxDurationAsCookie } from "@/app/actions";
 import { useSandboxDuration } from "@/components/settings/use-settings";
@@ -37,9 +37,9 @@ export function TaskOptions({
 	const id = useId();
 
 	const durationOptions = [
-		{ value: 15, label: "15 minutes" },
-		{ value: 30, label: "30 minutes" },
-		{ value: 45, label: "45 minutes" },
+		{ value: 15, label: "15 minutes", icon: Clock3Icon },
+		{ value: 30, label: "30 minutes", icon: Clock6Icon },
+		{ value: 45, label: "45 minutes", icon: Clock9Icon },
 	];
 
 	const handleDurationChange = async (value: string) => {
@@ -51,6 +51,9 @@ export function TaskOptions({
 	const selectedLabel =
 		durationOptions.find((option) => option.value === sandboxDuration)?.label ??
 		`${sandboxDuration} minutes`;
+	const SelectedDurationIcon =
+		durationOptions.find((option) => option.value === sandboxDuration)?.icon ??
+		ClockIcon;
 
 	if (compact) {
 		return (
@@ -62,7 +65,7 @@ export function TaskOptions({
 					<TooltipTrigger asChild>
 						<SelectTrigger className="!h-6 w-fit gap-1.5 rounded-full border border-transparent !bg-transparent px-2 py-0 text-xs text-muted-foreground shadow-none transition-colors hover:!bg-accent dark:!bg-transparent dark:hover:!bg-accent focus-visible:border-transparent focus-visible:ring-0 [&_svg]:size-3.5 [&_[data-slot=select-value]]:inline-flex [&_[data-slot=select-value]]:items-center [&_[data-slot=select-value]]:gap-1.5">
 							<span className="inline-flex items-center gap-1.5">
-								<ClockIcon className="size-3.5" />
+								<SelectedDurationIcon className="size-3.5" />
 								<SelectValue>{selectedLabel}</SelectValue>
 							</span>
 						</SelectTrigger>
@@ -72,6 +75,7 @@ export function TaskOptions({
 				<SelectContent position="popper" align="start" className="w-40">
 					{durationOptions.map((option) => (
 						<SelectItem key={option.value} value={option.value.toString()}>
+							<option.icon className="size-4" />
 							{option.label}
 						</SelectItem>
 					))}
@@ -114,6 +118,7 @@ export function TaskOptions({
 										key={option.value}
 										value={option.value.toString()}
 									>
+										<option.icon className="size-4" />
 										{option.label}
 									</SelectItem>
 								))}

@@ -969,7 +969,7 @@ export const PromptInputActionMenuTrigger = ({
 				</PromptInputButton>
 			</DropdownMenuTrigger>
 		</TooltipTrigger>
-		<TooltipContent align="end">Add</TooltipContent>
+		<TooltipContent align="end">Add sources</TooltipContent>
 	</Tooltip>
 );
 

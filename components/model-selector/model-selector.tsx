@@ -157,7 +157,7 @@ export const ModelSelector = memo(function ModelSelector({
 				<HoverCardContent
 					side="right"
 					align="start"
-					sideOffset={10}
+					sideOffset={12}
 					className="pointer-events-none w-56"
 				>
 					<p className="text-muted-foreground text-xs">{description}</p>

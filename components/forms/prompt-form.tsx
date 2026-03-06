@@ -1,5 +1,6 @@
 "use client";
 
+import { ServerIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useState } from "react";
 import { saveModelAsCookie } from "@/app/actions";
 import {
@@ -13,7 +14,7 @@ import {
 	ContextReasoningUsage,
 	ContextTrigger,
 } from "@/components/ai-elements/context";
-import { McpButton } from "@/components/connectors/mcp-button";
+import { ConnectorDialog } from "@/components/connectors/manage-connectors";
 import { ImportFromGithubDialog } from "@/components/forms/import-from-github-dialog";
 import { ModelSelector } from "@/components/model-selector/model-selector";
 import { PermissionModeSelector } from "@/components/settings/permission-mode-selector";
@@ -81,6 +82,7 @@ export const PromptForm = memo(function PromptForm({
 	const controller = usePromptInputController();
 	const [input, setInput] = useLocalStorageValue("prompt-input");
 	const [isImportGithubOpen, setIsImportGithubOpen] = useState(false);
+	const [isConnectorDialogOpen, setIsConnectorDialogOpen] = useState(false);
 	const { selection } = useAppHaptics();
 
 	// Use isLoading prop if provided, otherwise use provided chat status
@@ -203,6 +205,7 @@ export const PromptForm = memo(function PromptForm({
 						<PromptInputActionMenu>
 							<PromptInputActionMenuTrigger onClick={selection} />
 							<PromptInputActionMenuContent>
+								<PromptInputActionAddAttachments />
 								{enableGithubImport && (
 									<PromptInputActionMenuItem
 										className="cursor-pointer"
@@ -216,19 +219,23 @@ export const PromptForm = memo(function PromptForm({
 										Import from GitHub
 									</PromptInputActionMenuItem>
 								)}
-								<PromptInputActionAddAttachments />
+								<PromptInputActionMenuItem
+									className="cursor-pointer"
+									onSelect={() => {
+										selection();
+										requestAnimationFrame(() => {
+											setIsConnectorDialogOpen(true);
+										});
+									}}
+								>
+									<ServerIcon className="size-4 mr-2" />
+									Connect MCP
+								</PromptInputActionMenuItem>
 							</PromptInputActionMenuContent>
 						</PromptInputActionMenu>
 						{/* Hide MCP and Sandbox buttons when in project/split view */}
-						{!shouldHideAuxiliaryTools && (
-							<>
-								<McpButton />
-								{!showPermissionModeSelector && (
-									<TaskOptions
-										initialSandboxDuration={initialSandboxDuration}
-									/>
-								)}
-							</>
+						{!shouldHideAuxiliaryTools && !showPermissionModeSelector && (
+							<TaskOptions initialSandboxDuration={initialSandboxDuration} />
 						)}
 						<Settings />
 						<ModelSelector
@@ -272,6 +279,10 @@ export const PromptForm = memo(function PromptForm({
 					onOpenChange={setIsImportGithubOpen}
 				/>
 			)}
+			<ConnectorDialog
+				open={isConnectorDialogOpen}
+				onOpenChange={setIsConnectorDialogOpen}
+			/>
 		</div>
 	);
 });

@@ -29,8 +29,9 @@ interface Props {
 
 const MODE_DETAILS: Record<PermissionMode, string> = {
 	"ask-permissions":
-		"Requires confirmation before risky commands (recommended).",
-	"auto-accept-edits": "Runs risky edit commands without confirmation prompts.",
+		"Requires confirmation before risky commands to keep changes safe (recommended).",
+	"auto-accept-edits":
+		"Runs risky edit commands without confirmation prompts, which is faster but less guarded.",
 };
 
 const MODE_LABELS: Record<PermissionMode, string> = {
@@ -77,8 +78,8 @@ export const PermissionModeSelector = memo(function PermissionModeSelector({
 			<HoverCardContent
 				side="right"
 				align="start"
-				sideOffset={10}
-				className="pointer-events-none w-64"
+				sideOffset={12}
+				className="pointer-events-none w-56"
 			>
 				<p className="text-xs text-muted-foreground">{MODE_DETAILS[mode]}</p>
 			</HoverCardContent>
