@@ -33,7 +33,7 @@ export function Settings() {
 				</TooltipTrigger>
 				<TooltipContent align="end">Model settings</TooltipContent>
 			</Tooltip>
-			<DropdownMenuContent align="start" className="w-56 rounded-2xl p-2">
+			<DropdownMenuContent align="start" className="w-56 rounded-md p-2">
 				<DropdownMenuGroup className="space-y-1">
 					<WebSearch />
 					<AutoFixErrors />
