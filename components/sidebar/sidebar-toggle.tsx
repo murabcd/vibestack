@@ -33,7 +33,10 @@ export function SidebarToggle() {
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent align="start">
-					{toggleSidebarTooltip} <Kbd>⌘B</Kbd>
+					<span className="inline-flex items-center gap-1">
+						{toggleSidebarTooltip} <Kbd>⌘</Kbd>
+						<Kbd>B</Kbd>
+					</span>
 				</TooltipContent>
 			</Tooltip>
 

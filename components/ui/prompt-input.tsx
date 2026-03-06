@@ -63,6 +63,7 @@ import {
 	InputGroupButton,
 	InputGroupTextarea,
 } from "@/components/ui/input-group";
+import { Kbd } from "@/components/ui/kbd";
 import {
 	Select,
 	SelectContent,
@@ -1040,59 +1041,6 @@ export const PromptInputSubmit = ({
 	);
 };
 
-interface SpeechRecognition extends EventTarget {
-	continuous: boolean;
-	interimResults: boolean;
-	lang: string;
-	start(): void;
-	stop(): void;
-	onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
-	onend: ((this: SpeechRecognition, ev: Event) => void) | null;
-	onresult:
-		| ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
-		| null;
-	onerror:
-		| ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
-		| null;
-}
-
-interface SpeechRecognitionEvent extends Event {
-	results: SpeechRecognitionResultList;
-}
-
-type SpeechRecognitionResultList = {
-	readonly length: number;
-	item(index: number): SpeechRecognitionResult;
-	[index: number]: SpeechRecognitionResult;
-};
-
-type SpeechRecognitionResult = {
-	readonly length: number;
-	item(index: number): SpeechRecognitionAlternative;
-	[index: number]: SpeechRecognitionAlternative;
-	isFinal: boolean;
-};
-
-type SpeechRecognitionAlternative = {
-	transcript: string;
-	confidence: number;
-};
-
-interface SpeechRecognitionErrorEvent extends Event {
-	error: string;
-}
-
-declare global {
-	interface Window {
-		SpeechRecognition: {
-			new (): SpeechRecognition;
-		};
-		webkitSpeechRecognition: {
-			new (): SpeechRecognition;
-		};
-	}
-}
-
 export type PromptInputSpeechButtonProps = ComponentProps<
 	typeof PromptInputButton
 > & {
@@ -1104,99 +1052,280 @@ export const PromptInputSpeechButton = ({
 	className,
 	textareaRef,
 	onTranscriptionChange,
+	onClick,
+	disabled,
 	...props
 }: PromptInputSpeechButtonProps) => {
+	const controller = useOptionalPromptInputController();
 	const [isListening, setIsListening] = useState(false);
-	const [recognition, setRecognition] = useState<SpeechRecognition | null>(
-		null,
-	);
-	const recognitionRef = useRef<SpeechRecognition | null>(null);
+	const [isTranscribing, setIsTranscribing] = useState(false);
+	const [isSupported, setIsSupported] = useState(false);
+	const recorderRef = useRef<MediaRecorder | null>(null);
+	const streamRef = useRef<MediaStream | null>(null);
+	const chunksRef = useRef<BlobPart[]>([]);
+	const sessionIdRef = useRef(0);
+	const startedByHotkeyRef = useRef(false);
 
 	useEffect(() => {
-		if (
+		setIsSupported(
 			typeof window !== "undefined" &&
-			("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
-		) {
-			const SpeechRecognition =
-				window.SpeechRecognition || window.webkitSpeechRecognition;
-			const speechRecognition = new SpeechRecognition();
+				typeof navigator !== "undefined" &&
+				typeof navigator.mediaDevices?.getUserMedia === "function" &&
+				typeof MediaRecorder !== "undefined",
+		);
+	}, []);
 
-			speechRecognition.continuous = true;
-			speechRecognition.interimResults = true;
-			speechRecognition.lang = "en-US";
-
-			speechRecognition.onstart = () => {
-				setIsListening(true);
-			};
-
-			speechRecognition.onend = () => {
-				setIsListening(false);
-			};
-
-			speechRecognition.onresult = (event) => {
-				let finalTranscript = "";
-
-				const results = Array.from(event.results);
-
-				for (const result of results) {
-					if (result.isFinal) {
-						finalTranscript += result[0].transcript;
-					}
-				}
-
-				if (finalTranscript && textareaRef?.current) {
-					const textarea = textareaRef.current;
-					const currentValue = textarea.value;
-					const newValue =
-						currentValue + (currentValue ? " " : "") + finalTranscript;
-
-					textarea.value = newValue;
-					textarea.dispatchEvent(new Event("input", { bubbles: true }));
-					onTranscriptionChange?.(newValue);
-				}
-			};
-
-			speechRecognition.onerror = (event) => {
-				console.error("Speech recognition error:", event.error);
-				setIsListening(false);
-			};
-
-			recognitionRef.current = speechRecognition;
-			setRecognition(speechRecognition);
-		}
-
-		return () => {
-			if (recognitionRef.current) {
-				recognitionRef.current.stop();
+	const appendTranscript = useCallback(
+		(text: string) => {
+			const trimmed = text.trim();
+			if (!trimmed) {
+				return;
 			}
-		};
-	}, [textareaRef, onTranscriptionChange]);
 
-	const toggleListening = useCallback(() => {
-		if (!recognition) {
+			if (controller) {
+				const currentValue = controller.textInput.value.trim();
+				const nextValue = currentValue ? `${currentValue} ${trimmed}` : trimmed;
+				controller.textInput.setInput(nextValue);
+				onTranscriptionChange?.(nextValue);
+				return;
+			}
+
+			if (textareaRef?.current) {
+				const textarea = textareaRef.current;
+				const currentValue = textarea.value.trim();
+				const nextValue = currentValue ? `${currentValue} ${trimmed}` : trimmed;
+				textarea.value = nextValue;
+				textarea.dispatchEvent(new Event("input", { bubbles: true }));
+				onTranscriptionChange?.(nextValue);
+			}
+		},
+		[controller, textareaRef, onTranscriptionChange],
+	);
+
+	const transcribeAudio = useCallback(async (audioBlob: Blob) => {
+		setIsTranscribing(true);
+		try {
+			const formData = new FormData();
+			formData.append("audio", audioBlob, "speech.webm");
+
+			const response = await fetch("/api/transcribe", {
+				method: "POST",
+				body: formData,
+			});
+			if (!response.ok) {
+				throw new Error(`Transcription failed with status ${response.status}`);
+			}
+
+			const result = (await response.json()) as { text?: string };
+			return result.text?.trim() ?? "";
+		} catch (error) {
+			console.error("Failed to transcribe speech input", error);
+			return "";
+		} finally {
+			setIsTranscribing(false);
+		}
+	}, []);
+
+	const cleanupSession = useCallback(() => {
+		if (streamRef.current) {
+			for (const track of streamRef.current.getTracks()) {
+				track.stop();
+			}
+			streamRef.current = null;
+		}
+		recorderRef.current = null;
+	}, []);
+
+	const stopRecording = useCallback(() => {
+		const recorder = recorderRef.current;
+		if (!recorder || recorder.state === "inactive") {
+			setIsListening(false);
 			return;
 		}
 
-		if (isListening) {
-			recognition.stop();
-		} else {
-			recognition.start();
+		recorder.stop();
+		setIsListening(false);
+	}, []);
+
+	const startRecording = useCallback(() => {
+		if (!isSupported || isTranscribing || Boolean(disabled)) {
+			return;
 		}
-	}, [recognition, isListening]);
+
+		void (async () => {
+			try {
+				const stream = await navigator.mediaDevices.getUserMedia({
+					audio: true,
+				});
+				streamRef.current = stream;
+
+				const recorder = new MediaRecorder(stream);
+				const currentSessionId = sessionIdRef.current + 1;
+				sessionIdRef.current = currentSessionId;
+				chunksRef.current = [];
+
+				recorder.ondataavailable = (event) => {
+					if (sessionIdRef.current !== currentSessionId) {
+						return;
+					}
+					if (event.data.size > 0) {
+						chunksRef.current.push(event.data);
+					}
+				};
+
+				recorder.onstop = () => {
+					const activeSessionId = currentSessionId;
+					const audioBlob = new Blob(chunksRef.current, {
+						type: recorder.mimeType || "audio/webm",
+					});
+					chunksRef.current = [];
+					cleanupSession();
+					void (async () => {
+						const text = await transcribeAudio(audioBlob);
+						if (sessionIdRef.current !== activeSessionId) {
+							return;
+						}
+						if (text) {
+							appendTranscript(text);
+						}
+					})();
+				};
+
+				recorderRef.current = recorder;
+				recorder.start();
+				setIsListening(true);
+			} catch (error) {
+				console.error("Failed to start speech recording", error);
+				setIsListening(false);
+			}
+		})();
+	}, [
+		isSupported,
+		isTranscribing,
+		disabled,
+		cleanupSession,
+		transcribeAudio,
+		appendTranscript,
+	]);
+
+	const toggleListening = useCallback(() => {
+		if (isListening) {
+			stopRecording();
+			return;
+		}
+		startRecording();
+	}, [isListening, startRecording, stopRecording]);
+
+	useEffect(() => {
+		const isAltM = (event: KeyboardEvent) =>
+			event.altKey && event.code === "KeyM";
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.repeat || !isAltM(event)) {
+				return;
+			}
+			if (Boolean(disabled) || !isSupported || isTranscribing) {
+				return;
+			}
+			event.preventDefault();
+			if (!isListening) {
+				startedByHotkeyRef.current = true;
+				startRecording();
+			}
+		};
+
+		const handleKeyUp = (event: KeyboardEvent) => {
+			if (!startedByHotkeyRef.current) {
+				return;
+			}
+			if (event.code !== "KeyM" && event.key !== "Alt") {
+				return;
+			}
+			event.preventDefault();
+			startedByHotkeyRef.current = false;
+			stopRecording();
+		};
+
+		const handleWindowBlur = () => {
+			if (!startedByHotkeyRef.current) {
+				return;
+			}
+			startedByHotkeyRef.current = false;
+			stopRecording();
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		window.addEventListener("keyup", handleKeyUp);
+		window.addEventListener("blur", handleWindowBlur);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+			window.removeEventListener("keyup", handleKeyUp);
+			window.removeEventListener("blur", handleWindowBlur);
+		};
+	}, [
+		disabled,
+		isSupported,
+		isTranscribing,
+		isListening,
+		startRecording,
+		stopRecording,
+	]);
+
+	useEffect(
+		() => () => {
+			sessionIdRef.current += 1;
+			const recorder = recorderRef.current;
+			if (recorder && recorder.state !== "inactive") {
+				recorder.stop();
+			}
+			cleanupSession();
+			chunksRef.current = [];
+		},
+		[cleanupSession],
+	);
+
+	const icon = isTranscribing ? (
+		<Loader2Icon className="size-4 animate-spin" />
+	) : isListening ? (
+		<SquareIcon className="size-4" />
+	) : (
+		<MicIcon className="size-4" />
+	);
 
 	return (
-		<PromptInputButton
-			className={cn(
-				"relative transition-all duration-200",
-				isListening && "animate-pulse bg-accent text-accent-foreground",
-				className,
-			)}
-			disabled={!recognition}
-			onClick={toggleListening}
-			{...props}
-		>
-			<MicIcon className="size-4" />
-		</PromptInputButton>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<PromptInputButton
+					aria-label={isListening ? "Stop recording" : "Start recording"}
+					className={cn(
+						"relative transition-all duration-200",
+						isListening && "animate-pulse bg-accent text-accent-foreground",
+						className,
+					)}
+					disabled={Boolean(disabled) || !isSupported || isTranscribing}
+					onClick={(event) => {
+						toggleListening();
+						onClick?.(event);
+					}}
+					{...props}
+				>
+					{icon}
+				</PromptInputButton>
+			</TooltipTrigger>
+			<TooltipContent align="end">
+				{isTranscribing ? (
+					"Transcribing..."
+				) : isListening ? (
+					"Stop recording"
+				) : (
+					<span className="inline-flex items-center gap-1">
+						Start recording
+						<Kbd>⌥</Kbd>
+						<Kbd>M</Kbd>
+					</span>
+				)}
+			</TooltipContent>
+		</Tooltip>
 	);
 };
 

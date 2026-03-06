@@ -34,6 +34,7 @@ import {
 	PromptInputBody,
 	PromptInputFooter,
 	type PromptInputMessage,
+	PromptInputSpeechButton,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
@@ -231,14 +232,21 @@ export const PromptForm = memo(function PromptForm({
 							onModelChange={handleModelChange}
 						/>
 					</PromptInputTools>
-					<PromptInputSubmit
-						status={currentStatus}
-						disabled={
-							currentStatus !== "ready" ||
-							(!controller.textInput.value.trim() &&
-								!controller.attachments.files.length)
-						}
-					/>
+					<div className="ml-auto flex items-center gap-1">
+						<PromptInputSpeechButton
+							disabled={
+								currentStatus === "streaming" || currentStatus === "submitted"
+							}
+						/>
+						<PromptInputSubmit
+							status={currentStatus}
+							disabled={
+								currentStatus !== "ready" ||
+								(!controller.textInput.value.trim() &&
+									!controller.attachments.files.length)
+							}
+						/>
+					</div>
 				</PromptInputFooter>
 			</PromptInput>
 			{showPermissionModeSelector && (
