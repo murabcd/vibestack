@@ -337,6 +337,11 @@ export async function POST(req: NextRequest) {
 			const origin = new URL(req.url).origin;
 			const cookieHeader = req.headers.get("cookie") ?? "";
 			const authorizationHeader = req.headers.get("authorization") ?? "";
+			const botIdHeaders = {
+				"x-is-human": req.headers.get("x-is-human"),
+				"x-path": req.headers.get("x-path"),
+				"x-method": req.headers.get("x-method"),
+			};
 
 			const runInBackground = async () => {
 				const controller = new AbortController();
@@ -350,6 +355,15 @@ export async function POST(req: NextRequest) {
 						headers: {
 							"content-type": "application/json",
 							"x-chat-internal-run": "1",
+							...(botIdHeaders["x-is-human"]
+								? { "x-is-human": botIdHeaders["x-is-human"] }
+								: {}),
+							...(botIdHeaders["x-path"]
+								? { "x-path": botIdHeaders["x-path"] }
+								: {}),
+							...(botIdHeaders["x-method"]
+								? { "x-method": botIdHeaders["x-method"] }
+								: {}),
 							...(cookieHeader ? { cookie: cookieHeader } : {}),
 							...(authorizationHeader
 								? { authorization: authorizationHeader }

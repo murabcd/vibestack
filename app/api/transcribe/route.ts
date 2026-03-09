@@ -4,6 +4,7 @@ import {
 	experimental_transcribe as transcribe,
 } from "ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { rejectBotRequest } from "@/lib/botid/server";
 import { env } from "@/lib/env";
 import { getSessionFromReq } from "@/lib/session/server";
 
@@ -13,6 +14,11 @@ const openai = createOpenAI({
 
 export async function POST(request: NextRequest) {
 	try {
+		const botResponse = await rejectBotRequest(request);
+		if (botResponse) {
+			return botResponse;
+		}
+
 		const session = await getSessionFromReq(request);
 		if (!session) {
 			return NextResponse.json(

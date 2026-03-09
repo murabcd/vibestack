@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
+import { rejectBotRequest } from "@/lib/botid/server";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
 import { authorizeSandboxOwner } from "../../_auth";
@@ -139,6 +140,11 @@ export async function POST(
 ) {
 	const wide = createApiWideEvent(request, "sandboxes.files.write");
 	try {
+		const botResponse = await rejectBotRequest(request, wide);
+		if (botResponse) {
+			return botResponse;
+		}
+
 		const [{ sandboxId }, body] = await Promise.all([params, request.json()]);
 		const authz = await authorizeSandboxOwner(request, sandboxId);
 		if (!authz.ok) {

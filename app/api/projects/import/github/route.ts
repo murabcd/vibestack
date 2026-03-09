@@ -2,6 +2,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { nanoid } from "nanoid";
 import { type NextRequest, NextResponse } from "next/server";
 import z from "zod/v3";
+import { rejectBotRequest } from "@/lib/botid/server";
 import { createProject, updateProject } from "@/lib/db/queries";
 import { createApiWideEvent } from "@/lib/logging/wide-event";
 import { getSandboxConfig } from "@/lib/sandbox/config";
@@ -76,6 +77,11 @@ export async function POST(request: NextRequest) {
 	const wide = createApiWideEvent(request, "projects.import.github");
 	let projectId: string | null = null;
 	try {
+		const botResponse = await rejectBotRequest(request, wide);
+		if (botResponse) {
+			return botResponse;
+		}
+
 		const [session, body] = await Promise.all([
 			getSessionFromReq(request),
 			request.json(),

@@ -49,7 +49,7 @@
 		"ai": "^6.0.103",
 		"arctic": "3.7.0",
 		"better-auth": "^1.5.0",
-		"botid": "1.4.5",
+		"botid": "^1.5.11",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
