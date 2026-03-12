@@ -7,7 +7,6 @@ import {
 	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
-	pruneMessages,
 	stepCountIs,
 	ToolLoopAgent,
 	validateUIMessages,
@@ -48,6 +47,7 @@ import {
 } from "@/lib/security/mcp";
 import { getSessionFromReq } from "@/lib/session/server";
 import prompt from "./prompt.md";
+import { pruneMessagesForChat } from "./pruning";
 import {
 	compactMessagesForModel,
 	compactMessagesForPersistence,
@@ -764,12 +764,7 @@ export async function POST(req: NextRequest) {
 					}),
 				);
 
-				const prunedMessages = pruneMessages({
-					messages: modelMessages,
-					reasoning: "before-last-message",
-					toolCalls: "before-last-2-messages",
-					emptyMessages: "remove",
-				});
+				const prunedMessages = pruneMessagesForChat(modelMessages);
 
 				wide.add({
 					model_messages_count: modelMessages.length,

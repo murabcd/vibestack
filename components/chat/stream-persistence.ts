@@ -9,6 +9,12 @@ export interface LastCompletePartInfo {
 	key: string;
 }
 
+export interface PersistSnapshot {
+	key: string;
+	messages: ChatUIMessage[];
+	finalized: boolean;
+}
+
 interface PartPointer {
 	messageIndex: number;
 	partIndex: number;
@@ -66,6 +72,35 @@ export function sliceMessagesThroughPart(
 			};
 		})
 		.filter((message): message is ChatUIMessage => message !== null);
+}
+
+export function getPersistSnapshot(
+	messages: ChatUIMessage[],
+	streamStatus: ChatStreamStatus,
+	previousStreamStatus?: ChatStreamStatus,
+): PersistSnapshot | null {
+	const checkpoint = getLastCompletePart(messages, streamStatus);
+	if (!checkpoint) return null;
+
+	const finalized =
+		(previousStreamStatus === "submitted" ||
+			previousStreamStatus === "streaming") &&
+		streamStatus === "ready";
+
+	if (finalized) {
+		const lastMessage = messages.at(-1);
+		return {
+			key: `final:${checkpoint.key}:${lastMessage?.parts.length ?? 0}`,
+			messages,
+			finalized: true,
+		};
+	}
+
+	return {
+		key: checkpoint.key,
+		messages: sliceMessagesThroughPart(messages, checkpoint),
+		finalized: false,
+	};
 }
 
 function getPrecedingPart(

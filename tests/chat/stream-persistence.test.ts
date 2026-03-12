@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	getLastCompletePart,
+	getPersistSnapshot,
 	sliceMessagesThroughPart,
 } from "../../components/chat/stream-persistence";
 import type { ChatUIMessage } from "../../components/chat/types";
@@ -66,5 +67,31 @@ describe("stream persistence", () => {
 		const persisted = sliceMessagesThroughPart(messages, checkpoint);
 		expect(persisted).toHaveLength(2);
 		expect(persisted[1].parts).toHaveLength(1);
+	});
+
+	it("forces a final full-message save when streaming completes", () => {
+		const messages: ChatUIMessage[] = [
+			message("u1", "user", [{ type: "text", text: "hello" } as never]),
+			message("a1", "assistant", [
+				{
+					type: "reasoning",
+					text: "thinking",
+					state: "done",
+					providerMetadata: {
+						openai: {
+							itemId: "rs_123",
+							reasoningEncryptedContent: "enc_123",
+						},
+					},
+				} as never,
+				{ type: "text", text: "hi there", state: "done" } as never,
+			]),
+		];
+
+		const snapshot = getPersistSnapshot(messages, "ready", "streaming");
+		expect(snapshot).not.toBeNull();
+		expect(snapshot?.finalized).toBe(true);
+		expect(snapshot?.messages).toEqual(messages);
+		expect(snapshot?.key.startsWith("final:")).toBe(true);
 	});
 });

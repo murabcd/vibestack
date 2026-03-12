@@ -17,10 +17,7 @@ import {
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import { Message } from "@/components/chat/message";
-import {
-	getLastCompletePart,
-	sliceMessagesThroughPart,
-} from "@/components/chat/stream-persistence";
+import { getPersistSnapshot } from "@/components/chat/stream-persistence";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { useConnectors } from "@/components/connectors-provider";
 import { PromptForm } from "@/components/forms/prompt-form";
@@ -526,22 +523,22 @@ function ProjectChatInner({
 	);
 
 	useEffect(() => {
-		const checkpoint = getLastCompletePart(uniqueMessages, status);
-		if (!checkpoint) return;
-		if (checkpoint.key === lastPersistedCheckpointRef.current) return;
+		const snapshot = getPersistSnapshot(
+			uniqueMessages,
+			status,
+			previousStatusRef.current,
+		);
+		if (!snapshot) return;
+		if (snapshot.key === lastPersistedCheckpointRef.current) return;
 
 		if (persistDebounceTimerRef.current) {
 			window.clearTimeout(persistDebounceTimerRef.current);
 		}
 
-		const persistableMessages = sliceMessagesThroughPart(
-			uniqueMessages,
-			checkpoint,
-		);
 		persistDebounceTimerRef.current = window.setTimeout(() => {
-			void persistMessages(persistableMessages)
+			void persistMessages(snapshot.messages)
 				.then(() => {
-					lastPersistedCheckpointRef.current = checkpoint.key;
+					lastPersistedCheckpointRef.current = snapshot.key;
 				})
 				.catch(() => {
 					// Best-effort checkpoint persistence; final save still happens server-side.
