@@ -19,6 +19,7 @@ import {
 	ContextReasoningUsage,
 	ContextTrigger,
 } from "@/components/ai-elements/context";
+import { ConnectorBrandIcon } from "@/components/connectors/connector-icon";
 import { ConnectorDialog } from "@/components/connectors/manage-connectors";
 import { useConnectors } from "@/components/connectors-provider";
 import { ImportFromGithubDialog } from "@/components/forms/import-from-github-dialog";
@@ -359,7 +360,7 @@ export const PromptForm = memo(function PromptForm({
 												) : filteredConnectors.length === 0 ? (
 													<div className="p-3 text-center">
 														<p className="text-xs text-muted-foreground">
-															No MCPs added
+															No MCPs found.
 														</p>
 													</div>
 												) : (
@@ -398,7 +399,13 @@ export const PromptForm = memo(function PromptForm({
 																	}
 																}}
 															>
-																<ServerIcon className="size-3.5 text-muted-foreground" />
+																<ConnectorBrandIcon
+																	name={connector.name}
+																	baseUrl={connector.baseUrl}
+																	command={connector.command}
+																	className="size-7 rounded-lg"
+																	iconClassName="size-4"
+																/>
 																<span className="flex-1 truncate text-sm">
 																	{connector.name}
 																</span>

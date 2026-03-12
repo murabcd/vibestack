@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff, Plus, Server, X } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Plus, X } from "lucide-react";
 import {
 	startTransition,
 	useActionState,
@@ -11,8 +11,8 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import { ConnectorBrandIcon } from "@/components/connectors/connector-icon";
 import { useConnectors } from "@/components/connectors-provider";
-import { Icons } from "@/components/icons/icons";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -132,32 +132,6 @@ const PRESETS: PresetConfig[] = [
 		url: "https://mcp.supabase.com/mcp",
 	},
 ];
-
-type PresetIconKey =
-	| "browserbase"
-	| "context7"
-	| "convex"
-	| "figma"
-	| "huggingFace"
-	| "linear"
-	| "notion"
-	| "playwright"
-	| "supabase";
-
-const getPresetIcon = (presetName: string): PresetIconKey | undefined => {
-	const iconMap: Record<string, PresetIconKey> = {
-		Browserbase: "browserbase",
-		Context7: "context7",
-		Convex: "convex",
-		Figma: "figma",
-		"Hugging Face": "huggingFace",
-		Linear: "linear",
-		Notion: "notion",
-		Playwright: "playwright",
-		Supabase: "supabase",
-	};
-	return iconMap[presetName];
-};
 
 interface EnvVar {
 	id: string;
@@ -460,10 +434,6 @@ export function ConnectorDialog({
 										) : (
 											<ul>
 												{filteredPresets.map((preset) => {
-													const iconKey = getPresetIcon(preset.name);
-													const IconComponent = iconKey
-														? (Icons[iconKey] as typeof Server)
-														: Server;
 													const existingConnector =
 														findExistingConnectorForPreset(preset);
 													const detail =
@@ -476,9 +446,11 @@ export function ConnectorDialog({
 															className="flex items-center gap-2 px-3 py-2.5 border-b last:border-b-0"
 														>
 															<div className="min-w-0 w-0 flex flex-1 items-center gap-2 overflow-hidden">
-																<div className="size-8 rounded-md border grid place-items-center shrink-0">
-																	<IconComponent className="size-5 text-muted-foreground" />
-																</div>
+																<ConnectorBrandIcon
+																	name={preset.name}
+																	baseUrl={preset.url}
+																	command={preset.command}
+																/>
 																<div className="min-w-0 w-0 flex-1">
 																	<div
 																		className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium"
@@ -605,13 +577,15 @@ export function ConnectorDialog({
 								>
 									{selectedPreset &&
 										(() => {
-											const iconKey = getPresetIcon(selectedPreset.name);
-											const IconComponent = iconKey
-												? (Icons[iconKey] as typeof Server)
-												: Server;
 											return (
 												<div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-													<IconComponent className="h-8 w-8 text-muted-foreground" />
+													<ConnectorBrandIcon
+														name={selectedPreset.name}
+														baseUrl={selectedPreset.url}
+														command={selectedPreset.command}
+														className="size-10 rounded-lg bg-background"
+														iconClassName="size-5"
+													/>
 													<div className="flex-1">
 														<p className="text-sm font-medium">
 															Configuring {selectedPreset.name}
