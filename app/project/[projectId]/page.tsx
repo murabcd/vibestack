@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type { ChatUIMessage } from "@/components/chat/types";
 import { getMessagesByProjectId, getProjectById } from "@/lib/db/queries";
 import { getSessionFromCookie } from "@/lib/session/server";
@@ -33,6 +34,8 @@ export async function generateMetadata({
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
 	const { projectId } = await params;
+	const cookieStore = await cookies();
+	const initialModelId = cookieStore.get("selected-model")?.value;
 	let initialMessages: ChatUIMessage[] = [];
 
 	try {
@@ -56,6 +59,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 		<ProjectPageClient
 			projectId={projectId}
 			initialMessages={initialMessages}
+			initialModelId={initialModelId}
 		/>
 	);
 }

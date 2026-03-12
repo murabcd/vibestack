@@ -1,5 +1,5 @@
 import { parseAsBoolean, parseAsStringLiteral, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_MODEL } from "@/lib/ai/constants";
 import {
 	MAX_ALLOWED_SANDBOX_DURATION,
@@ -7,6 +7,9 @@ import {
 } from "@/lib/constants";
 
 export type PermissionMode = "ask-permissions" | "auto-accept-edits";
+
+const MODEL_STORAGE_KEY = "selected-model";
+const SETTINGS_STORAGE_EVENT = "settings-storage-change";
 
 export function useSettings(
 	initialSandboxDuration?: number,
@@ -31,20 +34,87 @@ export function useSettings(
 }
 
 export function useModelId(initialModelId?: string) {
-	// Use useState instead of useQueryState to persist from cookie across navigations
-	// This matches how useSandboxDuration works
 	const [modelId, setModelId] = useState<string>(
 		initialModelId ?? DEFAULT_MODEL,
 	);
 
-	// Sync with initialModelId when it changes (e.g., after navigation)
 	useEffect(() => {
-		if (initialModelId && initialModelId !== modelId) {
-			setModelId(initialModelId);
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		const storedModelId = window.localStorage.getItem(MODEL_STORAGE_KEY);
+		if (storedModelId) {
+			if (storedModelId !== modelId) {
+				setModelId(storedModelId);
+			}
+			return;
+		}
+
+		const nextModelId = initialModelId ?? DEFAULT_MODEL;
+		window.localStorage.setItem(MODEL_STORAGE_KEY, nextModelId);
+		if (nextModelId !== modelId) {
+			setModelId(nextModelId);
 		}
 	}, [initialModelId, modelId]);
 
-	return [modelId, setModelId] as const;
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		const handleStorage = (event: StorageEvent) => {
+			if (
+				event.key === MODEL_STORAGE_KEY &&
+				typeof event.newValue === "string" &&
+				event.newValue !== modelId
+			) {
+				setModelId(event.newValue);
+			}
+		};
+
+		const handleSettingsStorage = (event: Event) => {
+			const customEvent = event as CustomEvent<{
+				key?: string;
+				value?: string;
+			}>;
+			if (
+				customEvent.detail?.key === MODEL_STORAGE_KEY &&
+				typeof customEvent.detail.value === "string" &&
+				customEvent.detail.value !== modelId
+			) {
+				setModelId(customEvent.detail.value);
+			}
+		};
+
+		window.addEventListener("storage", handleStorage);
+		window.addEventListener(SETTINGS_STORAGE_EVENT, handleSettingsStorage);
+
+		return () => {
+			window.removeEventListener("storage", handleStorage);
+			window.removeEventListener(SETTINGS_STORAGE_EVENT, handleSettingsStorage);
+		};
+	}, [modelId]);
+
+	const setSyncedModelId = useCallback((nextModelId: string) => {
+		setModelId(nextModelId);
+
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		window.localStorage.setItem(MODEL_STORAGE_KEY, nextModelId);
+		window.dispatchEvent(
+			new CustomEvent(SETTINGS_STORAGE_EVENT, {
+				detail: {
+					key: MODEL_STORAGE_KEY,
+					value: nextModelId,
+				},
+			}),
+		);
+	}, []);
+
+	return [modelId, setSyncedModelId] as const;
 }
 
 export function useReasoningEffort() {

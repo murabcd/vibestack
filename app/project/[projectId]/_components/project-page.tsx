@@ -22,6 +22,7 @@ import { ShareVisibilityButton } from "./share-visibility-button";
 interface ProjectPageClientProps {
 	projectId: string;
 	initialMessages: ChatUIMessage[];
+	initialModelId?: string;
 }
 
 interface ProjectDetails {
@@ -48,6 +49,7 @@ function hasPendingProjectCookie(projectId: string) {
 export function ProjectPageClient({
 	projectId,
 	initialMessages,
+	initialModelId,
 }: ProjectPageClientProps) {
 	const { isMobile } = useSidebar();
 	const { session } = useSession();
@@ -224,6 +226,7 @@ export function ProjectPageClient({
 										pendingMessage={pendingMessage}
 										sentMessageRef={hasSentPendingMessage}
 										initialLastContext={initialLastContext}
+										initialModelId={initialModelId}
 									/>
 								</div>
 								{hasOpenedPreview ? (
@@ -250,6 +253,7 @@ export function ProjectPageClient({
 										pendingMessage={pendingMessage}
 										sentMessageRef={hasSentPendingMessage}
 										initialLastContext={initialLastContext}
+										initialModelId={initialModelId}
 									/>
 								}
 								right={<EnhancedPreview className="flex-1 overflow-hidden" />}
