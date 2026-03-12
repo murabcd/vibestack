@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
 	Task,
 	TaskContent,
@@ -20,10 +20,18 @@ type TaskViewModel = {
 	title: string;
 	status: "loading" | "done" | "error";
 	icon: ReactNode;
-	iconName?: "sandbox" | "files" | "command" | "link" | "settings" | "wrench";
+	iconName?:
+		| "sandbox"
+		| "files"
+		| "files-verified"
+		| "command"
+		| "link"
+		| "settings"
+		| "wrench";
 	items: ReactNode[];
 	hideChevron?: boolean;
 	autoOpen?: boolean;
+	durationMs?: number | null;
 };
 
 export const TaskPart = memo(function TaskPart({
@@ -32,17 +40,128 @@ export const TaskPart = memo(function TaskPart({
 	part: TaskMessagePart;
 }) {
 	const task = toTaskViewModel(part);
+	const meaningfulItems = task?.items.filter(Boolean) ?? [];
+	const canExpand = meaningfulItems.length > 0 && !task?.hideChevron;
+	const taskAutoOpen = task?.autoOpen;
+	const taskStatus = task?.status;
+	const [isOpen, setIsOpen] = useState(task?.autoOpen ?? false);
+	const [elapsedSeconds, setElapsedSeconds] = useState(1);
+	const [completedSeconds, setCompletedSeconds] = useState<number | null>(null);
+	const expandTimerRef = useRef<number | null>(null);
+	const collapseTimerRef = useRef<number | null>(null);
+	const startedAtRef = useRef<number | null>(
+		taskStatus === "loading" ? Date.now() : null,
+	);
+	const previousStatusRef = useRef<TaskViewModel["status"] | undefined>(
+		taskStatus,
+	);
+
+	useEffect(() => {
+		if (taskAutoOpen !== undefined) {
+			setIsOpen(taskAutoOpen);
+		}
+	}, [taskAutoOpen]);
+
+	useEffect(() => {
+		if (taskStatus === "loading" && previousStatusRef.current !== "loading") {
+			startedAtRef.current = Date.now();
+			setElapsedSeconds(1);
+			setCompletedSeconds(null);
+		}
+
+		if (
+			(taskStatus === "done" || taskStatus === "error") &&
+			previousStatusRef.current === "loading"
+		) {
+			const durationSeconds = Math.max(
+				1,
+				Math.round((Date.now() - (startedAtRef.current ?? Date.now())) / 1000),
+			);
+			setElapsedSeconds(durationSeconds);
+			setCompletedSeconds(durationSeconds);
+			startedAtRef.current = null;
+		}
+
+		if (taskStatus !== "loading") return;
+
+		const timer = window.setInterval(() => {
+			setElapsedSeconds(
+				Math.max(
+					1,
+					Math.round(
+						(Date.now() - (startedAtRef.current ?? Date.now())) / 1000,
+					),
+				),
+			);
+		}, 1000);
+
+		return () => window.clearInterval(timer);
+	}, [taskStatus]);
+
+	useEffect(() => {
+		if (!taskStatus) return;
+		if (!canExpand || taskAutoOpen !== undefined) return;
+
+		const previousStatus = previousStatusRef.current;
+
+		if (expandTimerRef.current) {
+			window.clearTimeout(expandTimerRef.current);
+			expandTimerRef.current = null;
+		}
+		if (collapseTimerRef.current) {
+			window.clearTimeout(collapseTimerRef.current);
+			collapseTimerRef.current = null;
+		}
+
+		if (taskStatus === "loading" && previousStatus !== "loading") {
+			expandTimerRef.current = window.setTimeout(() => {
+				setIsOpen(true);
+				expandTimerRef.current = null;
+			}, 150);
+		} else if (
+			(taskStatus === "done" || taskStatus === "error") &&
+			previousStatus === "loading"
+		) {
+			setIsOpen(true);
+			collapseTimerRef.current = window.setTimeout(() => {
+				setIsOpen(false);
+				collapseTimerRef.current = null;
+			}, 2000);
+		}
+
+		previousStatusRef.current = taskStatus;
+
+		return () => {
+			if (expandTimerRef.current) {
+				window.clearTimeout(expandTimerRef.current);
+				expandTimerRef.current = null;
+			}
+			if (collapseTimerRef.current) {
+				window.clearTimeout(collapseTimerRef.current);
+				collapseTimerRef.current = null;
+			}
+		};
+	}, [canExpand, taskAutoOpen, taskStatus]);
+
 	if (!task) return null;
 
-	const meaningfulItems = task.items.filter(Boolean);
-
 	return (
-		<Task defaultOpen={task.autoOpen ?? false} open={task.autoOpen}>
+		<Task
+			defaultOpen={taskAutoOpen ?? false}
+			open={taskAutoOpen ?? isOpen}
+			onOpenChange={taskAutoOpen === undefined ? setIsOpen : undefined}
+		>
 			<TaskTrigger
 				title={task.title}
 				icon={task.icon}
 				iconName={task.iconName}
 				status={task.status}
+				meta={getTaskDurationLabel(
+					task.durationMs,
+					task.status,
+					elapsedSeconds,
+					completedSeconds,
+				)}
 				hideChevron={task.hideChevron ?? meaningfulItems.length === 0}
 			/>
 			{meaningfulItems.length > 0 ? (
@@ -67,12 +186,14 @@ function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 		};
 	}
 
+	const durationMs = readDurationMs(part);
 	const latestPart = part.data.parts[part.data.parts.length - 1] as
 		| Record<string, unknown>
 		| undefined;
 	const latestError = readError(latestPart?.error);
 	const latestUrl = typeof latestPart?.url === "string" ? latestPart.url : null;
 	const detailItems = latestPart ? getTaskDetailItems(latestPart) : [];
+	const title = getTaskTitle(part, latestPart);
 
 	const items: ReactNode[] = [];
 	items.push(...detailItems);
@@ -92,11 +213,12 @@ function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 	}
 
 	return {
-		title: getTaskTitle(part, latestPart),
+		title,
 		status: part.data.status,
 		icon: null,
-		iconName: getCodingTaskIconName(part),
+		iconName: getCodingTaskIconName(part, title),
 		items,
+		durationMs,
 	};
 }
 
@@ -125,56 +247,80 @@ function getTaskDetailItems(latestPart: Record<string, unknown>): ReactNode[] {
 
 	if (command) {
 		items.push(
-			<div key={`${type}-command`} className="font-mono text-xs break-all">
-				`{command}`
+			<div
+				key={`${type}-command`}
+				className="flex items-start gap-1 text-[10px]"
+			>
+				<span className="shrink-0 font-mono text-muted-foreground/50">$</span>
+				<code className="break-all font-mono leading-tight text-muted-foreground/70">
+					{command}
+				</code>
 			</div>,
 		);
 	}
 
 	if (sandboxId) {
 		items.push(
-			<div key={`${type}-sandbox`} className="font-mono text-xs break-all">
-				Sandbox: `{sandboxId}`
+			<div
+				key={`${type}-sandbox`}
+				className="break-all font-mono text-[10px] text-muted-foreground/65"
+			>
+				Sandbox: {sandboxId}
 			</div>,
 		);
 	}
 
 	if (commandId) {
 		items.push(
-			<div key={`${type}-command-id`} className="font-mono text-xs break-all">
-				Command: `{commandId}`
+			<div
+				key={`${type}-command-id`}
+				className="break-all font-mono text-[10px] text-muted-foreground/65"
+			>
+				Command: {commandId}
 			</div>,
 		);
 	}
 
 	if (port !== null) {
 		items.push(
-			<div key={`${type}-port`} className="font-mono text-xs">
-				Port: `{port}`
+			<div
+				key={`${type}-port`}
+				className="font-mono text-[10px] text-muted-foreground/65"
+			>
+				Port: {port}
 			</div>,
 		);
 	}
 
 	if (exitCode !== null) {
 		items.push(
-			<div key={`${type}-exit`} className="font-mono text-xs">
-				Exit code: `{exitCode}`
+			<div
+				key={`${type}-exit`}
+				className="font-mono text-[10px] text-muted-foreground/65"
+			>
+				Exit code: {exitCode}
 			</div>,
 		);
 	}
 
 	if (paths.length > 0) {
 		items.push(
-			<div key={`${type}-paths`} className="font-mono text-xs break-all">
-				Paths: `{paths.join(", ")}`
+			<div
+				key={`${type}-paths`}
+				className="break-all font-mono text-[10px] text-muted-foreground/65"
+			>
+				Paths: {paths.join(", ")}
 			</div>,
 		);
 	}
 
 	if (changes.length > 0) {
 		items.push(
-			<div key={`${type}-changes`} className="font-mono text-xs break-all">
-				Preflight: `{changes.join(", ")}`
+			<div
+				key={`${type}-changes`}
+				className="break-all font-mono text-[10px] text-muted-foreground/65"
+			>
+				Preflight: {changes.join(", ")}
 			</div>,
 		);
 	}
@@ -189,6 +335,55 @@ function readCommand(part: Record<string, unknown>): string | null {
 		: [];
 	if (!command) return null;
 	return [command, ...args].join(" ").trim();
+}
+
+function readDurationMs(
+	part: Exclude<TaskMessagePart, { type: "data-report-errors" }>,
+): number | null {
+	const explicitDuration = part.data.parts.reduce<number | null>(
+		(current, item) => {
+			if (
+				item &&
+				typeof item === "object" &&
+				typeof (item as { durationMs?: unknown }).durationMs === "number"
+			) {
+				return (item as { durationMs: number }).durationMs;
+			}
+			return current;
+		},
+		null,
+	);
+
+	if (explicitDuration !== null) {
+		return Math.max(1, Math.round(explicitDuration));
+	}
+
+	return null;
+}
+
+function formatTaskDuration(durationMs: number): string {
+	return `${Math.max(1, Math.round(durationMs / 1000))}s`;
+}
+
+function getTaskDurationLabel(
+	durationMs: number | null | undefined,
+	status: TaskViewModel["status"],
+	elapsedSeconds: number,
+	completedSeconds: number | null,
+): string | undefined {
+	if (status === "loading") {
+		return `${elapsedSeconds}s`;
+	}
+
+	if (typeof completedSeconds === "number" && completedSeconds > 0) {
+		return `${completedSeconds}s`;
+	}
+
+	if (typeof durationMs === "number" && durationMs > 0) {
+		return formatTaskDuration(durationMs);
+	}
+
+	return undefined;
 }
 
 function getTaskTitle(
@@ -339,9 +534,11 @@ function getCodingTaskIconName(
 		ChatUIMessage["parts"][number],
 		{ type: "data-task-coding-v1" }
 	>,
+	title: string,
 ): TaskViewModel["iconName"] {
 	const raw =
 		`${part.data.taskNameActive ?? ""} ${part.data.taskNameComplete ?? ""}`.toLowerCase();
+	const normalizedTitle = title.toLowerCase();
 	const latestPart = part.data.parts[part.data.parts.length - 1] as
 		| Record<string, unknown>
 		| undefined;
@@ -359,6 +556,13 @@ function getCodingTaskIconName(
 
 	if (raw.includes("sandbox") || latestType.includes("sandbox")) {
 		return "sandbox";
+	}
+	if (
+		raw.includes("verified") ||
+		normalizedTitle.includes("verified") ||
+		latestType.includes("verify")
+	) {
+		return "files-verified";
 	}
 	if (raw.includes("file") || latestType.includes("file")) {
 		return "files";

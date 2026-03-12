@@ -3,12 +3,14 @@
 import {
 	BrainIcon,
 	ChevronDownIcon,
+	ChevronRightIcon,
+	FileCheck2Icon,
 	FileCode2Icon,
 	FolderCogIcon,
 	GlobeIcon,
 	SearchIcon,
 	SettingsIcon,
-	TerminalIcon,
+	SquareTerminalIcon,
 	WrenchIcon,
 	XIcon,
 } from "lucide-react";
@@ -22,7 +24,6 @@ import {
 	useState,
 } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { Spinner } from "@/components/chat/message-part/spinner";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -51,7 +52,13 @@ export const TaskItemFile = ({
 export type TaskItemProps = ComponentProps<"div">;
 
 export const TaskItem = ({ children, className, ...props }: TaskItemProps) => (
-	<div className={cn("text-muted-foreground text-xs", className)} {...props}>
+	<div
+		className={cn(
+			"text-[11px] leading-tight text-muted-foreground/75",
+			className,
+		)}
+		{...props}
+	>
 		{children}
 	</div>
 );
@@ -99,12 +106,14 @@ export type TaskTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
 		| "thinking"
 		| "sandbox"
 		| "files"
+		| "files-verified"
 		| "command"
 		| "link"
 		| "settings"
 		| "wrench";
 	status?: "loading" | "done" | "error";
 	hideChevron?: boolean;
+	meta?: ReactNode;
 };
 
 export const TaskTrigger = ({
@@ -115,48 +124,56 @@ export const TaskTrigger = ({
 	iconName,
 	status,
 	hideChevron = false,
+	meta,
 	...props
 }: TaskTriggerProps) => {
-	const renderStatusIcon = () => {
-		if (!status) return null;
-
-		if (status === "loading") {
-			return <Spinner loading={true} className="size-4" />;
-		}
-		if (status === "done") {
-			return null;
-		}
-		if (status === "error") {
-			return <XIcon className="size-4 text-destructive" />;
-		}
-		return null;
-	};
-
 	const IconFromName = getTaskIconByName(iconName);
 
 	return (
 		<CollapsibleTrigger asChild className={cn("group", className)} {...props}>
 			{children ?? (
-				<div className="flex w-full cursor-pointer items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground">
+				<div
+					className={cn(
+						"group flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left outline-none transition-colors",
+						!hideChevron && "cursor-pointer",
+					)}
+				>
 					{icon ??
 						(IconFromName ? (
-							<IconFromName className="size-4" />
+							<IconFromName className="size-3.5 shrink-0 text-muted-foreground/55 transition-colors group-hover:text-muted-foreground/80" />
 						) : (
-							<SearchIcon className="size-4" />
+							<SearchIcon className="size-3.5 shrink-0 text-muted-foreground/55 transition-colors group-hover:text-muted-foreground/80" />
 						))}
-					<div className="flex-1">
+					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						{status === "loading" ? (
-							<Shimmer className="text-sm text-muted-foreground">
-								{title}
-							</Shimmer>
+							<div className="min-w-0 truncate font-mono text-[11px] leading-tight text-muted-foreground/80 transition-colors group-hover:text-foreground/85">
+								<Shimmer
+									as="span"
+									className="truncate font-mono text-[11px] leading-tight text-muted-foreground/80 transition-colors group-hover:text-foreground/85"
+								>
+									{title}
+								</Shimmer>
+							</div>
 						) : (
-							<p>{title}</p>
+							<p className="min-w-0 truncate font-mono text-[11px] leading-tight text-muted-foreground/80 transition-colors group-hover:text-foreground/85">
+								{title}
+							</p>
+						)}
+						{meta ? (
+							<span className="shrink-0 font-mono text-[11px] leading-tight text-muted-foreground/80 tabular-nums transition-colors group-hover:text-foreground/85">
+								{meta}
+							</span>
+						) : null}
+						{hideChevron ? null : (
+							<span className="shrink-0 cursor-pointer text-muted-foreground/40 transition-colors group-hover:text-muted-foreground/70">
+								<ChevronRightIcon className="size-3 group-data-[state=open]:hidden" />
+								<ChevronDownIcon className="hidden size-3 group-data-[state=open]:block" />
+							</span>
 						)}
 					</div>
-					{renderStatusIcon()}
-					{hideChevron ? null : (
-						<ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-					)}
+					{status === "error" ? (
+						<XIcon className="size-3 text-destructive/85" />
+					) : null}
 				</div>
 			)}
 		</CollapsibleTrigger>
@@ -180,12 +197,12 @@ export const TaskContent = ({
 	return (
 		<CollapsibleContent
 			className={cn(
-				"data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+				"overflow-hidden text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1",
 				className,
 			)}
 			{...props}
 		>
-			<div className="mt-4 space-y-2.5 border-muted border-l-2 pl-4">
+			<div className="mb-1 ml-2.5 mt-0.5 space-y-1 border-l border-muted/15 pl-1.5">
 				{children}
 			</div>
 		</CollapsibleContent>
@@ -199,7 +216,8 @@ function getTaskIconByName(
 	if (name === "thinking") return BrainIcon;
 	if (name === "sandbox") return FolderCogIcon;
 	if (name === "files") return FileCode2Icon;
-	if (name === "command") return TerminalIcon;
+	if (name === "files-verified") return FileCheck2Icon;
+	if (name === "command") return SquareTerminalIcon;
 	if (name === "link") return GlobeIcon;
 	if (name === "settings") return SettingsIcon;
 	if (name === "wrench") return WrenchIcon;

@@ -57,7 +57,7 @@ export function Reasoning({
 	const text = part.text || "";
 	const hasReasoningText = text.trim().length > 0;
 	const thoughtTitle = isStreaming
-		? `Thought for ${elapsedSeconds}s`
+		? `Thinking for ${elapsedSeconds}s`
 		: `Thought for ${durationSeconds ?? 1}s`;
 
 	if (!hasReasoningText) {
@@ -65,7 +65,7 @@ export function Reasoning({
 			<Task defaultOpen={false} open={false}>
 				<TaskTrigger
 					title={thoughtTitle}
-					icon={<BrainIcon className="size-4" />}
+					icon={<BrainIcon className="size-3.5 text-muted-foreground/55" />}
 					status={isStreaming ? "loading" : "done"}
 					hideChevron
 				/>
@@ -84,7 +84,7 @@ export function Reasoning({
 		>
 			<TaskTrigger
 				title={thoughtTitle}
-				icon={<BrainIcon className="size-4" />}
+				icon={<BrainIcon className="size-3.5 text-muted-foreground/55" />}
 				status={isStreaming ? "loading" : "done"}
 			/>
 			<TaskContent lazy={false}>
