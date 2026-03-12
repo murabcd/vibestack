@@ -1,5 +1,5 @@
 import { parseAsBoolean, parseAsStringLiteral, useQueryState } from "nuqs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MODEL } from "@/lib/ai/constants";
 import {
 	MAX_ALLOWED_SANDBOX_DURATION,
@@ -8,7 +8,12 @@ import {
 
 export type PermissionMode = "ask-permissions" | "auto-accept-edits";
 
+const REASONING_EFFORT_VALUES = ["high", "medium", "low"] as const;
+
 const MODEL_STORAGE_KEY = "selected-model";
+const FIX_ERRORS_STORAGE_KEY = "fix-errors";
+const WEB_SEARCH_STORAGE_KEY = "web-search";
+const REASONING_EFFORT_STORAGE_KEY = "reasoning-effort";
 const SETTINGS_STORAGE_EVENT = "settings-storage-change";
 
 export function useSettings(
@@ -118,18 +123,67 @@ export function useModelId(initialModelId?: string) {
 }
 
 export function useReasoningEffort() {
-	return useQueryState(
+	const [reasoningEffort, setReasoningEffort] = useQueryState(
 		"effort",
-		parseAsStringLiteral(["high", "medium", "low"]).withDefault("medium"),
+		parseAsStringLiteral(REASONING_EFFORT_VALUES).withDefault("medium"),
 	);
+	const hasHydratedReasoningEffort = useRef(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		if (hasHydratedReasoningEffort.current) {
+			return;
+		}
+		hasHydratedReasoningEffort.current = true;
+
+		const hasQueryValue = new URLSearchParams(window.location.search).has(
+			"effort",
+		);
+		if (hasQueryValue) {
+			return;
+		}
+
+		const storedEffort = window.localStorage.getItem(
+			REASONING_EFFORT_STORAGE_KEY,
+		);
+		if (
+			storedEffort === "high" ||
+			storedEffort === "medium" ||
+			storedEffort === "low"
+		) {
+			if (storedEffort !== reasoningEffort) {
+				void setReasoningEffort(storedEffort);
+			}
+			return;
+		}
+
+		window.localStorage.setItem(REASONING_EFFORT_STORAGE_KEY, reasoningEffort);
+	}, [reasoningEffort, setReasoningEffort]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(REASONING_EFFORT_STORAGE_KEY, reasoningEffort);
+	}, [reasoningEffort]);
+
+	return [reasoningEffort, setReasoningEffort] as const;
 }
 
 export function useFixErrors() {
-	return useQueryState("fix-errors", parseAsBoolean.withDefault(true));
+	return usePersistedBooleanQueryState(
+		"fix-errors",
+		FIX_ERRORS_STORAGE_KEY,
+		true,
+	);
 }
 
 export function useWebSearch() {
-	return useQueryState("web-search", parseAsBoolean.withDefault(false));
+	return usePersistedBooleanQueryState(
+		"web-search",
+		WEB_SEARCH_STORAGE_KEY,
+		false,
+	);
 }
 
 export function useSandboxDuration(initialValue?: number) {
@@ -160,4 +214,51 @@ export function usePermissionMode() {
 	}, [permissionMode]);
 
 	return [permissionMode, setPermissionMode] as const;
+}
+
+function usePersistedBooleanQueryState(
+	queryKey: string,
+	storageKey: string,
+	defaultValue: boolean,
+) {
+	const [value, setValue] = useQueryState(
+		queryKey,
+		parseAsBoolean.withDefault(defaultValue),
+	);
+	const hasHydratedFromStorage = useRef(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		if (hasHydratedFromStorage.current) {
+			return;
+		}
+		hasHydratedFromStorage.current = true;
+
+		const hasQueryValue = new URLSearchParams(window.location.search).has(
+			queryKey,
+		);
+		if (hasQueryValue) {
+			return;
+		}
+
+		const storedValue = window.localStorage.getItem(storageKey);
+		if (storedValue === "true" || storedValue === "false") {
+			const nextValue = storedValue === "true";
+			if (nextValue !== value) {
+				void setValue(nextValue);
+			}
+			return;
+		}
+
+		window.localStorage.setItem(storageKey, String(value));
+	}, [queryKey, storageKey, setValue, value]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(storageKey, String(value));
+	}, [storageKey, value]);
+
+	return [value, setValue] as const;
 }
