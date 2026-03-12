@@ -2,8 +2,9 @@
 
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { useSandboxStore } from "@/app/state";
 import { useSession } from "@/components/auth/session-provider";
 import { ProjectChat } from "@/components/chat/project-chat";
 import type { ChatUIMessage } from "@/components/chat/types";
@@ -50,8 +51,16 @@ export function ProjectPageClient({
 }: ProjectPageClientProps) {
 	const { isMobile } = useSidebar();
 	const { session } = useSession();
+	const hasPreviewContent = useSandboxStore(
+		(state) =>
+			Boolean(state.url) ||
+			Boolean(state.sandboxId) ||
+			state.paths.length > 0 ||
+			state.commands.length > 0,
+	);
 	const [activePanel, setActivePanel] = useState<"chat" | "preview">("chat");
 	const [hasOpenedPreview, setHasOpenedPreview] = useState(false);
+	const previewPanelNonce = useSandboxStore((state) => state.previewPanelNonce);
 	const isPendingProjectBootstrap = useMemo(
 		() => hasPendingProjectCookie(projectId),
 		[projectId],
@@ -102,6 +111,17 @@ export function ProjectPageClient({
 			return null;
 		}
 	}, [projectId, initialMessages.length]);
+
+	useEffect(() => {
+		if (previewPanelNonce === 0) return;
+		setHasOpenedPreview(true);
+		setActivePanel("preview");
+	}, [previewPanelNonce]);
+
+	useEffect(() => {
+		if (!isMobile || !hasPreviewContent) return;
+		setHasOpenedPreview(true);
+	}, [hasPreviewContent, isMobile]);
 
 	if (notFound) {
 		return (

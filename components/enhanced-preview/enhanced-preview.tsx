@@ -38,12 +38,27 @@ interface Props {
 
 export function EnhancedPreview({ className }: Props) {
 	const isMobile = useIsMobile();
-	const [consoleExpanded, setConsoleExpanded] = useState(false);
-	const [activeTab, setActiveTab] = useState("preview");
 	const [isControllingDevServer, setIsControllingDevServer] = useState(false);
 	const panelId = useId();
-	const { sandboxId, status, paths, commands, url, upsertCommand, setStatus } =
-		useSandboxStore();
+	const {
+		activeView,
+		commands,
+		consoleExpanded,
+		paths,
+		sandboxId,
+		setActiveView,
+		setConsoleExpanded,
+		setStatus,
+		status,
+		upsertCommand,
+		url,
+		urlUUID,
+	} = useSandboxStore();
+	const handleTabChange = (value: string) => {
+		if (value === "preview" || value === "code") {
+			setActiveView(value);
+		}
+	};
 
 	const controlDevServer = async (
 		action: "start_dev_server" | "stop_dev_server" | "restart_dev_server",
@@ -99,7 +114,7 @@ export function EnhancedPreview({ className }: Props) {
 		<Panel className={cn(className, "flex flex-col min-h-0")}>
 			<PanelHeader className="h-10 min-h-10 text-xs px-2 flex items-center gap-2 overflow-x-auto overflow-y-hidden">
 				<TooltipProvider delayDuration={120}>
-					<Tabs value={activeTab} onValueChange={setActiveTab}>
+					<Tabs value={activeView} onValueChange={handleTabChange}>
 						<TabsList className="h-8 bg-transparent border-0 rounded-none p-0 gap-1">
 							<TabsTrigger
 								value="preview"
@@ -204,8 +219,8 @@ export function EnhancedPreview({ className }: Props) {
 			{isMobile ? (
 				<div className="flex flex-1 min-h-0 flex-col">
 					<Tabs
-						value={activeTab}
-						onValueChange={setActiveTab}
+						value={activeView}
+						onValueChange={handleTabChange}
 						className="h-full min-h-0"
 					>
 						<TabsContent
@@ -213,6 +228,7 @@ export function EnhancedPreview({ className }: Props) {
 							className="h-full m-0 min-h-0 data-[state=active]:h-full"
 						>
 							<Preview
+								key={urlUUID ?? url ?? "preview"}
 								className="h-full"
 								disabled={status === "stopped"}
 								url={url}
@@ -244,8 +260,8 @@ export function EnhancedPreview({ className }: Props) {
 						id={`${panelId}-main-panel`}
 					>
 						<Tabs
-							value={activeTab}
-							onValueChange={setActiveTab}
+							value={activeView}
+							onValueChange={handleTabChange}
 							className="h-full"
 						>
 							<TabsContent
@@ -253,6 +269,7 @@ export function EnhancedPreview({ className }: Props) {
 								className="h-full m-0 data-[state=active]:h-full"
 							>
 								<Preview
+									key={urlUUID ?? url ?? "preview"}
 									className="h-full"
 									disabled={status === "stopped"}
 									url={url}

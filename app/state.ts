@@ -9,14 +9,20 @@ interface SandboxStore {
 	addGeneratedFiles: (files: string[]) => void;
 	addLog: (data: { sandboxId: string; cmdId: string; log: CommandLog }) => void;
 	addPaths: (paths: string[]) => void;
+	activeView: "preview" | "code";
 	chatStatus: ChatStatus;
 	clearGeneratedFiles: () => void;
 	commands: Command[];
+	consoleExpanded: boolean;
 	generatedFiles: Set<string>;
 	paths: string[];
+	previewPanelNonce: number;
+	revealPreviewPanel: () => void;
 	reset: () => void;
 	sandboxId?: string;
+	setActiveView: (view: "preview" | "code") => void;
 	setChatStatus: (status: ChatStatus) => void;
+	setConsoleExpanded: (expanded: boolean) => void;
 	setSandboxId: (id: string) => void;
 	setStatus: (status: "running" | "stopped") => void;
 	setUrl: (url: string, uuid: string) => void;
@@ -66,26 +72,36 @@ export const useSandboxStore = create<SandboxStore>()((set) => ({
 	},
 	addPaths: (paths) =>
 		set((state) => ({ paths: [...new Set([...state.paths, ...paths])] })),
+	activeView: "preview",
 	chatStatus: "ready",
 	clearGeneratedFiles: () => set(() => ({ generatedFiles: new Set<string>() })),
 	commands: [],
+	consoleExpanded: false,
 	generatedFiles: new Set<string>(),
 	paths: [],
+	previewPanelNonce: 0,
+	revealPreviewPanel: () =>
+		set((state) => ({ previewPanelNonce: state.previewPanelNonce + 1 })),
 	reset: () =>
 		set(() => ({
+			activeView: "preview",
 			sandboxId: undefined,
 			status: undefined,
 			url: undefined,
 			urlUUID: undefined,
 			commands: [],
+			consoleExpanded: false,
 			paths: [],
+			previewPanelNonce: 0,
 			generatedFiles: new Set<string>(),
 			chatStatus: "ready",
 		})),
+	setActiveView: (activeView) => set(() => ({ activeView })),
 	setChatStatus: (status) =>
 		set((state) =>
 			state.chatStatus === status ? state : { chatStatus: status },
 		),
+	setConsoleExpanded: (consoleExpanded) => set(() => ({ consoleExpanded })),
 	setSandboxId: (sandboxId) =>
 		set((state) => {
 			if (state.sandboxId === sandboxId) {

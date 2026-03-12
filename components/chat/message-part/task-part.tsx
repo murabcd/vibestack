@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { memo, useEffect, useRef, useState } from "react";
+import { useSandboxStore } from "@/app/state";
 import {
 	Task,
 	TaskContent,
@@ -176,6 +177,8 @@ export const TaskPart = memo(function TaskPart({
 });
 
 function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
+	const { revealPreviewPanel, setActiveView, setUrl } =
+		useSandboxStore.getState();
 	if (part.type === "data-report-errors") {
 		return {
 			title: "Diagnostics report",
@@ -206,6 +209,11 @@ function toTaskViewModel(part: TaskMessagePart): TaskViewModel {
 				target="_blank"
 				rel="noopener noreferrer"
 				className="text-primary hover:underline"
+				onClick={() => {
+					setUrl(latestUrl, crypto.randomUUID());
+					setActiveView("preview");
+					revealPreviewPanel();
+				}}
 			>
 				{latestUrl}
 			</a>,

@@ -31,6 +31,7 @@ export function Preview({ className, disabled, url }: Props) {
 	useEffect(() => {
 		setCurrentUrl(url);
 		setInputValue(url || "");
+		setError(null);
 	}, [url]);
 
 	const refreshIframe = () => {
