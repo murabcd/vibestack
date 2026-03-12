@@ -14,6 +14,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useSandboxStore } from "@/app/state";
+import { Icons } from "@/components/icons/icons";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -47,6 +49,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
+import {
+	clearGeneratingProjectId,
+	getGeneratingProjectId,
+	subscribeToGeneratingProjectChange,
+} from "@/lib/generating-project";
 
 // Simple type definition for projects
 interface Project {
@@ -114,12 +121,14 @@ const PureProjectItem = ({
 	onDelete,
 	setOpenMobile,
 	onUpdateProject,
+	isGenerating,
 }: {
 	project: Project;
 	isActive: boolean;
 	onDelete: (projectId: string) => void;
 	setOpenMobile: (open: boolean) => void;
 	onUpdateProject: (projectId: string, updates: Partial<Project>) => void;
+	isGenerating: boolean;
 }) => {
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -184,7 +193,15 @@ const PureProjectItem = ({
 						onClick={() => setOpenMobile(false)}
 						className="flex items-center justify-between"
 					>
-						<span className="truncate flex-1">{project.title}</span>
+						<span className="flex min-w-0 flex-1 items-center gap-2">
+							{isGenerating ? (
+								<Icons.loader
+									size={14}
+									className="shrink-0 text-muted-foreground"
+								/>
+							) : null}
+							<span className="truncate flex-1">{project.title}</span>
+						</span>
 					</Link>
 				</SidebarMenuButton>
 			)}
@@ -306,6 +323,7 @@ const PureProjectItem = ({
 
 export const ProjectItem = memo(PureProjectItem, (prevProps, nextProps) => {
 	if (prevProps.isActive !== nextProps.isActive) return false;
+	if (prevProps.isGenerating !== nextProps.isGenerating) return false;
 	if (prevProps.project.title !== nextProps.project.title) return false;
 	if (prevProps.project.isPinned !== nextProps.project.isPinned) return false;
 	return true;
@@ -313,8 +331,11 @@ export const ProjectItem = memo(PureProjectItem, (prevProps, nextProps) => {
 
 export function SidebarHistory() {
 	const { setOpenMobile } = useSidebar();
+	const chatStatus = useSandboxStore((state) => state.chatStatus);
 	const pathname = usePathname();
 	const router = useRouter();
+	const [persistedGeneratingProjectId, setPersistedGeneratingProjectId] =
+		useState<string | null>(() => getGeneratingProjectId());
 
 	const projectId = useMemo(() => {
 		const prefix = "/project/";
@@ -330,9 +351,36 @@ export function SidebarHistory() {
 	// Fetch projects from API
 	const { data, error, mutate } = useSWR<{ projects: Project[] }>(
 		"/api/projects",
+		{
+			refreshInterval: persistedGeneratingProjectId ? 3000 : 0,
+		},
 	);
 
 	const projects = data?.projects || [];
+	const isProjectGenerating = (candidateProjectId: string) =>
+		(candidateProjectId === projectId &&
+			(chatStatus === "submitted" || chatStatus === "streaming")) ||
+		candidateProjectId === persistedGeneratingProjectId;
+
+	useEffect(() => {
+		return subscribeToGeneratingProjectChange(setPersistedGeneratingProjectId);
+	}, []);
+
+	useEffect(() => {
+		if (!persistedGeneratingProjectId) return;
+		const generatingProject = projects.find(
+			(project) => project.projectId === persistedGeneratingProjectId,
+		);
+		if (!generatingProject) return;
+
+		if (
+			generatingProject.status === "completed" ||
+			generatingProject.status === "error" ||
+			Boolean(generatingProject.previewUrl)
+		) {
+			clearGeneratingProjectId(persistedGeneratingProjectId);
+		}
+	}, [persistedGeneratingProjectId, projects]);
 
 	const handleDelete = async () => {
 		if (!deleteId) return;
@@ -542,6 +590,7 @@ export function SidebarHistory() {
 									key={project.id}
 									project={project}
 									isActive={project.projectId === projectId}
+									isGenerating={isProjectGenerating(project.projectId)}
 									onDelete={(projectId) => {
 										setDeleteId(projectId);
 										setShowDeleteDialog(true);
@@ -573,6 +622,7 @@ export function SidebarHistory() {
 													key={project.id}
 													project={project}
 													isActive={project.projectId === projectId}
+													isGenerating={isProjectGenerating(project.projectId)}
 													onDelete={(projectId) => {
 														setDeleteId(projectId);
 														setShowDeleteDialog(true);
@@ -594,6 +644,7 @@ export function SidebarHistory() {
 													key={project.id}
 													project={project}
 													isActive={project.projectId === projectId}
+													isGenerating={isProjectGenerating(project.projectId)}
 													onDelete={(projectId) => {
 														setDeleteId(projectId);
 														setShowDeleteDialog(true);
@@ -615,6 +666,7 @@ export function SidebarHistory() {
 													key={project.id}
 													project={project}
 													isActive={project.projectId === projectId}
+													isGenerating={isProjectGenerating(project.projectId)}
 													onDelete={(projectId) => {
 														setDeleteId(projectId);
 														setShowDeleteDialog(true);
@@ -636,6 +688,7 @@ export function SidebarHistory() {
 													key={project.id}
 													project={project}
 													isActive={project.projectId === projectId}
+													isGenerating={isProjectGenerating(project.projectId)}
 													onDelete={(projectId) => {
 														setDeleteId(projectId);
 														setShowDeleteDialog(true);
@@ -657,6 +710,7 @@ export function SidebarHistory() {
 													key={project.id}
 													project={project}
 													isActive={project.projectId === projectId}
+													isGenerating={isProjectGenerating(project.projectId)}
 													onDelete={(projectId) => {
 														setDeleteId(projectId);
 														setShowDeleteDialog(true);

@@ -11,6 +11,10 @@ import { SidebarToggle } from "@/components/sidebar/sidebar-toggle";
 import type { PromptInputMessage } from "@/components/ui/prompt-input";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { useAppHaptics } from "@/hooks/use-app-haptics";
+import {
+	clearGeneratingProjectId,
+	setGeneratingProjectId,
+} from "@/lib/generating-project";
 import { generateUUID } from "@/lib/utils";
 import { InitialScreen } from "../initial-screen";
 
@@ -100,6 +104,7 @@ export function PageClient({
 				}),
 			);
 			setPendingProjectCookie(projectId);
+			setGeneratingProjectId(projectId);
 			void mutate<{ projects: ProjectListItem[] }>(
 				"/api/projects",
 				(current) => {
@@ -201,6 +206,7 @@ export function PageClient({
 						},
 					);
 					setPendingProjectCookie();
+					clearGeneratingProjectId(projectId);
 					console.error("Failed to initialize project:", caughtError);
 					toast.error("Failed to initialize project. Please try again.");
 					errorHaptic();
@@ -212,6 +218,7 @@ export function PageClient({
 			void initializeProjectPromise;
 		} catch (caughtError) {
 			setPendingProjectCookie();
+			clearGeneratingProjectId();
 			console.error("Failed to create project:", caughtError);
 			toast.error("Failed to create project. Please try again.");
 			errorHaptic();

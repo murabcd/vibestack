@@ -35,6 +35,10 @@ import {
 import { useAppHaptics } from "@/hooks/use-app-haptics";
 import type { AppUsage } from "@/lib/ai/usage";
 import { useSharedChatContext } from "@/lib/chat-context";
+import {
+	clearGeneratingProjectId,
+	setGeneratingProjectId,
+} from "@/lib/generating-project";
 import { useLocalStorageValue } from "@/lib/use-local-storage-value";
 
 interface Props {
@@ -495,7 +499,14 @@ function ProjectChatInner({
 	useEffect(() => {
 		statusRef.current = status;
 		setChatStatus(status);
-	}, [status, setChatStatus]);
+		if (status === "submitted" || status === "streaming") {
+			setGeneratingProjectId(projectId);
+			return;
+		}
+		if (status === "ready" || status === "error") {
+			clearGeneratingProjectId(projectId);
+		}
+	}, [status, projectId, setChatStatus]);
 
 	const persistMessages = useCallback(
 		async (nextMessages: ChatUIMessage[]) => {

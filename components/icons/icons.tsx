@@ -1,5 +1,6 @@
 import type { LucideIcon, LucideProps } from "lucide-react";
 import { type SVGProps, useId } from "react";
+import { cn } from "@/lib/utils";
 
 export type Icon = LucideIcon;
 
@@ -101,7 +102,11 @@ export const Icons = {
 			<path d="M12 19.6l8.85 -8.85" />
 		</svg>
 	),
-	loader: ({ size = 16, ...props }: LucideProps & { size?: number }) => {
+	loader: ({
+		size = 16,
+		className,
+		...props
+	}: LucideProps & { size?: number }) => {
 		const clipPathId = useId();
 
 		return (
@@ -111,7 +116,7 @@ export const Icons = {
 				style={{ color: "currentcolor" }}
 				viewBox="0 0 16 16"
 				width={size}
-				className="animate-spin"
+				className={cn("animate-spin", className)}
 				{...props}
 			>
 				<title>Loader</title>
