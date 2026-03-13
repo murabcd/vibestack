@@ -51,7 +51,9 @@ export const Message = memo(function Message({
 	const renderedParts = coalesceStreamingTaskParts(message.parts);
 	const visibleParts =
 		message.role === "assistant"
-			? renderedParts.filter(isAssistantTaskPart)
+			? collapseConsecutiveReasoningParts(
+					renderedParts.filter(isAssistantTaskPart),
+				)
 			: renderedParts;
 	const hasTextPart = visibleParts.some(
 		(part) => part.type === "text" && part.text?.trim(),
@@ -129,6 +131,27 @@ function isAssistantTaskPart(part: ChatUIMessage["parts"][number]): boolean {
 		part.type === "reasoning" ||
 		part.type === "tool-runCommand"
 	);
+}
+
+export function collapseConsecutiveReasoningParts(
+	parts: ChatUIMessage["parts"],
+): ChatUIMessage["parts"] {
+	const compacted: ChatUIMessage["parts"] = [];
+
+	for (const part of parts) {
+		const previousPart = compacted[compacted.length - 1];
+		const isConsecutiveReasoning =
+			part.type === "reasoning" && previousPart?.type === "reasoning";
+
+		if (isConsecutiveReasoning) {
+			compacted[compacted.length - 1] = part;
+			continue;
+		}
+
+		compacted.push(part);
+	}
+
+	return compacted;
 }
 
 function coalesceStreamingTaskParts(
